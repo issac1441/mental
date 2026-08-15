@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mental Build"
+  short_description: "Build evidence-linked mental model artifacts"
+  default_prompt: "Use $build to draft a mental model from the sources I provide."

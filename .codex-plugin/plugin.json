@@ -1,0 +1,24 @@
+{
+  "name": "mental",
+  "version": "0.1.0",
+  "description": "Build, explain, and maintain evidence-linked mental models for repositories and learning material.",
+  "author": {
+    "name": "mental contributors"
+  },
+  "license": "MIT",
+  "keywords": ["mental-models", "learning", "architecture", "knowledge"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Mental",
+    "shortDescription": "Build verifiable mental models for code and learning.",
+    "longDescription": "Agent-native workflows that turn supplied repositories and learning sources into reviewable mental models, adaptive lessons, and evidence-aware change decisions.",
+    "developerName": "mental contributors",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Explain this repository through its mental model.",
+      "Build a draft mental model from these sources.",
+      "Diagnose what I need to learn next."
+    ]
+  }
+}
