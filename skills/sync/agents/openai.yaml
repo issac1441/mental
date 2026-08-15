@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mental Sync"
+  short_description: "Find and reconcile model drift with approval"
+  default_prompt: "Use $sync to compare the canonical model with its current sources."

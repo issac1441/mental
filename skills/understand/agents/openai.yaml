@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mental Understand"
+  short_description: "Explain a subject through its mental model"
+  default_prompt: "Use $understand to explain this question through the current mental model."

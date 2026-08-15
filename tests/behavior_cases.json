@@ -1,0 +1,42 @@
+[
+  {
+    "name": "understand is read-only without a model",
+    "skill": "understand",
+    "required_phrases": ["strictly read-only", "no canonical model exists", "$build"]
+  },
+  {
+    "name": "build gates canonical promotion",
+    "skill": "build",
+    "required_phrases": ["status: draft", "promotion gate", "explicitly accepted"]
+  },
+  {
+    "name": "sync preserves conflict",
+    "skill": "sync",
+    "required_phrases": ["canonical artifacts untouched", "conflicts and surprises", "Human Decision: pending"]
+  },
+  {
+    "name": "change stops before implementation",
+    "skill": "change",
+    "required_phrases": ["Human Decision: pending", "Do not implement code", "Prediction"]
+  },
+  {
+    "name": "review stays read-only",
+    "skill": "review",
+    "required_phrases": ["Remain read-only", "Decision Surprises", "failure path"]
+  },
+  {
+    "name": "learn diagnoses before teaching",
+    "skill": "learn",
+    "required_phrases": ["2–5 high-information diagnostic prompts", "stop for answers", ".mental/mastery.json"]
+  },
+  {
+    "name": "practice requires transfer evidence",
+    "skill": "practice",
+    "required_phrases": ["transfer or boundary follow-up", "marking `verified`", "Never publish personal attempts"]
+  },
+  {
+    "name": "doctor distinguishes structure from meaning",
+    "skill": "doctor",
+    "required_phrases": ["structural script cannot decide", "Do not edit by default", "semantically correct"]
+  }
+]

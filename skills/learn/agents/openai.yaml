@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mental Learn"
+  short_description: "Teach adaptively from a verified mental model"
+  default_prompt: "Use $learn to diagnose my gaps and teach me this topic."
