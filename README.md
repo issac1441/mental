@@ -1,129 +1,125 @@
 # mental
 
-`mental` is an agent-native plugin that closes the gap between agent execution and human understanding. It helps people orient, predict, decide, review, learn, and repair a model from inside Claude Code or Codex.
-
-It is not a standalone CLI, hosted service, or replacement for source material. It has no backend, account, telemetry, MCP server, or external LLM API. The interface is nine skills; bundled Python scripts are internal deterministic helpers.
+`mental` helps you understand repositories and supplied learning material from inside Claude Code or Codex. Use it to explain a system, evaluate a planned change, review completed work, learn a topic, or test your understanding.
 
 [繁體中文指南](README.zh-TW.md)
 
-Design notes: [background and research framing](docs/design-background.md) · [STE100 evaluation](docs/ste100-evaluation.md)
-
 ## Quickstart
 
-### 1. Load `mental`
+### 1. Load the plugin
 
-For Claude Code development:
+With Claude Code:
 
 ```sh
 git clone https://github.com/issac1441/mental.git /absolute/path/to/mental
-cd /path/to/the-repository-you-want-to-understand
+cd /path/to/your-project
 claude --plugin-dir /absolute/path/to/mental
 ```
 
-For Codex, install `mental` from a configured plugin marketplace as described in [Install and validate](#install-and-validate), then open the target repository:
+With Codex, install `mental` from a configured plugin marketplace, then open your project:
 
 ```sh
-codex -C /path/to/the-repository-you-want-to-understand
+codex -C /path/to/your-project
 ```
 
-### 2. Ask first—no setup required
+Claude Code uses `/mental:<skill>`. Codex uses `$mental:<skill>` or the skill selector.
+
+### 2. Understand something
 
 ```text
 /mental:understand How does a request move through this repository?
 $mental:understand How does a request move through this repository?
 ```
 
-`understand` reads the current session and the smallest relevant repository or supplied-source evidence. It works before `mental/` exists and never writes files. If the model will be useful again, it may offer `build`; persistence is optional, not an entrance fee.
+You can use `understand` immediately. A `mental/` workspace is not required.
 
-### 3. Predict and decide a change
+### 3. Examine a change before implementation
 
 ```text
-/mental:change Add request timeouts without changing failure semantics.
+/mental:change Add request timeouts without changing failure behavior.
 /mental:change Tell me the actual effect of option A in the current plan.
 ```
 
-When a prediction can expose a consequential model gap, `change` asks the human first, waits for an answer or `skip`, then compares it with evidence. A direct-answer request stays direct. Human approval applies to desired behavior and tradeoffs—not unsupported factual claims.
+Answer the prediction question, or enter `skip` when you only want the explanation. The skill remains read-only unless you add `record=true`.
 
-### 4. Review what actually happened
+### 4. Review completed work
 
 ```text
 /mental:review Review the current diff.
 /mental:quiz current-change items=12 feedback=end format=mixed
 ```
 
-`review` reconstructs Before → After, exposes choices discovered only after approval as Decision Surprises, and checks the bounded `Model × Harness × Task Class` trust unit.
+`review` explains the Before → After behavior and reports findings. `quiz` checks whether you can reconstruct the change.
 
-### 5. Persist only after value appears
+### 5. Learn from supplied material
 
 ```text
-/mental:build Save the reusable model we just established.
+/mental:learn Teach me the event loop from docs/event-loop.md.
+/mental:practice event-loop
+/mental:quiz event-loop items=15
 ```
 
-`build` is an advanced persistence skill. It stores regenerable mechanical artifacts, conceptual drafts with verification requirements, decision history, and first-class conflicts. It does not create a wiki for coverage's sake.
+`learn` starts with 2–5 short diagnostic questions. Use `practice` for adaptive follow-up and `quiz` for a complete assessment.
 
-## Interaction model
+### 6. Save a reusable model (optional)
 
-`mental` uses **Lens × Job**:
+```text
+/mental:build Save the reusable model from this session.
+```
 
-- **Lens** is the session role whose knowledge, vocabulary, concerns, and decisions should shape the explanation: `general`, `engineer`, `architect`, `pm`, `operator`, `student`, `researcher`, or a custom lens.
-- **Job** is what the person needs now: `orient`, `decide`, `predict`, `verify`, or `repair`.
+After artifacts exist, use:
 
-The agent infers both from the current goal and session. Manual `lens=` and `job=` values win. Semantic Views—anchor, map, mechanism, scenario, and evidence—remain internal selection vocabulary. Experienced users may supply `views=` as an advanced override, but first-time users are not expected to know it.
+```text
+/mental:sync
+/mental:doctor
+```
 
-`mental` does not print repetitive context headers. It discloses Lens, Job, or Views only when user-selected, non-default, uncertain, or actionable.
+## Skill reference
 
-## Skills
+| Skill | Syntax | Use it for | Default writes |
+| --- | --- | --- | --- |
+| `understand` | `<question> [job=...] [lens=...]` | Explain a repository, document, session, or supplied topic | None |
+| `change` | `<intent-or-question> [job=decide\|predict] [lens=...] [record=true\|false]` | Compare a proposed change, option, plan, or TODO list | None |
+| `review` | `[diff-or-ref] [job=verify\|predict] [lens=...]` | Explain and audit completed work | None |
+| `learn` | `<goal-or-scope> [lens=...]` | Diagnose prerequisites and teach from supplied sources | Private progress only with consent |
+| `practice` | `[scope] [lens=...]` | Run an answer-adaptive practice loop | Private progress only with consent |
+| `quiz` | `[scope] [items=12] [feedback=end\|after-each] [format=mixed\|open\|mcq] [lens=...]` | Run a fixed 10–20 item assessment | Private results only with consent |
+| `build` | `[source-or-scope] [mode=repository\|learning\|hybrid] [language=...]` | Create or extend reusable artifacts | `mental/` and `.mental/` |
+| `sync` | `[scope]` | Refresh existing artifacts after sources change | `mental/` |
+| `doctor` | `[scope] [repair=true\|false]` | Check artifact structure, links, evidence, conflicts, and privacy | None unless `repair=true` |
 
-### Primary skills
+## Common options
 
-| Skill | Use it when | Writes by default |
-| --- | --- | --- |
-| `understand` | You need an immediate explanation or orientation | No |
-| `change` | You need to predict, compare, or decide before implementation | No; records only when asked |
-| `review` | The agent finished and you need the actual change model | No |
-| `learn` | You want diagnosis and adaptive source-bound teaching | Private state only with evidence and explicit persistence consent |
-| `practice` | You want answer-adaptive repair and transfer | Private state only with evidence and explicit persistence consent |
-| `quiz` | You want a complete fixed-coverage assessment | Private results only with explicit persistence consent |
+You normally do not need to specify these values. The skill infers them from your request and current session.
 
-### Advanced persistence and maintenance
+- `lens=` controls the assumed role and vocabulary: `general`, `engineer`, `architect`, `pm`, `operator`, `student`, `researcher`, or a custom lens ID.
+- `job=` controls the current task: `orient`, `decide`, `predict`, `verify`, or `repair`.
+- `views=` is an advanced override. Accepted values are `anchor`, `map`, `mechanism`, `scenario`, and `evidence`.
 
-| Skill | Use it when |
-| --- | --- |
-| `build` | A useful model, lens, decision, or conflict should persist |
-| `sync` | Registered sources changed and durable artifacts need refresh |
-| `doctor` | A durable workspace's authority, evidence, decisions, conflicts, links, or privacy may be invalid |
+Examples:
 
-Every skill has its own authoritative Input contract. Host interfaces may show descriptions or default prompts, but enumerated argument autocomplete is not guaranteed across Claude Code and Codex.
+```text
+/mental:understand lens=pm job=orient Explain the checkout service.
+/mental:understand lens=architect job=predict How does failover work?
+/mental:change job=decide Compare options A and B.
+```
 
-## Artifact authority
+## Typical workflows
 
-Artifacts say who may update them:
+- Repository orientation: `understand`
+- Planned implementation: `understand → change → Plan Mode → implementation → review`
+- Explain a completed diff: `review → optional quiz`
+- Guided learning: `learn → practice → quiz`
+- Reusable workspace: `understand → optional build → later sync or doctor`
 
-| Authority | Meaning | States |
-| --- | --- | --- |
-| `mechanical` | Regenerable from registered evidence | `current`, `stale` |
-| `conceptual` | Durable working explanation with a verification basis | `draft`, `active`, `stale` |
-| `decision` | Human intent, tradeoff, or accepted change | `pending`, `accepted`, `rejected`, `superseded` |
+## Files created by mental
 
-`active` means “current working model with recorded verification,” not infallible truth. Recognition or “looks good” is not verification. Mechanical artifacts refresh without a human truth judgment; human decisions cannot make unsupported facts true.
+- `mental/` contains shared, versionable models, sources, scenarios, changes, decisions, and conflicts.
+- `.mental/` contains private profiles, answers, mastery state, and session records. The scaffold configures Git to ignore this directory.
 
-Conflicts live under `mental/conflicts/` with stable IDs, `open|resolved` status, both claims and evidence, owner, and resolution history. Consequential choices live in an append-preserving decision ledger under `mental/decisions/`.
+`understand` and `review` never write files. Learning skills save private progress only after you consent during the active session.
 
-Shared artifacts live in `mental/`. Private goals, answers, progress, and sessions live in gitignored `.mental/`.
-
-## Representative journeys
-
-**Vibe coding:** `understand → change → human prediction/decision → Plan Mode → implementation → review → optional quiz → advanced sync`
-
-**Quick question:** `understand`, with no artifact setup.
-
-**Product decision:** `understand lens=pm → change job=decide → human decision → Plan Mode → review`
-
-**Learning:** `learn supplied source → practice → quiz → optional build`
-
-**Durable model:** `understand → proven reuse value → build → later sync/doctor`
-
-## Install and validate
+## Installation and validation
 
 ### Claude Code
 
@@ -132,7 +128,7 @@ claude --plugin-dir /absolute/path/to/mental
 claude plugin validate /absolute/path/to/mental
 ```
 
-For persistent distribution, add the repository to a Claude Code marketplace and install `mental` from it.
+For persistent installation, add the repository to a Claude Code marketplace and install `mental` from it.
 
 ### Codex
 
@@ -143,15 +139,11 @@ codex plugin marketplace add /absolute/path/to/marketplace
 codex plugin add mental@marketplace-name
 ```
 
-The package uses `.codex-plugin/plugin.json` plus `skills/*/SKILL.md`. Claude and Codex share the same skill semantics.
+### OpenCode
 
-### OpenCode compatibility
-
-OpenCode support is currently documentation-only and does not promise native namespace parity. Copy or link `skills/`, `references/`, `scripts/`, and `assets/` under one `.agents/` directory while preserving relative paths. Skills appear by unscoped names such as `understand` and `change`.
+OpenCode support is documentation-only. Copy or link `skills/`, `references/`, `scripts/`, and `assets/` under one `.agents/` directory while preserving their relative paths. Skills appear with unscoped names such as `understand` and `change`.
 
 ## Development
-
-The repository has no runtime dependencies:
 
 ```sh
 python3 -m unittest discover -s tests -v
@@ -159,8 +151,13 @@ python3 scripts/scaffold_workspace.py /tmp/mental-demo --mode hybrid --language 
 python3 scripts/validate_workspace.py /tmp/mental-demo
 ```
 
-The Python helpers are internal skill implementation details, not a supported end-user CLI.
+The Python scripts are internal skill helpers, not a public CLI.
+
+## Additional documentation
+
+- [Design background and research framing](docs/design-background.md)
+- [ASD-STE100 evaluation](docs/ste100-evaluation.md)
 
 ## License
 
-[0BSD](LICENSE). Use, copy, modify, and distribute it freely. Redistribution does not require attribution or preservation of a copyright notice.
+[0BSD](LICENSE). You may use, copy, modify, and distribute this project without an attribution requirement.

@@ -256,7 +256,10 @@ class PluginContractTests(unittest.TestCase):
         for path in (ROOT / "README.md", ROOT / "README.zh-TW.md"):
             text = path.read_text(encoding="utf-8")
             self.assertLess(text.find("/mental:understand"), text.find("/mental:build"))
-            self.assertRegex(text.lower(), r"build.{0,160}(optional|選用|進階)")
+            self.assertRegex(
+                text.lower(),
+                r"(optional build|保存.{0,40}選用|build.{0,160}(選用|進階))",
+            )
 
     def test_local_document_links_resolve(self) -> None:
         link_pattern = re.compile(r"\[[^]]+]\(([^)]+)\)")
