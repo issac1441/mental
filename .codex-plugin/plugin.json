@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "Build, explain, assess, and maintain evidence-linked mental models for repositories and learning material.",
   "author": {
-    "name": "mental contributors"
+    "name": "issac1441"
   },
   "license": "0BSD",
   "keywords": ["mental-models", "learning", "assessment", "architecture", "knowledge"],
@@ -12,7 +12,7 @@
     "displayName": "Mental",
     "shortDescription": "Build and assess verifiable models for code and learning.",
     "longDescription": "Agent-native workflows that turn supplied repositories and learning sources into reviewable mental models, adaptive lessons, bounded assessments, and evidence-aware change decisions.",
-    "developerName": "mental contributors",
+    "developerName": "issac1441",
     "category": "Productivity",
     "capabilities": ["Interactive", "Write"],
     "defaultPrompt": [

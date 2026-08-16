@@ -7,7 +7,9 @@ import datetime as dt
 import fnmatch
 import hashlib
 import json
+import os
 import shutil
+import stat
 import subprocess
 import tempfile
 import uuid
@@ -54,12 +56,30 @@ def load_cases(path: Path) -> list[dict[str, Any]]:
             raise EvalError(f"invalid or duplicate case id: {case_id}")
         if not isinstance(case.get("turns"), list) or not case["turns"]:
             raise EvalError(f"{case_id}: turns must be a non-empty array")
+        if case.get("access", "workspace-write") not in {
+            "read-only",
+            "workspace-write",
+        }:
+            raise EvalError(f"{case_id}: access must be read-only or workspace-write")
         seen.add(case_id)
     return data
 
 
 def git(command: list[str], workspace: Path) -> None:
     run_command(["git", *command], workspace)
+
+
+def git_head(workspace: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(workspace), "rev-parse", "HEAD"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
 
 
 def prepare_workspace(case: dict[str, Any], destination: Path) -> None:
@@ -111,6 +131,9 @@ def apply_setup(operations: list[dict[str, Any]], workspace: Path) -> None:
             target.write_text(
                 text.replace(old, str(operation["new"]), 1), encoding="utf-8"
             )
+        elif op == "write":
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(str(operation["text"]), encoding="utf-8")
         else:
             raise EvalError(f"unsupported setup operation: {op}")
 
@@ -119,13 +142,21 @@ def snapshot(workspace: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     for path in sorted(workspace.rglob("*")):
         relative = path.relative_to(workspace)
-        if ".git" in relative.parts or path.is_symlink() or not path.is_file():
+        if ".git" in relative.parts:
             continue
         try:
-            data = path.read_bytes()
-        except OSError:
-            continue
-        result[relative.as_posix()] = hashlib.sha256(data).hexdigest()
+            mode = path.lstat().st_mode
+            if stat.S_ISLNK(mode):
+                fingerprint = f"symlink:{os.readlink(path)}"
+            elif stat.S_ISDIR(mode):
+                fingerprint = "directory"
+            elif stat.S_ISREG(mode):
+                fingerprint = f"file:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+            else:
+                fingerprint = f"special:{stat.S_IFMT(mode):o}"
+        except OSError as exc:
+            fingerprint = f"unreadable:{type(exc).__name__}"
+        result[relative.as_posix()] = fingerprint
     return result
 
 
@@ -194,7 +225,11 @@ def ensure_codex_plugin() -> None:
 
 
 def run_claude_turns(
-    turns: list[str], workspace: Path, model: str | None, budget: float
+    turns: list[str],
+    workspace: Path,
+    model: str | None,
+    budget: float,
+    access: str,
 ) -> list[str]:
     outputs: list[str] = []
     session_id = str(uuid.uuid4())
@@ -207,14 +242,19 @@ def run_claude_turns(
             "--output-format",
             "json",
         ]
+        permission_mode = "dontAsk" if access == "read-only" else "acceptEdits"
         if index == 0:
-            base.extend(["--permission-mode", "acceptEdits"])
+            base.extend(["--permission-mode", permission_mode])
+            if access == "read-only":
+                base.extend(["--disallowedTools", "Write,Edit,NotebookEdit"])
             if len(turns) == 1:
                 base.append("--no-session-persistence")
             else:
                 base.extend(["--session-id", session_id])
         else:
-            base.extend(["--resume", session_id, "--permission-mode", "acceptEdits"])
+            base.extend(["--resume", session_id, "--permission-mode", permission_mode])
+            if access == "read-only":
+                base.extend(["--disallowedTools", "Write,Edit,NotebookEdit"])
         if model:
             base.extend(["--model", model])
         base.extend(["--max-budget-usd", str(budget), render_turn(turn, "claude")])
@@ -222,7 +262,9 @@ def run_claude_turns(
     return outputs
 
 
-def run_codex_turns(turns: list[str], workspace: Path, model: str | None) -> list[str]:
+def run_codex_turns(
+    turns: list[str], workspace: Path, model: str | None, access: str
+) -> list[str]:
     ensure_codex_plugin()
     outputs: list[str] = []
     session_id: str | None = None
@@ -236,7 +278,7 @@ def run_codex_turns(turns: list[str], workspace: Path, model: str | None) -> lis
                     "-C",
                     str(workspace),
                     "-s",
-                    "workspace-write",
+                    access,
                     "-o",
                     output_file.name,
                 ]
@@ -284,16 +326,42 @@ def conceptual_active_paths(workspace: Path) -> list[str]:
     return sorted(active)
 
 
+def artifact_statuses(workspace: Path) -> dict[str, str]:
+    statuses: dict[str, str] = {}
+    mental_root = workspace / "mental"
+    if not mental_root.is_dir():
+        return statuses
+    for path in mental_root.rglob("*.md"):
+        if path.is_symlink():
+            continue
+        try:
+            head = path.read_text(encoding="utf-8").split("---", 2)[1]
+        except (OSError, UnicodeError, IndexError):
+            continue
+        for line in head.splitlines():
+            if line.startswith("status:"):
+                statuses[path.relative_to(workspace).as_posix()] = line.split(
+                    ":", 1
+                )[1].strip()
+                break
+    return statuses
+
+
 def deterministic_checks(
-    case: dict[str, Any], workspace: Path, before: dict[str, str], after: dict[str, str]
+    case: dict[str, Any],
+    workspace: Path,
+    before: dict[str, str],
+    after: dict[str, str],
+    before_statuses: dict[str, str] | None = None,
+    after_statuses: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     rules = case.get("deterministic", {})
     changes = changed_paths(before, after)
     checks: list[dict[str, Any]] = []
-    if rules.get("no_writes"):
+    if rules.get("workspace_tree_unchanged"):
         checks.append(
             {
-                "name": "no_writes",
+                "name": "workspace_tree_unchanged",
                 "pass": not changes,
                 "detail": ", ".join(changes) if changes else "workspace unchanged",
             }
@@ -311,6 +379,28 @@ def deterministic_checks(
                 "detail": ", ".join(modified) if modified else "unchanged",
             }
         )
+    for pattern in rules.get("forbid_new_globs", []):
+        created = [
+            path
+            for path in changes
+            if path not in before and fnmatch.fnmatch(path, pattern)
+        ]
+        checks.append(
+            {
+                "name": f"forbid_new_glob:{pattern}",
+                "pass": not created,
+                "detail": ", ".join(created) if created else "none created",
+            }
+        )
+    for required in rules.get("must_create", []):
+        created = required not in before and required in after
+        checks.append(
+            {
+                "name": f"must_create:{required}",
+                "pass": created,
+                "detail": "created" if created else "not created",
+            }
+        )
     if rules.get("forbid_conceptual_active"):
         active = conceptual_active_paths(workspace)
         checks.append(
@@ -318,6 +408,22 @@ def deterministic_checks(
                 "name": "forbid_conceptual_active",
                 "pass": not active,
                 "detail": ", ".join(active) if active else "none active",
+            }
+        )
+    forbidden_statuses = set(rules.get("forbid_status_transitions", []))
+    if forbidden_statuses:
+        before_statuses = before_statuses or {}
+        after_statuses = after_statuses or {}
+        violations = sorted(
+            path
+            for path, status in after_statuses.items()
+            if status in forbidden_statuses and before_statuses.get(path) != status
+        )
+        checks.append(
+            {
+                "name": "forbid_status_transitions",
+                "pass": not violations,
+                "detail": ", ".join(violations) if violations else "none",
             }
         )
     return checks
@@ -333,11 +439,22 @@ def parse_structured_result(stdout: str) -> dict[str, Any]:
     return candidate
 
 
-def rubric_passed(judge: dict[str, Any] | None) -> bool:
+def rubric_passed(judge: dict[str, Any] | None, expected_criteria: int) -> bool:
     if not isinstance(judge, dict):
         return False
     score = judge.get("score")
-    return judge.get("pass") is True and isinstance(score, int) and score >= 3
+    criteria = judge.get("criteria")
+    return (
+        judge.get("pass") is True
+        and isinstance(score, int)
+        and score >= 3
+        and isinstance(criteria, list)
+        and len(criteria) == expected_criteria
+        and all(
+            isinstance(criterion, dict) and criterion.get("pass") is True
+            for criterion in criteria
+        )
+    )
 
 
 def judge_prompt(
@@ -420,12 +537,17 @@ def evaluate_case(
         workspace = Path(directory) / "workspace"
         prepare_workspace(case, workspace)
         before = snapshot(workspace)
+        before_statuses = artifact_statuses(workspace)
         turns = [str(turn) for turn in case["turns"]]
+        access = str(case.get("access", "workspace-write"))
         if args.host == "claude":
-            outputs = run_claude_turns(turns, workspace, args.model, args.budget)
+            outputs = run_claude_turns(
+                turns, workspace, args.model, args.budget, access
+            )
         else:
-            outputs = run_codex_turns(turns, workspace, args.model)
+            outputs = run_codex_turns(turns, workspace, args.model, access)
         after = snapshot(workspace)
+        after_statuses = artifact_statuses(workspace)
         transcript = []
         for turn, output in zip(turns, outputs, strict=True):
             transcript.extend(
@@ -434,10 +556,19 @@ def evaluate_case(
                     {"role": "assistant", "content": output},
                 ]
             )
-        checks = deterministic_checks(case, workspace, before, after)
+        checks = deterministic_checks(
+            case,
+            workspace,
+            before,
+            after,
+            before_statuses,
+            after_statuses,
+        )
         result: dict[str, Any] = {
             "case": case["id"],
             "host": args.host,
+            "access": access,
+            "evaluated": not args.capture_only,
             "transcript": transcript,
             "changed_paths": changed_paths(before, after),
             "deterministic_checks": checks,
@@ -517,16 +648,25 @@ def main() -> int:
             deterministic_pass = all(
                 check["pass"] for check in result["deterministic_checks"]
             )
-            judge_pass = args.capture_only or rubric_passed(result.get("judge"))
-            case_failed = not deterministic_pass or not judge_pass
+            judge_pass = (
+                None
+                if args.capture_only
+                else rubric_passed(result.get("judge"), len(case["rubric"]))
+            )
+            case_failed = not deterministic_pass or judge_pass is False
         failed = failed or case_failed
         summaries.append(result)
-        state = "FAIL" if case_failed else "PASS"
+        state = "FAIL" if case_failed else "UNJUDGED" if args.capture_only else "PASS"
         print(f"{state} {case['id']}")
 
     summary = {
         "host": args.host,
+        "host_model": args.model or "host-default",
         "judge_host": None if args.capture_only else args.judge_host,
+        "judge_model": None if args.capture_only else args.judge_model or "host-default",
+        "evaluated": not args.capture_only,
+        "plugin_git_head": git_head(ROOT),
+        "cases_sha256": hashlib.sha256(args.cases.read_bytes()).hexdigest(),
         "results": [
             {
                 "case": result["case"],
@@ -542,11 +682,14 @@ def main() -> int:
             for result in summaries
         ],
     }
+    results_dir.mkdir(parents=True, exist_ok=True)
     (results_dir / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     print(f"Results: {results_dir}")
-    return 1 if failed else 0
+    if failed:
+        return 1
+    return 2 if args.capture_only else 0
 
 
 if __name__ == "__main__":

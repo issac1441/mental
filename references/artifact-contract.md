@@ -84,7 +84,7 @@ Required fields:
 - `kind`: `index`, `sources`, `glossary`, `lens`, `map`, `concept`, `scenario`, `architecture`, `contract`, `decision`, `conflict`, `change`, `learning-path`, `misconception`, or `exercise`.
 - `authority`: `mechanical`, `conceptual`, or `decision`.
 - `status`: a state allowed by the artifact authority or kind.
-- `sources`: IDs from `mental/sources.md`; use `[]` only for the source catalog or a human-authored index.
+- `sources`: IDs from `mental/sources.md`; use `[]` only for the source catalog or a draft human-authored index. An active index must cite a registered source.
 - `prerequisites`: artifact IDs required first.
 - `updated_at`: ISO date of the last material update.
 
@@ -113,9 +113,11 @@ how factual its prose sounds:
 
 Every non-catalog mechanical artifact declares `refresh_basis` entries in the
 form `<source-id>@<revision>`. A `current` mechanical artifact needs at least one
-concrete basis, lists each basis source in `sources`, and contains an `Evidence`
-section. If any of those are unavailable, keep it `stale`; do not infer a safe
-refresh from the body alone.
+concrete basis, lists each basis source in `sources`, and contains a real
+second-level `Evidence` section with non-placeholder content that cites at least
+one listed source ID. If any of those are unavailable, keep it `stale`; do not
+infer a safe refresh from the body alone. Use `build` to establish or rebuild a
+missing regeneration basis before a later `sync` can refresh it.
 
 Allowed state machines:
 
@@ -157,6 +159,18 @@ prediction. `conflicts` contains artifact IDs for first-class conflict records;
 use an empty list only when the check found none. Recognition and assent are not
 activation evidence.
 
+Verification basis entries use one of these stable forms:
+
+- `source:<source-id>` for a listed catalog source;
+- `artifact:<artifact-id>` for corroboration by another shared artifact;
+- `owner:<evidence>` for a named domain-owner validation;
+- `runtime:<evidence>` for an observed runtime result;
+- `transfer:<artifact-id>` for a recorded transfer demonstration.
+
+The type stays in English; the evidence text can follow the user's language.
+Checked predictions use `success:`, `failure:`, or `boundary:` (ASCII or
+full-width colon) followed by a meaningful, non-placeholder claim.
+
 ## Conflict artifacts
 
 A `kind: conflict` artifact lives under `mental/conflicts/` and records:
@@ -197,6 +211,10 @@ decision names its replacement in `superseded_by`; the replacement names prior
 records in `supersedes`, and both records link back to each other. History starts
 at `pending`; it may move to `accepted`, `rejected`, or `superseded`.
 `accepted` and `rejected` may later move only to `superseded`, which is terminal.
+An artifact cannot supersede itself. During `doctor`, compare current history and
+replacement links with the Git baseline when available. Prior entries must stay
+in order and remain a prefix of the current record. This check detects working
+tree rewrites; it is not tamper-proof after Git history itself is rewritten.
 
 A `kind: change` also records `prediction_status` as `attempted`, `skipped`, or
 `not-applicable`, `supersedes` and `superseded_by` lists, plus append-preserving
@@ -229,6 +247,11 @@ Each `mental/sources.md` entry starts with a unique `## <source-id>`. A localize
 drafts can report `Structure: valid` and `Readiness: incomplete`. Drafts, stale
 artifacts, pending decisions, and open conflicts are legitimate work states, not
 schema failures; they must remain visible in the readiness report.
+
+The validator reports whether Git tracking and history privacy checks were
+verified, unavailable, or failed. A non-Git workspace may still be structurally
+valid, but `doctor` must not describe its private-state isolation or decision
+history as verified.
 
 ## Language
 

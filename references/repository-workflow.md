@@ -42,7 +42,7 @@ The natural-language question constrains scope. A request such as “Tell me the
 
 ## Human-first prediction
 
-When the user's current model will materially affect the decision or learning value, ask one high-information prediction before revealing the answer. Ask about an observable outcome, owner, invariant, or failure path. Let the user answer or say `skip`.
+For a change that passes the Decision Gate, ask one high-information prediction before revealing the answer only when the response can change the decision or expose a model relationship that needs repair. Ask about an observable outcome, owner, invariant, or failure path. Let the user answer or say `skip`. When waiting, return only that prompt; do not also reveal the evidence, complete the model delta, or emit a pending-decision manifest.
 
 After the response:
 
@@ -51,7 +51,7 @@ After the response:
 3. name the smallest model gap;
 4. repair that relationship before asking for a decision.
 
-Do not fabricate a human prediction. If the user requests a direct answer or the prediction would add ceremony without changing the decision, answer directly.
+Do not fabricate a human prediction. If the user requests a direct answer, the change does not pass the Decision Gate, or the prediction would add ceremony without changing the decision or repair, answer directly.
 
 When a change brief is already in recording scope, record only
 `prediction_status: attempted|skipped|not-applicable` for the invocation. `skip`

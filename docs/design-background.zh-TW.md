@@ -160,6 +160,12 @@ Claude Code 或 Codex host，保留實際輸出與 workspace delta，再交給 r
 judge 評分 conditional behavior。只檢查某句話是否存在，不算 conversation
 eval。Host eval 較慢且具有雜訊，因此是 deterministic layer 的補充，不是替代。
 
+Deterministic workspace snapshot 會記錄 fixture 內的一般檔案內容、directory
+是否存在、symlink target 與 special-file type，因此能抓到執行結束時的淨變化，
+包括 empty directory 與 symlink。但它不能證明 host 從未寫入後刪除，也看不到
+fixture 外的寫入；read-only cases 因此也使用 host 的唯讀控制。Capture-only run
+明確標成未評分，不能通過 evaluation gate。
+
 ## 8. 威脅與限制
 
 - 漂亮的 model 仍可能是錯的，而且 practice 可能強化這個錯誤。

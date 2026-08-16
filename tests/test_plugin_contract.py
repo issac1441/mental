@@ -44,6 +44,7 @@ class PluginContractTests(unittest.TestCase):
             self.assertEqual(manifest["version"], "0.2.0")
             self.assertEqual(manifest["skills"], "./skills/")
             self.assertEqual(manifest["license"], "0BSD")
+            self.assertEqual(manifest["author"]["name"], "issac1441")
             self.assertNotIn("mcpServers", manifest)
             self.assertNotIn("apps", manifest)
             self.assertNotIn("hooks", manifest)

@@ -164,7 +164,8 @@ python3 scripts/run_conversation_evals.py --host claude --judge-host claude --ca
 The workspace scripts are internal skill helpers, not a public CLI. Conversation
 evals actually invoke the selected host and a rubric judge; their ignored raw
 results are written under `eval-results/`. Codex evals require `mental` to be
-installed first.
+installed first. `--capture-only` records host output as `UNJUDGED` and exits
+with code 2; it is evidence collection, not a passing evaluation.
 
 ## Additional documentation
 

@@ -163,6 +163,8 @@ python3 scripts/run_conversation_evals.py --host claude --judge-host claude --ca
 Workspace scripts 是 skills 的內部 helper，不是公開 CLI。Conversation eval
 會真的執行指定 host 與 rubric judge，原始結果寫入 gitignored 的
 `eval-results/`。執行 Codex eval 前需先安裝 `mental` plugin。
+`--capture-only` 只收集 host 輸出，會標示為 `UNJUDGED` 並以 exit code 2
+結束；它不是通過的評測結果。
 
 ## 延伸文件
 

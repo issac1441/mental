@@ -10,7 +10,7 @@ updated_at: 2026-08-15
 mode: repository
 language: en
 verification_basis:
-  - source-repo and model-map cover the complete router fixture
+  - source:source-repo
 checked_predictions:
   - "success: /health returns the successful response pair"
   - "failure: /healthy returns the not-found response pair"

@@ -8,6 +8,7 @@ import json
 import re
 import stat
 import subprocess
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote
@@ -91,6 +92,14 @@ STATUS_HISTORY_RE = re.compile(
     r"^(\d{4}-\d{2}-\d{2}):\s*(pending|accepted|rejected|superseded)$"
 )
 PLACEHOLDER_RE = re.compile(r"\b(?:pending|todo|tbd|looks good)\b", re.IGNORECASE)
+EVIDENCE_SECTION_RE = re.compile(
+    r"^##[ \t]+Evidence[ \t]*\n(?P<body>.*?)(?=^##[ \t]+|\Z)",
+    re.MULTILINE | re.DOTALL,
+)
+PREDICTION_RE = re.compile(r"^(success|failure|boundary)\s*[:：]\s*(.*)$", re.I)
+VERIFICATION_BASIS_RE = re.compile(
+    r"^(source|artifact|owner|runtime|transfer)\s*[:：]\s*(.*)$", re.I
+)
 
 
 @dataclass
@@ -177,6 +186,27 @@ def is_iso_date(value: object) -> bool:
         return False
 
 
+def meaningful_text(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    stripped = value.strip()
+    if not stripped or PLACEHOLDER_RE.search(stripped):
+        return False
+    if "{{" in stripped or "}}" in stripped:
+        return False
+    return sum(character.isalnum() for character in stripped) >= 2
+
+
+def empty_readiness() -> dict[str, object]:
+    return {
+        "state": "unavailable",
+        "draft_artifacts": [],
+        "stale_artifacts": [],
+        "pending_decisions": [],
+        "open_conflicts": [],
+    }
+
+
 def markdown_destination(raw: str) -> str:
     raw = raw.strip()
     if raw.startswith("<"):
@@ -203,7 +233,8 @@ def require_regular_file(path: Path, label: str, errors: list[str]) -> bool:
 
 def inspect_git_privacy(
     workspace: Path, private_root: Path, errors: list[str], warnings: list[str]
-) -> None:
+) -> dict[str, str]:
+    status = {"tracking": "unverified", "history": "unverified"}
     try:
         inside = subprocess.run(
             ["git", "-C", str(workspace), "rev-parse", "--is-inside-work-tree"],
@@ -215,12 +246,16 @@ def inspect_git_privacy(
         warnings.append(
             f"{workspace}: Git is unavailable; private-state tracking was not checked"
         )
-        return
+        status["tracking"] = "git-unavailable"
+        status["history"] = "git-unavailable"
+        return status
     if inside.returncode != 0:
         warnings.append(
             f"{workspace}: not a Git worktree; private-state tracking was not checked"
         )
-        return
+        status["tracking"] = "not-a-worktree"
+        status["history"] = "not-a-worktree"
+        return status
 
     tracked_result = subprocess.run(
         ["git", "-C", str(workspace), "ls-files", "-z", "--", ".mental"],
@@ -229,17 +264,19 @@ def inspect_git_privacy(
     )
     if tracked_result.returncode != 0:
         warnings.append(f"{workspace}: Git could not inspect tracked private state")
-        return
-    tracked = [
-        item.decode("utf-8", errors="replace")
-        for item in tracked_result.stdout.split(b"\0")
-        if item
-    ]
-    leaked = sorted(path for path in tracked if path != ".mental/.gitignore")
-    if leaked:
-        errors.append(
-            f"{private_root}: private files are tracked by Git: {', '.join(leaked)}"
-        )
+        status["tracking"] = "check-failed"
+    else:
+        status["tracking"] = "verified"
+        tracked = [
+            item.decode("utf-8", errors="replace")
+            for item in tracked_result.stdout.split(b"\0")
+            if item
+        ]
+        leaked = sorted(path for path in tracked if path != ".mental/.gitignore")
+        if leaked:
+            errors.append(
+                f"{private_root}: private files are tracked by Git: {', '.join(leaked)}"
+            )
 
     history_result = subprocess.run(
         [
@@ -259,7 +296,9 @@ def inspect_git_privacy(
     )
     if history_result.returncode != 0:
         warnings.append(f"{workspace}: Git history privacy could not be inspected")
+        status["history"] = "check-failed"
     else:
+        status["history"] = "verified"
         historical_private_paths = {
             line.strip()
             for line in history_result.stdout.splitlines()
@@ -322,6 +361,7 @@ def inspect_git_privacy(
         errors.append(f"{private_root}: Git ignores '.mental/.gitignore' itself")
     elif ignore_self.returncode not in {0, 1}:
         warnings.append(f"{private_root}: Git could not inspect the ignore file itself")
+    return status
 
 
 def validate(workspace: Path) -> dict[str, object]:
@@ -344,6 +384,8 @@ def validate(workspace: Path) -> dict[str, object]:
             "files": 0,
             "errors": [f"{mental_root}: not found"],
             "warnings": [],
+            "readiness": empty_readiness(),
+            "privacy": {"tracking": "unverified", "history": "unverified"},
         }
     if mental_root.is_symlink():
         return {
@@ -351,6 +393,8 @@ def validate(workspace: Path) -> dict[str, object]:
             "files": 0,
             "errors": [f"{mental_root}: must not be a symlink"],
             "warnings": [],
+            "readiness": empty_readiness(),
+            "privacy": {"tracking": "unverified", "history": "unverified"},
         }
 
     non_regular_artifacts: set[Path] = set()
@@ -506,9 +550,14 @@ def validate(workspace: Path) -> dict[str, object]:
                         errors.append(
                             f"{artifact.path}: refresh basis requires a concrete revision"
                         )
-                if "## Evidence" not in artifact.body:
+                evidence = EVIDENCE_SECTION_RE.search(artifact.body)
+                if evidence is None:
                     errors.append(
                         f"{artifact.path}: current mechanical artifact requires an Evidence section"
+                    )
+                elif not meaningful_text(evidence.group("body")):
+                    errors.append(
+                        f"{artifact.path}: current mechanical artifact requires non-placeholder Evidence content"
                     )
         if authority == "conceptual":
             for key in ACTIVATION_FIELDS:
@@ -523,27 +572,6 @@ def validate(workspace: Path) -> dict[str, object]:
                         errors.append(
                             f"{artifact.path}: active conceptual artifact requires '{key}'"
                         )
-                verification_basis = list_field(artifact, "verification_basis")
-                checked_predictions = list_field(artifact, "checked_predictions")
-                if not verification_basis or any(
-                    PLACEHOLDER_RE.search(item) for item in verification_basis
-                ):
-                    errors.append(
-                        f"{artifact.path}: active conceptual artifact needs a non-placeholder verification basis"
-                    )
-                prediction_kinds = {
-                    item.split(":", 1)[0].strip().lower()
-                    for item in checked_predictions
-                    if ":" in item and not PLACEHOLDER_RE.search(item)
-                }
-                if "success" not in prediction_kinds:
-                    errors.append(
-                        f"{artifact.path}: active conceptual artifact needs a checked success prediction"
-                    )
-                if not prediction_kinds.intersection({"failure", "boundary"}):
-                    errors.append(
-                        f"{artifact.path}: active conceptual artifact needs a checked failure or boundary prediction"
-                    )
         if kind == "conflict":
             for key in ("owner", "opened_at"):
                 if not isinstance(artifact.fields.get(key), str):
@@ -628,7 +656,7 @@ def validate(workspace: Path) -> dict[str, object]:
             )
         if (
             status in {"current", "active", "accepted", "resolved"}
-            and kind not in {"index", "sources"}
+            and kind != "sources"
             and not list_field(artifact, "sources")
         ):
             errors.append(f"{artifact.path}: active artifact state has no sources")
@@ -656,7 +684,9 @@ def validate(workspace: Path) -> dict[str, object]:
     )
     source_ids = set(source_id_entries)
     duplicate_source_ids = sorted(
-        source_id for source_id in source_ids if source_id_entries.count(source_id) > 1
+        source_id
+        for source_id, count in Counter(source_id_entries).items()
+        if count > 1
     )
     for source_id in duplicate_source_ids:
         errors.append(f"{source_catalog_path}: duplicate source id '{source_id}'")
@@ -684,6 +714,67 @@ def validate(workspace: Path) -> dict[str, object]:
         for conflict_id in list_field(artifact, "conflicts"):
             if artifact_kinds.get(conflict_id) != "conflict":
                 errors.append(f"{artifact.path}: unknown conflict id '{conflict_id}'")
+        if (
+            artifact.fields.get("authority") == "mechanical"
+            and artifact.fields.get("kind") != "sources"
+            and artifact.fields.get("status") == "current"
+        ):
+            evidence = EVIDENCE_SECTION_RE.search(artifact.body)
+            evidence_ids = (
+                set(ID_TOKEN_RE.findall(evidence.group("body"))) if evidence else set()
+            )
+            if evidence is not None and not set(list_field(artifact, "sources")) & evidence_ids:
+                errors.append(
+                    f"{artifact.path}: Evidence section must cite at least one listed source id"
+                )
+        if (
+            artifact.fields.get("authority") == "conceptual"
+            and artifact.fields.get("status") == "active"
+        ):
+            verification_basis = list_field(artifact, "verification_basis")
+            if not verification_basis:
+                errors.append(
+                    f"{artifact.path}: active conceptual artifact needs a verification basis"
+                )
+            for entry in verification_basis:
+                match = VERIFICATION_BASIS_RE.fullmatch(str(entry).strip())
+                if not match or not meaningful_text(match.group(2) if match else ""):
+                    errors.append(
+                        f"{artifact.path}: invalid verification basis '{entry}'; use source:<id>, artifact:<id>, owner:<evidence>, runtime:<evidence>, or transfer:<id>"
+                    )
+                    continue
+                basis_kind, basis_value = match.group(1).lower(), match.group(2).strip()
+                if basis_kind == "source":
+                    if basis_value not in source_ids:
+                        errors.append(
+                            f"{artifact.path}: verification basis names unknown source '{basis_value}'"
+                        )
+                    elif basis_value not in list_field(artifact, "sources"):
+                        errors.append(
+                            f"{artifact.path}: verification source '{basis_value}' is not listed in sources"
+                        )
+                elif basis_kind in {"artifact", "transfer"} and basis_value not in all_ids:
+                    errors.append(
+                        f"{artifact.path}: verification basis names unknown artifact '{basis_value}'"
+                    )
+
+            prediction_kinds: set[str] = set()
+            for entry in list_field(artifact, "checked_predictions"):
+                match = PREDICTION_RE.fullmatch(str(entry).strip())
+                if not match or not meaningful_text(match.group(2) if match else ""):
+                    errors.append(
+                        f"{artifact.path}: invalid checked prediction '{entry}'; use success:<claim>, failure:<claim>, or boundary:<claim>"
+                    )
+                    continue
+                prediction_kinds.add(match.group(1).lower())
+            if "success" not in prediction_kinds:
+                errors.append(
+                    f"{artifact.path}: active conceptual artifact needs a checked success prediction"
+                )
+            if not prediction_kinds.intersection({"failure", "boundary"}):
+                errors.append(
+                    f"{artifact.path}: active conceptual artifact needs a checked failure or boundary prediction"
+                )
         kind = artifact.fields.get("kind")
         if isinstance(kind, str) and kind in {"decision", "change"}:
             artifact_id = str(artifact.fields.get("id", ""))
@@ -692,6 +783,11 @@ def validate(workspace: Path) -> dict[str, object]:
                 ("superseded_by", "supersedes"),
             ):
                 for target_id in list_field(artifact, field):
+                    if target_id == artifact_id:
+                        errors.append(
+                            f"{artifact.path}: {field} must not reference the artifact itself"
+                        )
+                        continue
                     target = artifacts_by_id.get(target_id)
                     if target is None or target.fields.get("kind") != kind:
                         errors.append(
@@ -716,12 +812,21 @@ def validate(workspace: Path) -> dict[str, object]:
                     f"{artifact.path}: local link must be relative and inside the workspace '{target}'"
                 )
                 continue
-            resolved = (artifact.path.parent / destination).resolve()
             try:
+                resolved = (artifact.path.parent / destination).resolve()
                 resolved.relative_to(workspace_root)
-            except ValueError:
+            except (ValueError, OSError):
                 errors.append(
-                    f"{artifact.path}: local link escapes the workspace '{target}'"
+                    f"{artifact.path}: invalid or escaping local link '{target}'"
+                )
+                continue
+            try:
+                resolved.relative_to(private_root.resolve())
+            except (ValueError, OSError):
+                pass
+            else:
+                errors.append(
+                    f"{artifact.path}: shared artifacts must not link to private state '{target}'"
                 )
                 continue
             if not resolved.exists():
@@ -753,9 +858,9 @@ def validate(workspace: Path) -> dict[str, object]:
     elif require_regular_file(ignore_file, "private-state ignore file", errors):
         try:
             ignore_lines = [
-                line.strip()
+                line
                 for line in ignore_file.read_text(encoding="utf-8").splitlines()
-                if line.strip() and not line.lstrip().startswith("#")
+                if line and not line.lstrip().startswith("#")
             ]
         except (OSError, UnicodeError) as exc:
             errors.append(
@@ -772,7 +877,7 @@ def validate(workspace: Path) -> dict[str, object]:
             if path.is_symlink():
                 errors.append(f"{path}: private-state paths must not be symlinks")
 
-    inspect_git_privacy(workspace_root, private_root, errors, warnings)
+    privacy = inspect_git_privacy(workspace_root, private_root, errors, warnings)
 
     mastery_file = private_root / "mastery.json"
     if private_root.is_symlink():
@@ -858,6 +963,7 @@ def validate(workspace: Path) -> dict[str, object]:
         "files": len(artifacts),
         "errors": errors,
         "warnings": warnings,
+        "privacy": privacy,
         "readiness": {
             "state": "incomplete" if incomplete else "ready",
             "draft_artifacts": draft_artifacts,
@@ -882,6 +988,8 @@ def main() -> int:
             "files": 0,
             "errors": [],
             "warnings": [],
+            "readiness": empty_readiness(),
+            "privacy": {"tracking": "unverified", "history": "unverified"},
             "validator_error": f"{type(exc).__name__}: {exc}",
         }
         exit_code = 2

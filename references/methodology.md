@@ -104,7 +104,7 @@ Move a conceptual artifact from `draft` to `active` only when its verification s
 1. source or implementation evidence;
 2. a checked representative success and failure prediction;
 3. known gaps and linked open conflicts;
-4. one valid verification basis: source/test corroboration, domain-owner validation, or demonstrated prediction and transfer.
+4. one valid verification basis: source/test corroboration, domain-owner validation, runtime evidence, or demonstrated prediction and transfer.
 
 “Looks good” and recognition are not verification. `active` means “current working model with an explicit basis,” not infallible truth.
 
@@ -112,6 +112,12 @@ Record activation in frontmatter with `verification_basis`,
 `checked_predictions`, `known_gaps`, and `conflicts`. Checked predictions must
 include a representative success plus a failure or boundary. Empty lists are
 valid for drafts; they are not sufficient for activation.
+
+Use typed verification entries so the basis can be checked: `source:<source-id>`,
+`artifact:<artifact-id>`, `owner:<evidence>`, `runtime:<evidence>`, or
+`transfer:<artifact-id>`. Prediction entries use the stable English type
+`success:`, `failure:`, or `boundary:` followed by a non-empty claim in the
+user's language.
 
 ### Human decision
 

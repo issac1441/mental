@@ -367,6 +367,17 @@ class WorkspaceScriptTests(unittest.TestCase):
                 )
             )
 
+    def test_missing_workspace_keeps_the_json_result_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "missing"
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(report["readiness"]["state"], "unavailable")
+            self.assertEqual(report["privacy"]["tracking"], "unverified")
+
     def test_duplicate_frontmatter_key_and_invalid_metadata_fail(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory) / "repository"
@@ -825,7 +836,7 @@ Explain runtime effects and recovery decisions first.
             index = workspace / "mental" / "index.md"
             content = index.read_text(encoding="utf-8")
             content = content.replace(
-                "verification_basis:\n  - source-repo and model-map cover the complete router fixture\n",
+                "verification_basis:\n  - source:source-repo\n",
                 "verification_basis:\n  - looks good\n",
                 1,
             )
@@ -841,7 +852,7 @@ Explain runtime effects and recovery decisions first.
             report = json.loads(result.stdout)
             self.assertTrue(
                 any(
-                    "non-placeholder verification basis" in error
+                    "invalid verification basis" in error
                     for error in report["errors"]
                 )
             )
@@ -875,6 +886,126 @@ Explain runtime effects and recovery decisions first.
             self.assertTrue(report["ok"], report)
             self.assertEqual(report["readiness"]["state"], "incomplete")
             self.assertIn("mental-index", report["readiness"]["draft_artifacts"])
+            self.assertEqual(report["privacy"]["tracking"], "not-a-worktree")
+
+    def test_active_index_requires_a_registered_source(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            index = workspace / "mental" / "index.md"
+            index.write_text(
+                index.read_text(encoding="utf-8").replace(
+                    "sources:\n  - source-repo\n", "sources: []\n", 1
+                ),
+                encoding="utf-8",
+            )
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(
+                any("active artifact state has no sources" in error for error in report["errors"])
+            )
+
+    def test_activation_requires_typed_basis_and_nonempty_predictions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            index = workspace / "mental" / "index.md"
+            content = index.read_text(encoding="utf-8")
+            content = content.replace("  - source:source-repo\n", "  - x\n", 1)
+            content = content.replace(
+                '  - "success: /health returns the successful response pair"\n',
+                '  - "success：   "\n',
+                1,
+            )
+            index.write_text(content, encoding="utf-8")
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(any("invalid verification basis 'x'" in error for error in report["errors"]))
+            self.assertTrue(any("invalid checked prediction" in error for error in report["errors"]))
+            self.assertTrue(any("checked success prediction" in error for error in report["errors"]))
+
+    def test_fullwidth_prediction_colons_are_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "learning"
+            shutil.copytree(FIXTURES / "learning", workspace)
+            concept = workspace / "mental" / "concepts" / "event-loop.md"
+            concept.write_text(
+                concept.read_text(encoding="utf-8")
+                .replace('"success:', '"success：', 1)
+                .replace('"boundary:', '"boundary：', 1),
+                encoding="utf-8",
+            )
+            result = run("python3", str(VALIDATE), str(workspace), "--json")
+            self.assertTrue(json.loads(result.stdout)["ok"], result.stdout)
+
+    def test_mechanical_evidence_must_be_real_and_cite_a_source(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            map_path = workspace / "mental" / "model" / "map.md"
+            content = map_path.read_text(encoding="utf-8")
+            content = content.replace(
+                "## Evidence\n\n- `source-repo`: `src/router.py`",
+                "Text that mentions ## Evidence but is not a heading.\n\n## Notes\n\n- x",
+                1,
+            )
+            map_path.write_text(content, encoding="utf-8")
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(any("requires an Evidence section" in error for error in report["errors"]))
+
+            map_path.write_text(
+                content.replace(
+                    "Text that mentions ## Evidence but is not a heading.\n\n## Notes\n\n- x",
+                    "## Evidence\n\n- runtime output",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(any("must cite at least one listed source id" in error for error in report["errors"]))
+
+    def test_malformed_and_private_links_are_isolated_findings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "learning"
+            shutil.copytree(FIXTURES / "learning", workspace)
+            map_path = workspace / "mental" / "model" / "map.md"
+            map_path.write_text(
+                map_path.read_text(encoding="utf-8")
+                + "\n[malformed](%00)\n[private](../../.mental/profile.md)\n[broken](missing.md)\n",
+                encoding="utf-8",
+            )
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn("validator_error", report)
+            self.assertTrue(any("invalid or escaping local link" in error for error in report["errors"]))
+            self.assertTrue(any("must not link to private state" in error for error in report["errors"]))
+            self.assertTrue(any("broken local link" in error for error in report["errors"]))
+
+    def test_private_ignore_rules_reject_leading_whitespace(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            run("python3", str(SCAFFOLD), str(workspace), "--date", "2026-08-15")
+            (workspace / ".mental" / ".gitignore").write_text(
+                " *\n!.gitignore\n", encoding="utf-8"
+            )
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(any("must contain '*'" in error for error in report["errors"]))
 
     def test_decision_and_change_history_are_append_preserving(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -978,6 +1109,25 @@ status_history:
                     "does not link back through supersedes" in error
                     for error in report["errors"]
                 )
+            )
+
+    def test_decision_cannot_supersede_itself(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            decision = workspace / "mental" / "decisions" / "route-contract.md"
+            decision.write_text(
+                decision.read_text(encoding="utf-8").replace(
+                    "supersedes: []", "supersedes:\n  - route-contract-decision", 1
+                ),
+                encoding="utf-8",
+            )
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(
+                any("must not reference the artifact itself" in error for error in report["errors"])
             )
 
     def test_historical_private_state_is_advisory_not_error(self) -> None:

@@ -164,6 +164,14 @@ behavior. A phrase-presence test is not a conversation evaluation. Host evals
 remain slower and probabilistic, so they supplement rather than replace the
 deterministic layer.
 
+The deterministic workspace snapshot records regular-file content, directory
+presence, symlink targets, and special-file types inside the fixture. It can
+detect net changes at the end of a run, including empty directories and
+symlinks. It cannot prove that a host never wrote and then removed a path, and
+it does not observe writes outside the fixture. Read-only cases therefore also
+use the host's read-only controls. Capture-only runs are explicitly unjudged and
+cannot pass the evaluation gate.
+
 ## 8. Threats and limitations
 
 - A polished model can be wrong, and practice can reinforce that error.

@@ -8,7 +8,7 @@ sources:
 prerequisites: []
 updated_at: 2026-08-15
 verification_basis:
-  - source-event-loop defines task and queue usage
+  - source:source-event-loop
 checked_predictions:
   - "success: the terms support prediction of queued task order"
   - "boundary: the terms do not define multi-thread scheduling"
