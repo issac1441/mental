@@ -1,4 +1,4 @@
 interface:
   display_name: "Mental Review"
   short_description: "Review changes against the agreed model"
-  default_prompt: "Use $review to review this change against the canonical mental model."
+  default_prompt: "Use $review to explain Before to After, then audit this implementation against the agreed model."

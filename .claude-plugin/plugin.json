@@ -1,11 +1,11 @@
 {
   "name": "mental",
-  "version": "0.1.0",
-  "description": "Build, explain, and maintain evidence-linked mental models for repositories and learning material.",
+  "version": "0.2.0",
+  "description": "Build, explain, assess, and maintain evidence-linked mental models for repositories and learning material.",
   "author": {
     "name": "mental contributors"
   },
-  "license": "MIT",
-  "keywords": ["mental-models", "learning", "architecture", "knowledge"],
+  "license": "0BSD",
+  "keywords": ["mental-models", "learning", "assessment", "architecture", "knowledge"],
   "skills": "./skills/"
 }

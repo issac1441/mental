@@ -9,6 +9,7 @@ mental/
 ├── index.md
 ├── sources.md
 ├── glossary.md
+├── lenses/                # reusable role-conditioned explanation lenses, on demand
 ├── model/
 │   └── map.md
 ├── concepts/
@@ -36,6 +37,8 @@ Do not create optional artifacts without source-backed content.
 ```
 
 `.mental/.gitignore` must ignore everything except itself. Never put personal answers, inferred ability, or session history under `mental/`.
+
+Do not persist an agent-inferred Lens, View, Detail, or learning preference automatically. Add it to `profile.md` only when the user explicitly asks to remember it. Treat host memory as an optional weak signal, not as a replacement for this consent boundary.
 
 `mastery.json` uses this private, non-scoring shape:
 
@@ -74,13 +77,15 @@ updated_at: 2026-08-15
 Required fields:
 
 - `id`: stable lowercase identifier; do not encode a translated title in it.
-- `kind`: `index`, `sources`, `glossary`, `map`, `concept`, `scenario`, `architecture`, `contract`, `decision`, `change`, `learning-path`, `misconception`, or `exercise`.
+- `kind`: `index`, `sources`, `glossary`, `lens`, `map`, `concept`, `scenario`, `architecture`, `contract`, `decision`, `change`, `learning-path`, `misconception`, or `exercise`.
 - `status`: `draft`, `canonical`, or `stale`.
 - `sources`: source IDs from `mental/sources.md`; use `[]` only for the source catalog itself or a human-authored index.
 - `prerequisites`: artifact IDs required first; use `[]` when none.
 - `updated_at`: ISO date of the last material update.
 
 `index.md` may also declare `mode: repository|learning|hybrid` and `language`. Additional fields are allowed when they remain stable and useful.
+
+A `kind: lens` artifact lives under `mental/lenses/`. In addition to the required fields, it defines `assumes`, `prioritizes`, `vocabulary`, and `default_views`. These fields are YAML lists. `default_views` may contain only `anchor`, `map`, `mechanism`, `scenario`, and `evidence`. A lens describes a role-conditioned explanation strategy; it must not encode a person's identity, protected traits, or a permanent ability judgment.
 
 ## Claim provenance
 

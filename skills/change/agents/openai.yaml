@@ -1,4 +1,4 @@
 interface:
   display_name: "Mental Change"
   short_description: "Design repository changes as model deltas"
-  default_prompt: "Use $change to design this change as an explicit model delta."
+  default_prompt: "Use $change to explain this intent, option, plan, or TODO list as a model delta; record it only if I ask."

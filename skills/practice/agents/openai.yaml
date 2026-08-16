@@ -1,4 +1,4 @@
 interface:
   display_name: "Mental Practice"
   short_description: "Verify understanding with transfer practice"
-  default_prompt: "Use $practice to test and strengthen my understanding of this topic."
+  default_prompt: "Use $practice to coach one weak relationship at a time with new transfer scenarios."

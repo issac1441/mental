@@ -18,7 +18,7 @@ updated_at: {{TODAY}}
 
 [inferred] Add the smallest ordered set of concepts supported by the source.
 
-## Checkpoints
+## Verification activities
 
 - Reconstruct the anchor without notes.
 - Predict a representative scenario.

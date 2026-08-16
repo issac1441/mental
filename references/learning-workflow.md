@@ -21,7 +21,7 @@ Before teaching, ask for the learner's goal and use 2–5 high-information promp
 - choose and justify an approach;
 - identify why a plausible counterexample fails.
 
-Ask one compact batch, then wait. Do not diagnose from writing style, identity, confidence, or protected traits.
+Ask one compact batch, then wait. Do not diagnose from writing style, identity, confidence, speed, or protected traits. Select Lens, Views, and Detail with the precedence in `methodology.md`.
 
 ## Mastery states
 
@@ -34,7 +34,7 @@ Move at most one state at a time unless the learner provides unusually strong ev
 
 ## Teaching loop
 
-1. State the lens, zoom, and one learning objective.
+1. State the Lens, Views, Detail, selection basis, and one learning objective.
 2. Give an anchor with at most five new relationships.
 3. Walk through one representative scenario.
 4. Show one boundary, failure, or misconception.
@@ -46,4 +46,10 @@ Keep personalized plans and answers private. Shared exercises may live in `menta
 
 ## Practice design
 
-Prefer free recall, teach-back, transfer, debugging, comparison, and counterexamples. Avoid multiple-choice as the default because recognition can mask a missing model. Do not reveal the solution until the learner has attempted the task or explicitly asks.
+Practice is adaptive coaching. Ask one focused task, inspect the response, find the first broken relationship, provide the smallest correction or hint, then ask a structurally equivalent scenario rather than rewording the same question. Continue with a transfer and a boundary check. Finish when the target relationship is demonstrated or when the remaining gap is clear.
+
+Prefer free recall, teach-back, prediction, transfer, debugging, comparison, and counterexamples. Use multiple-choice only when the user requests it, it materially improves the task, or accessibility requires it. Do not reveal the solution until the learner has attempted the task or explicitly asks. End with a concrete statement of what the learner demonstrated, not generic praise.
+
+## Quiz design
+
+Quiz is a bounded assessment, not an adaptive loop. Resolve a scope, generate the complete exam before collecting answers, keep solutions hidden, then evaluate according to `feedback=end|after-each`. A default quiz has 12 mixed items; accept 10–20 items. Objective scores such as `9/12` are allowed. Do not convert a score into a mastery percentage, IQ-like label, or permanent ability claim.
