@@ -3,11 +3,20 @@ id: mental-index
 kind: index
 authority: conceptual
 status: active
-sources: []
+sources:
+  - source-event-loop
 prerequisites: []
 updated_at: 2026-08-15
 mode: learning
 language: zh-TW
+verification_basis:
+  - source-event-loop and model-map define the represented boundary
+checked_predictions:
+  - "success: the index leads to the queue and task relationship"
+  - "boundary: the index does not claim multi-thread behavior"
+known_gaps:
+  - multi-thread behavior is outside the supplied source
+conflicts: []
 ---
 
 # Event loop 心智模型

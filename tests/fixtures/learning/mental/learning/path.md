@@ -8,6 +8,14 @@ sources:
 prerequisites:
   - event-loop
 updated_at: 2026-08-15
+verification_basis:
+  - source-event-loop supports every activity in the path
+checked_predictions:
+  - "success: splitting work permits an intervening queued task"
+  - "boundary: the path makes no multi-thread prediction"
+known_gaps:
+  - multi-thread execution is outside the source
+conflicts: []
 ---
 
 # 學習路徑

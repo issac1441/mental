@@ -7,6 +7,11 @@ sources:
   - {{SOURCE_ID}}
 prerequisites: []
 updated_at: {{TODAY}}
+refresh_basis: []
+verification_basis: []
+checked_predictions: []
+known_gaps: []
+conflicts: []
 ---
 
 # {{TITLE}}

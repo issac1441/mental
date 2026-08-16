@@ -94,7 +94,6 @@ $mental:understand 一個 request 如何走過這個 repo？
 
 - `lens=` 控制預設角色與語彙：`general`、`engineer`、`architect`、`pm`、`operator`、`student`、`researcher` 或 custom lens ID。
 - `job=` 控制目前任務：`orient`、`decide`、`predict`、`verify` 或 `repair`。
-- `views=` 是進階 override，可使用 `anchor`、`map`、`mechanism`、`scenario` 與 `evidence`。
 
 例如：
 
@@ -103,6 +102,14 @@ $mental:understand 一個 request 如何走過這個 repo？
 /mental:understand lens=architect job=predict 說明 failover 如何運作。
 /mental:change job=decide 比較 option A 與 B。
 ```
+
+<details>
+<summary>進階 view override</summary>
+
+熟悉 mental 詞彙的使用者可以指定一個或多個 `views=`：`anchor`、`map`、
+`mechanism`、`scenario` 或 `evidence`。一般情況讓 skill 自動選擇即可。
+
+</details>
 
 ## 常見流程
 
@@ -149,9 +156,13 @@ OpenCode 目前只提供文件層級相容。將 `skills/`、`references/`、`sc
 python3 -m unittest discover -s tests -v
 python3 scripts/scaffold_workspace.py /tmp/mental-demo --mode hybrid --language zh-TW
 python3 scripts/validate_workspace.py /tmp/mental-demo
+python3 scripts/run_conversation_evals.py --list
+python3 scripts/run_conversation_evals.py --host claude --judge-host claude --case understand-without-workspace
 ```
 
-Python scripts 是 skills 的內部 helper，不是公開 CLI。
+Workspace scripts 是 skills 的內部 helper，不是公開 CLI。Conversation eval
+會真的執行指定 host 與 rubric judge，原始結果寫入 gitignored 的
+`eval-results/`。執行 Codex eval 前需先安裝 `mental` plugin。
 
 ## 延伸文件
 

@@ -94,7 +94,6 @@ You normally do not need to specify these values. The skill infers them from you
 
 - `lens=` controls the assumed role and vocabulary: `general`, `engineer`, `architect`, `pm`, `operator`, `student`, `researcher`, or a custom lens ID.
 - `job=` controls the current task: `orient`, `decide`, `predict`, `verify`, or `repair`.
-- `views=` is an advanced override. Accepted values are `anchor`, `map`, `mechanism`, `scenario`, and `evidence`.
 
 Examples:
 
@@ -103,6 +102,15 @@ Examples:
 /mental:understand lens=architect job=predict How does failover work?
 /mental:change job=decide Compare options A and B.
 ```
+
+<details>
+<summary>Advanced view override</summary>
+
+Experienced users can supply one or more `views=` values: `anchor`, `map`,
+`mechanism`, `scenario`, or `evidence`. Most requests should let the skill choose
+these internal slices automatically.
+
+</details>
 
 ## Typical workflows
 
@@ -149,9 +157,14 @@ OpenCode support is documentation-only. Copy or link `skills/`, `references/`, `
 python3 -m unittest discover -s tests -v
 python3 scripts/scaffold_workspace.py /tmp/mental-demo --mode hybrid --language en
 python3 scripts/validate_workspace.py /tmp/mental-demo
+python3 scripts/run_conversation_evals.py --list
+python3 scripts/run_conversation_evals.py --host claude --judge-host claude --case understand-without-workspace
 ```
 
-The Python scripts are internal skill helpers, not a public CLI.
+The workspace scripts are internal skill helpers, not a public CLI. Conversation
+evals actually invoke the selected host and a rubric judge; their ignored raw
+results are written under `eval-results/`. Codex evals require `mental` to be
+installed first.
 
 ## Additional documentation
 

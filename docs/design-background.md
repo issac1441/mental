@@ -89,7 +89,7 @@ The current interface keeps:
 
 Views remain internal audit vocabulary. The agent chooses them and reports them only when user-selected, non-default, uncertain, or actionable. Experienced users may override Views, but first-time users do not need to understand the taxonomy.
 
-The built-in Lens names are role-shaped conveniences, not identity claims. A person may use `architect` for one explanation and `student` for another. Job carries the immediate decision perspective; Lens supplies assumed vocabulary and concerns. This distinction must be tested because role labels can still invite identity-based inference if agents apply them carelessly.
+The built-in Lens names are role-shaped conveniences, not identity claims. A person may use `architect` for one explanation and `student` for another. Job sets the cognitive objective; Lens supplies assumed knowledge, vocabulary, and salient concerns. `concerns` is not a whitelist: a PM Lens can still trace a mechanism when the Job is prediction. When the controls appear to conflict, Job wins and Lens shapes its presentation. This distinction must be tested because role labels can still invite identity-based inference if agents apply them carelessly.
 
 ### From artifact-first to value-first
 
@@ -97,7 +97,7 @@ The first quickstart required `build`. This delayed value and asked newcomers to
 
 ### From agent prediction to human prediction
 
-The shipped change workflow once instructed the agent to write a Prediction. That reproduced the cognitive outsourcing the product was meant to prevent. `change` now asks one high-information human prediction when it can affect a consequential decision, allows `skip`, then compares the response with evidence and repairs the smallest model gap.
+The shipped change workflow once instructed the agent to write a Prediction. That reproduced the cognitive outsourcing the product was meant to prevent. `change` now asks one high-information human prediction when it can affect a consequential decision, allows `skip`, then compares the response with evidence and repairs the smallest model gap. `skip` applies to one invocation and is not retained as a behavior profile. A recorded brief stores only whether a prediction was attempted, skipped, or not applicable; the answer remains in conversation unless the user asks to persist it.
 
 ### From one promotion gate to three gates
 
@@ -113,11 +113,19 @@ Human assent was previously treated as a path from draft to canonical. This conf
 
 Source files, code, tests, and runtime observations remain material or implementation truth. Shared artifacts declare maintenance authority:
 
-- **mechanical** artifacts are regenerable caches and can refresh automatically;
+- **mechanical** artifacts are regenerable caches and can refresh automatically only from a recorded source ID, concrete revision, refresh basis, and Evidence section;
 - **conceptual** artifacts are durable explanations that require evidence and checked predictions before activation;
 - **decision** artifacts preserve human or agent choices, rejected alternatives, timing, and reversibility.
 
 Authority and volatility are separate axes. Authority decides who may update an artifact; volatility would decide how often an agent should inspect it. V1 does not add a `volatility` field because no decay policy has been validated yet. Registered source revisions plus `current|stale` provide the smaller operational mechanism; future evaluations should test whether a separate decay hint reduces scans without adding another ceremonial field.
+
+Mechanical does not mean “contains no inference.” It means a bounded agent pass can
+stably reconstruct the same representation from the registered evidence without
+choosing desired behavior or resolving competing conceptual interpretations.
+Kinds that can serve as either caches or explanations therefore allow both
+mechanical and conceptual authority. Automatic refresh is safe only when the
+artifact records how to reproduce the mechanical reading; otherwise it becomes
+stale and produces a visible delta.
 
 Conflicts are first-class `open|resolved` artifacts with stable IDs, owners, both sides of the mismatch, and resolution evidence. They are actionable interrupts rather than inline confidence labels.
 
@@ -147,6 +155,14 @@ Compare `mental` with the host agent's normal workflow for a defined task class.
 - **Privacy containment:** whether personal learning state stays outside versioned artifacts.
 
 A credible study should record prior knowledge, task class, source quality, artifact authority, time, assistance, harness coverage, and delayed retention. Prediction tasks must remain hidden until the person commits to an answer.
+
+Implementation assurance uses two orthogonal layers. Deterministic tests validate
+manifests, schemas, paths, privacy, and state transitions quickly in CI.
+Conversation evaluations then run an actual Claude Code or Codex host, preserve
+its real output and workspace delta, and ask a rubric judge to score conditional
+behavior. A phrase-presence test is not a conversation evaluation. Host evals
+remain slower and probabilistic, so they supplement rather than replace the
+deterministic layer.
 
 ## 8. Threats and limitations
 

@@ -8,6 +8,13 @@ sources:
 prerequisites:
   - event-loop
 updated_at: 2026-08-15
+verification_basis:
+  - source-event-loop makes the requested prediction decidable
+checked_predictions:
+  - "success: a split task allows another queued task to run"
+  - "failure: one long task delays the task behind it"
+known_gaps: []
+conflicts: []
 ---
 
 # 預測順序

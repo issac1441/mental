@@ -3,11 +3,19 @@ id: mental-index
 kind: index
 authority: conceptual
 status: active
-sources: []
+sources:
+  - source-repo
 prerequisites: []
 updated_at: 2026-08-15
 mode: repository
 language: en
+verification_basis:
+  - source-repo and model-map cover the complete router fixture
+checked_predictions:
+  - "success: /health returns the successful response pair"
+  - "failure: /healthy returns the not-found response pair"
+known_gaps: []
+conflicts: []
 ---
 
 # Router mental model

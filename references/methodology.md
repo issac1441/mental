@@ -30,7 +30,7 @@ Built-in lenses are:
 - **student**: assume only declared prerequisites; prioritize anchors, vocabulary, worked examples, and transfer.
 - **researcher**: assume research-method vocabulary; prioritize constructs, evidence strength, boundary conditions, and alternative explanations.
 
-Repository work defaults to `engineer`. General learning defaults to `student`. A project may define a custom `kind: lens` artifact with `assumes`, `prioritizes`, and `vocabulary` lists. Do not infer ability from grammar, response speed, identity, confidence, or protected traits.
+Repository work defaults to `engineer`. General learning defaults to `student`. A project may define a custom `kind: lens` artifact with `assumes`, `concerns`, and `vocabulary` lists. Do not infer ability from grammar, response speed, identity, confidence, or protected traits.
 
 ### Job
 
@@ -43,6 +43,11 @@ Job describes what the person needs to do now:
 - **repair**: find the first broken relationship, correct it minimally, and test transfer.
 
 Infer Job from the request. Manual `job=` input wins. `understand` defaults to `orient`, `change` to `decide`, `review` and `quiz` to `verify`, and `practice` to `repair`.
+
+Job decides the cognitive objective. Lens decides assumed knowledge, vocabulary,
+and which concerns are most salient. When they appear to conflict, satisfy the
+Job and express it through the Lens; `concerns` is a salience hint, not an
+allowlist of topics the agent may discuss.
 
 ## Internal views and response density
 
@@ -75,7 +80,7 @@ Never persist an inferred preference unless the user explicitly asks.
 
 Source files, code, tests, and runtime observations are material or implementation truth. Artifacts declare who may update them:
 
-- **mechanical**: a regenerable representation directly derived from registered evidence. The agent may refresh it without a human truth judgment.
+- **mechanical**: a representation that can be stably regenerated from registered evidence under a recorded source revision and refresh basis. The agent may refresh it without a human truth judgment.
 - **conceptual**: a durable explanation, boundary, prerequisite structure, or teaching model. It may become active only with recorded verification evidence; fluency or user assent is not verification.
 - **decision**: an intent, tradeoff, responsibility choice, or accepted change. Only a human with decision standing can accept or reject it.
 
@@ -85,7 +90,12 @@ Conflicts are first-class artifacts. Never hide a disagreement by rewriting eith
 
 ### Mechanical refresh
 
-Refresh a mechanical artifact automatically when registered sources change. Record the source revision and mark it `current`. Mark it `stale` when regeneration cannot complete. Do not ask a human to approve source-derived facts.
+Refresh a mechanical artifact automatically only when its registered source IDs,
+concrete source revisions, refresh basis, and Evidence section make the
+regeneration reproducible. Record the new basis and mark it `current`. Mark it
+`stale` and expose a delta when those conditions are missing or the source is
+unavailable. Do not infer mechanical authority from prose or ask a human to
+approve source-derived facts.
 
 ### Conceptual activation
 
@@ -97,6 +107,11 @@ Move a conceptual artifact from `draft` to `active` only when its verification s
 4. one valid verification basis: source/test corroboration, domain-owner validation, or demonstrated prediction and transfer.
 
 “Looks good” and recognition are not verification. `active` means “current working model with an explicit basis,” not infallible truth.
+
+Record activation in frontmatter with `verification_basis`,
+`checked_predictions`, `known_gaps`, and `conflicts`. Checked predictions must
+include a representative success plus a failure or boundary. Empty lists are
+valid for drafts; they are not sufficient for activation.
 
 ### Human decision
 

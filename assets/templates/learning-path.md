@@ -7,6 +7,10 @@ sources:
   - {{SOURCE_ID}}
 prerequisites: []
 updated_at: {{TODAY}}
+verification_basis: []
+checked_predictions: []
+known_gaps: []
+conflicts: []
 ---
 
 # Learning path

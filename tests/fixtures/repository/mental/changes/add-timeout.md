@@ -8,6 +8,11 @@ sources:
 prerequisites:
   - request-contract
 updated_at: 2026-08-15
+prediction_status: skipped
+supersedes: []
+superseded_by: []
+status_history:
+  - 2026-08-15:pending
 ---
 
 # Add timeout

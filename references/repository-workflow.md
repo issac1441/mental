@@ -53,6 +53,12 @@ After the response:
 
 Do not fabricate a human prediction. If the user requests a direct answer or the prediction would add ceremony without changing the decision, answer directly.
 
+When a change brief is already in recording scope, record only
+`prediction_status: attempted|skipped|not-applicable` for the invocation. `skip`
+applies only to the current prompt and is not a persistent preference. Keep the
+answer in conversation unless the user explicitly asks to store it; showing the
+evidence in the same turn would defeat the prediction gate.
+
 ## Change analysis
 
 Use these sections when material:
@@ -72,6 +78,9 @@ Use these sections when material:
 13. `Human Decision`
 
 Analysis is read-only by default. Record it only when requested. A recorded `kind: change` uses decision authority and starts `pending`. After a decision, update it to `accepted` or `rejected`, preserve alternatives, and create decision-ledger entries for consequential choices.
+Append every decision-state transition to `status_history`. When one record
+replaces another, link both directions with `supersedes` and `superseded_by`
+instead of rewriting the older entry.
 
 ## Model-aware review
 

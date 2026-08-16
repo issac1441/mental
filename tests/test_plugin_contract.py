@@ -94,7 +94,9 @@ class PluginContractTests(unittest.TestCase):
                     f"Missing support path referenced by {name}: {target}",
                 )
 
-    def test_behavior_cases_are_encoded_in_skills(self) -> None:
+    def test_static_skill_contract_phrases_are_present(self) -> None:
+        # This is fast contract lint, not a behavior eval. Real host output is
+        # exercised and rubric-scored by scripts/run_conversation_evals.py.
         cases = json.loads(
             (ROOT / "tests" / "behavior_cases.json").read_text(encoding="utf-8")
         )
@@ -220,11 +222,13 @@ class PluginContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("`kind: lens`", contract)
-        for field in ("assumes", "prioritizes", "vocabulary"):
+        for field in ("assumes", "concerns", "vocabulary"):
             self.assertIn(field, contract)
             self.assertIn(field, template)
         self.assertNotIn("default_views", contract)
         self.assertNotIn("default_views", template)
+        self.assertNotIn("prioritizes", contract)
+        self.assertNotIn("prioritizes", template)
         self.assertIn("authority: conceptual", template)
         self.assertIn('"lens"', validator)
 

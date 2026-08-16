@@ -7,6 +7,14 @@ sources:
   - source-event-loop
 prerequisites: []
 updated_at: 2026-08-15
+verification_basis:
+  - source-event-loop defines queue and single-task execution order
+checked_predictions:
+  - "success: the next task starts after the current task finishes"
+  - "boundary: the model does not predict multi-thread execution"
+known_gaps:
+  - multi-thread behavior is outside the supplied source
+conflicts: []
 ---
 
 # Event loop

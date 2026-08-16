@@ -7,6 +7,8 @@ sources:
   - source-repo
 prerequisites: []
 updated_at: 2026-08-15
+refresh_basis:
+  - source-repo@2026-08-15
 ---
 
 # Request routing

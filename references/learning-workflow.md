@@ -12,6 +12,11 @@ A durable learning model may contain:
 - fixed-coverage exercises;
 - evidence links and open conflicts.
 
+Reusable teaching artifacts start as conceptual drafts. Activate them only
+after their frontmatter records a real verification basis, checked success and
+failure or boundary predictions, known gaps, and linked conflicts. A learner
+recognizing or liking an explanation is not activation evidence.
+
 ## Diagnostic
 
 Establish one observable goal and ask 2–5 high-information prompts that distinguish prerequisite gaps. Prefer prediction, explanation, justified choice, debugging, and counterexample prompts.

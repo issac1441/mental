@@ -7,6 +7,11 @@ sources:
   - {{SOURCE_ID}}
 prerequisites: []
 updated_at: {{TODAY}}
+prediction_status: not-applicable
+supersedes: []
+superseded_by: []
+status_history:
+  - {{TODAY}}:pending
 ---
 
 # {{TITLE}}
@@ -19,7 +24,7 @@ updated_at: {{TODAY}}
 
 ## Human Prediction and Model Gap
 
-Do not fabricate a human prediction. Record `skipped` when the user requests a direct answer.
+Do not fabricate a human prediction. Update `prediction_status`; keep the answer private unless the user explicitly asks to record it here.
 
 ## Proposed Model Delta
 

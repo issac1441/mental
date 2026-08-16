@@ -8,6 +8,8 @@ sources:
 prerequisites:
   - request-routing
 updated_at: 2026-08-15
+refresh_basis:
+  - source-repo@2026-08-15
 ---
 
 # Request contract
@@ -15,3 +17,7 @@ updated_at: 2026-08-15
 Routing always returns a two-item `(status, body)` pair.
 
 Unknown paths return `(404, "not found")`.
+
+## Evidence
+
+- `source-repo`: `src/router.py`

@@ -8,6 +8,13 @@ sources:
 prerequisites:
   - event-loop
 updated_at: 2026-08-15
+verification_basis:
+  - source-event-loop directly contradicts the misconception
+checked_predictions:
+  - "success: a short task starts after the current task finishes"
+  - "failure: a long current task delays later queued tasks"
+known_gaps: []
+conflicts: []
 ---
 
 # 長 task 不會影響後續工作

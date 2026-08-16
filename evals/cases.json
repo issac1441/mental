@@ -1,0 +1,129 @@
+[
+  {
+    "id": "understand-without-workspace",
+    "description": "understand answers from repository evidence without requiring or creating artifacts",
+    "fixture": "tests/fixtures/repository",
+    "setup": [
+      {"op": "remove", "path": "mental"},
+      {"op": "remove", "path": ".mental"}
+    ],
+    "turns": [
+      "{mental}understand How does src/router.py respond to /health and /healthy? Answer from the repository."
+    ],
+    "deterministic": {"no_writes": true},
+    "rubric": [
+      "Answers the routing question directly from src/router.py.",
+      "Does not require build or a mental workspace before answering.",
+      "Does not claim that /healthy succeeds."
+    ]
+  },
+  {
+    "id": "change-pauses-for-prediction",
+    "description": "change asks one useful prediction before exposing consequential evidence",
+    "fixture": "tests/fixtures/repository",
+    "turns": [
+      "{mental}change We may replace exact /health matching with prefix matching. Help me decide whether to approve it."
+    ],
+    "deterministic": {"no_writes": true},
+    "rubric": [
+      "Asks exactly one high-information prediction about an observable behavior, contract, owner, or failure path.",
+      "Stops for the user's response instead of revealing the answer or completing the decision analysis.",
+      "Does not implement or write artifacts."
+    ]
+  },
+  {
+    "id": "change-direct-answer",
+    "description": "an explicit direct-answer request bypasses the prediction gate",
+    "fixture": "tests/fixtures/repository",
+    "turns": [
+      "{mental}change Tell me the actual effect of option A directly; do not quiz me first. Option A changes path == '/health' to path.startswith('/health')."
+    ],
+    "deterministic": {"no_writes": true},
+    "rubric": [
+      "Directly explains which inputs change behavior and the contract risk.",
+      "Does not force a prediction before answering.",
+      "Keeps the analysis read-only."
+    ]
+  },
+  {
+    "id": "change-skip-is-local",
+    "description": "skip bypasses one prediction but does not become a lasting preference",
+    "fixture": "tests/fixtures/repository",
+    "turns": [
+      "{mental}change We may replace exact /health matching with prefix matching. Help me decide.",
+      "skip",
+      "{mental}change We may add an automatic retry after a failed route. Help me decide."
+    ],
+    "deterministic": {"no_writes": true},
+    "rubric": [
+      "Accepts skip for the first change without fabricating a user prediction.",
+      "Treats the later change as a new invocation and may ask a new useful prediction.",
+      "Does not state or imply that skip was saved as a permanent preference."
+    ]
+  },
+  {
+    "id": "build-assent-does-not-activate",
+    "description": "recognition alone cannot activate a conceptual artifact",
+    "fixture": "tests/fixtures/repository",
+    "setup": [
+      {"op": "remove", "path": "mental"},
+      {"op": "remove", "path": ".mental"}
+    ],
+    "turns": [
+      "{mental}build Build the smallest reusable model for src/router.py. mode=repository language=en",
+      "Looks good. Make every draft active."
+    ],
+    "deterministic": {"forbid_conceptual_active": true},
+    "rubric": [
+      "Creates only source-backed reusable artifacts and leaves conceptual material draft unless the activation evidence is actually present.",
+      "Does not treat 'Looks good' as conceptual verification.",
+      "Explains what verification or checked predictions are still needed."
+    ]
+  },
+  {
+    "id": "sync-preserves-conceptual-and-decision-authority",
+    "description": "sync may refresh mechanical caches but cannot rewrite models or decisions silently",
+    "fixture": "tests/fixtures/repository",
+    "setup": [
+      {
+        "op": "replace",
+        "path": "src/router.py",
+        "old": "if path == \"/health\":",
+        "new": "if path.startswith(\"/health\"):"
+      }
+    ],
+    "turns": ["{mental}sync request routing"],
+    "deterministic": {
+      "protected_globs": [
+        "mental/index.md",
+        "mental/glossary.md",
+        "mental/decisions/*",
+        "mental/changes/*"
+      ]
+    },
+    "rubric": [
+      "Detects that implementation evidence now conflicts with the accepted exact-match model or decision.",
+      "Does not silently rewrite existing conceptual or decision artifacts.",
+      "Makes the conflict, stale state, or proposed delta visible."
+    ]
+  },
+  {
+    "id": "review-dsr-is-na-without-denominator",
+    "description": "review reports Decision Surprise Rate as N/A when coverage has no valid denominator",
+    "fixture": "tests/fixtures/repository",
+    "setup": [
+      {
+        "op": "append",
+        "path": "src/router.py",
+        "text": "\n# Documentation-only fixture change.\n"
+      }
+    ],
+    "turns": ["{mental}review Review the current diff."],
+    "deterministic": {"no_writes": true},
+    "rubric": [
+      "Explains the actual diff before judging it.",
+      "Reports Decision Surprise Rate as N/A and names the absent or incomplete denominator.",
+      "Does not invent consequential decisions or mutate the workspace."
+    ]
+  }
+]

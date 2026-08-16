@@ -6,6 +6,7 @@ import argparse
 import datetime as dt
 import json
 import re
+import stat
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,6 +39,23 @@ ALLOWED_KINDS = {
     "exercise",
 }
 ALLOWED_AUTHORITIES = {"mechanical", "conceptual", "decision"}
+KIND_AUTHORITIES = {
+    "index": {"conceptual"},
+    "sources": {"mechanical"},
+    "glossary": {"mechanical", "conceptual"},
+    "lens": {"conceptual"},
+    "map": {"mechanical"},
+    "concept": {"mechanical", "conceptual"},
+    "scenario": {"mechanical", "conceptual"},
+    "architecture": {"mechanical", "conceptual"},
+    "contract": {"mechanical", "conceptual"},
+    "decision": {"decision"},
+    "conflict": {"decision"},
+    "change": {"decision"},
+    "learning-path": {"conceptual"},
+    "misconception": {"conceptual"},
+    "exercise": {"conceptual"},
+}
 AUTHORITY_STATUSES = {
     "mechanical": {"current", "stale"},
     "conceptual": {"draft", "active", "stale"},
@@ -48,6 +66,19 @@ ALLOWED_MASTERY_STATES = {"unknown", "exposed", "working", "verified"}
 ALLOWED_DECISION_OWNERS = {"human", "agent", "shared", "unassigned"}
 ALLOWED_SURFACED_STATES = {"pre-approval", "post-approval"}
 ALLOWED_REVERSIBILITY = {"easy", "costly", "irreversible", "unknown"}
+ALLOWED_PREDICTION_STATES = {"attempted", "skipped", "not-applicable"}
+DECISION_TRANSITIONS = {
+    "pending": {"accepted", "rejected", "superseded"},
+    "accepted": {"superseded"},
+    "rejected": {"superseded"},
+    "superseded": set(),
+}
+ACTIVATION_FIELDS = {
+    "verification_basis",
+    "checked_predictions",
+    "known_gaps",
+    "conflicts",
+}
 ID_RE = re.compile(r"^[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 LINK_RE = re.compile(r"\[[^]]*]\(([^)]+)\)")
 SOURCE_HEADING_RE = re.compile(
@@ -55,6 +86,11 @@ SOURCE_HEADING_RE = re.compile(
     re.MULTILINE,
 )
 ID_TOKEN_RE = re.compile(r"[a-z0-9]+(?:[.-][a-z0-9]+)*")
+REFRESH_BASIS_RE = re.compile(r"^([a-z0-9]+(?:[.-][a-z0-9]+)*)@([^\s]+)$")
+STATUS_HISTORY_RE = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}):\s*(pending|accepted|rejected|superseded)$"
+)
+PLACEHOLDER_RE = re.compile(r"\b(?:pending|todo|tbd|looks good)\b", re.IGNORECASE)
 
 
 @dataclass
@@ -149,6 +185,22 @@ def markdown_destination(raw: str) -> str:
     return raw.split(maxsplit=1)[0] if raw else ""
 
 
+def is_regular_file(path: Path) -> bool:
+    return stat.S_ISREG(path.lstat().st_mode)
+
+
+def require_regular_file(path: Path, label: str, errors: list[str]) -> bool:
+    try:
+        regular = is_regular_file(path)
+    except OSError as exc:
+        errors.append(f"{path}: cannot inspect {label} ({type(exc).__name__})")
+        return False
+    if not regular:
+        errors.append(f"{path}: {label} must be regular")
+        return False
+    return True
+
+
 def inspect_git_privacy(
     workspace: Path, private_root: Path, errors: list[str], warnings: list[str]
 ) -> None:
@@ -189,6 +241,38 @@ def inspect_git_privacy(
             f"{private_root}: private files are tracked by Git: {', '.join(leaked)}"
         )
 
+    history_result = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(workspace),
+            "log",
+            "--all",
+            "--format=",
+            "--name-only",
+            "--",
+            ".mental",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if history_result.returncode != 0:
+        warnings.append(f"{workspace}: Git history privacy could not be inspected")
+    else:
+        historical_private_paths = {
+            line.strip()
+            for line in history_result.stdout.splitlines()
+            if line.strip()
+            and line.strip() != ".mental/.gitignore"
+            and not line.strip().endswith("/.mental/.gitignore")
+        }
+        if historical_private_paths:
+            warnings.append(
+                f"{private_root}: Git history contains private-state paths; "
+                "validation cannot remove copies from refs, forks, or remotes"
+            )
+
     probes = {
         ".mental/profile.md",
         ".mental/mastery.json",
@@ -220,6 +304,25 @@ def inspect_git_privacy(
                 f"{private_root}: Git could not verify ignore status for '{probe}'"
             )
 
+    ignore_self = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(workspace),
+            "check-ignore",
+            "--no-index",
+            "--quiet",
+            "--",
+            ".mental/.gitignore",
+        ],
+        check=False,
+        capture_output=True,
+    )
+    if ignore_self.returncode == 0:
+        errors.append(f"{private_root}: Git ignores '.mental/.gitignore' itself")
+    elif ignore_self.returncode not in {0, 1}:
+        warnings.append(f"{private_root}: Git could not inspect the ignore file itself")
+
 
 def validate(workspace: Path) -> dict[str, object]:
     workspace = workspace.resolve()
@@ -250,12 +353,25 @@ def validate(workspace: Path) -> dict[str, object]:
             "warnings": [],
         }
 
+    non_regular_artifacts: set[Path] = set()
     for path in sorted(mental_root.rglob("*")):
         if path.is_symlink():
             errors.append(f"{path}: artifact paths must not be symlinks")
+        elif path.suffix == ".md":
+            try:
+                regular = is_regular_file(path)
+            except OSError as exc:
+                errors.append(
+                    f"{path}: cannot inspect artifact path ({type(exc).__name__})"
+                )
+                non_regular_artifacts.add(path)
+            else:
+                if not regular:
+                    errors.append(f"{path}: Markdown artifacts must be regular files")
+                    non_regular_artifacts.add(path)
 
     for path in sorted(mental_root.rglob("*.md")):
-        if path.is_symlink():
+        if path.is_symlink() or path in non_regular_artifacts:
             continue
         try:
             artifact, parse_errors = parse_frontmatter(path)
@@ -281,9 +397,12 @@ def validate(workspace: Path) -> dict[str, object]:
                 )
             else:
                 ids[artifact_id] = artifact.path
-        kind = artifact.fields.get("kind")
+        elif "id" in artifact.fields:
+            errors.append(f"{artifact.path}: 'id' must be a scalar")
+        raw_kind = artifact.fields.get("kind")
+        kind = raw_kind if isinstance(raw_kind, str) else None
         if kind not in ALLOWED_KINDS:
-            errors.append(f"{artifact.path}: unsupported kind '{kind}'")
+            errors.append(f"{artifact.path}: unsupported kind '{raw_kind}'")
         relative_parts = artifact.path.relative_to(mental_root).parts
         if kind == "lens" and (not relative_parts or relative_parts[0] != "lenses"):
             errors.append(
@@ -313,28 +432,22 @@ def validate(workspace: Path) -> dict[str, object]:
             errors.append(
                 f"{artifact.path}: artifacts under mental/decisions/ must use kind 'decision'"
             )
-        authority = artifact.fields.get("authority")
+        raw_authority = artifact.fields.get("authority")
+        authority = raw_authority if isinstance(raw_authority, str) else None
         if authority not in ALLOWED_AUTHORITIES:
-            errors.append(f"{artifact.path}: unsupported authority '{authority}'")
-        status = artifact.fields.get("status")
+            errors.append(f"{artifact.path}: unsupported authority '{raw_authority}'")
+        elif kind in KIND_AUTHORITIES and authority not in KIND_AUTHORITIES[kind]:
+            allowed = ", ".join(sorted(KIND_AUTHORITIES[kind]))
+            errors.append(f"{artifact.path}: kind '{kind}' allows authority: {allowed}")
+        raw_status = artifact.fields.get("status")
+        status = raw_status if isinstance(raw_status, str) else None
         if kind == "conflict":
             allowed_statuses = CONFLICT_STATUSES
         else:
             allowed_statuses = AUTHORITY_STATUSES.get(str(authority), set())
         if status not in allowed_statuses:
             errors.append(
-                f"{artifact.path}: status '{status}' is invalid for authority '{authority}'"
-            )
-        required_authority = {
-            "sources": "mechanical",
-            "lens": "conceptual",
-            "decision": "decision",
-            "conflict": "decision",
-            "change": "decision",
-        }.get(str(kind))
-        if required_authority and authority != required_authority:
-            errors.append(
-                f"{artifact.path}: kind '{kind}' requires authority '{required_authority}'"
+                f"{artifact.path}: status '{raw_status}' is invalid for authority '{raw_authority}'"
             )
         if not is_iso_date(artifact.fields.get("updated_at")):
             errors.append(
@@ -343,12 +456,11 @@ def validate(workspace: Path) -> dict[str, object]:
         if (
             kind == "index"
             and "mode" in artifact.fields
-            and artifact.fields.get("mode")
-            not in {
-                "repository",
-                "learning",
-                "hybrid",
-            }
+            and (
+                not isinstance(artifact.fields.get("mode"), str)
+                or artifact.fields.get("mode")
+                not in {"repository", "learning", "hybrid"}
+            )
         ):
             errors.append(
                 f"{artifact.path}: unsupported mode '{artifact.fields.get('mode')}'"
@@ -357,10 +469,80 @@ def validate(workspace: Path) -> dict[str, object]:
             if not isinstance(artifact.fields.get(key), list):
                 errors.append(f"{artifact.path}: '{key}' must be a YAML list")
         if kind == "lens":
-            for key in ("assumes", "prioritizes", "vocabulary"):
+            for key in ("assumes", "concerns", "vocabulary"):
                 if not isinstance(artifact.fields.get(key), list):
                     errors.append(
                         f"{artifact.path}: lens field '{key}' must be a YAML list"
+                    )
+        if authority == "mechanical" and kind != "sources":
+            refresh_basis = artifact.fields.get("refresh_basis")
+            if not isinstance(refresh_basis, list):
+                errors.append(
+                    f"{artifact.path}: mechanical artifact requires a 'refresh_basis' list"
+                )
+            elif status == "current":
+                if not refresh_basis:
+                    errors.append(
+                        f"{artifact.path}: current mechanical artifact has no refresh basis"
+                    )
+                for entry in refresh_basis:
+                    match = REFRESH_BASIS_RE.fullmatch(str(entry))
+                    if not match:
+                        errors.append(
+                            f"{artifact.path}: invalid refresh basis '{entry}'; "
+                            "use <source-id>@<revision>"
+                        )
+                        continue
+                    source_id, revision = match.groups()
+                    if source_id not in list_field(artifact, "sources"):
+                        errors.append(
+                            f"{artifact.path}: refresh basis source '{source_id}' "
+                            "is not listed in sources"
+                        )
+                    if PLACEHOLDER_RE.search(revision) or revision in {
+                        "unknown",
+                        "unrecorded",
+                    }:
+                        errors.append(
+                            f"{artifact.path}: refresh basis requires a concrete revision"
+                        )
+                if "## Evidence" not in artifact.body:
+                    errors.append(
+                        f"{artifact.path}: current mechanical artifact requires an Evidence section"
+                    )
+        if authority == "conceptual":
+            for key in ACTIVATION_FIELDS:
+                value = artifact.fields.get(key)
+                if value is not None and not isinstance(value, list):
+                    errors.append(
+                        f"{artifact.path}: conceptual field '{key}' must be a YAML list"
+                    )
+            if status == "active":
+                for key in ACTIVATION_FIELDS:
+                    if not isinstance(artifact.fields.get(key), list):
+                        errors.append(
+                            f"{artifact.path}: active conceptual artifact requires '{key}'"
+                        )
+                verification_basis = list_field(artifact, "verification_basis")
+                checked_predictions = list_field(artifact, "checked_predictions")
+                if not verification_basis or any(
+                    PLACEHOLDER_RE.search(item) for item in verification_basis
+                ):
+                    errors.append(
+                        f"{artifact.path}: active conceptual artifact needs a non-placeholder verification basis"
+                    )
+                prediction_kinds = {
+                    item.split(":", 1)[0].strip().lower()
+                    for item in checked_predictions
+                    if ":" in item and not PLACEHOLDER_RE.search(item)
+                }
+                if "success" not in prediction_kinds:
+                    errors.append(
+                        f"{artifact.path}: active conceptual artifact needs a checked success prediction"
+                    )
+                if not prediction_kinds.intersection({"failure", "boundary"}):
+                    errors.append(
+                        f"{artifact.path}: active conceptual artifact needs a checked failure or boundary prediction"
                     )
         if kind == "conflict":
             for key in ("owner", "opened_at"):
@@ -387,10 +569,63 @@ def validate(workspace: Path) -> dict[str, object]:
             }
             for key, allowed in decision_fields.items():
                 value = artifact.fields.get(key)
-                if value not in allowed:
+                if not isinstance(value, str) or value not in allowed:
                     errors.append(
                         f"{artifact.path}: decision field '{key}' has invalid value '{value}'"
                     )
+        if kind in {"decision", "change"}:
+            for key in ("supersedes", "superseded_by"):
+                if not isinstance(artifact.fields.get(key), list):
+                    errors.append(
+                        f"{artifact.path}: {kind} field '{key}' must be a YAML list"
+                    )
+            history = artifact.fields.get("status_history")
+            parsed_history: list[tuple[str, str]] = []
+            if not isinstance(history, list) or not history:
+                errors.append(
+                    f"{artifact.path}: {kind} requires a non-empty 'status_history' list"
+                )
+            else:
+                for entry in history:
+                    match = STATUS_HISTORY_RE.fullmatch(str(entry))
+                    if not match or not is_iso_date(match.group(1) if match else None):
+                        errors.append(
+                            f"{artifact.path}: invalid status history entry '{entry}'"
+                        )
+                    else:
+                        parsed_history.append((match.group(1), match.group(2)))
+                if parsed_history and parsed_history[-1][1] != status:
+                    errors.append(
+                        f"{artifact.path}: latest status history entry must match status '{status}'"
+                    )
+                dates = [date for date, _ in parsed_history]
+                if dates != sorted(dates):
+                    errors.append(
+                        f"{artifact.path}: status history dates must be chronological"
+                    )
+                states = [state for _, state in parsed_history]
+                if states and states[0] != "pending":
+                    errors.append(
+                        f"{artifact.path}: status history must start with pending"
+                    )
+                for previous, current in zip(states, states[1:], strict=False):
+                    if current not in DECISION_TRANSITIONS.get(previous, set()):
+                        errors.append(
+                            f"{artifact.path}: invalid status transition "
+                            f"'{previous}' to '{current}'"
+                        )
+            if status == "superseded" and not list_field(artifact, "superseded_by"):
+                errors.append(
+                    f"{artifact.path}: superseded artifact requires 'superseded_by'"
+                )
+        if kind == "change" and (
+            not isinstance(artifact.fields.get("prediction_status"), str)
+            or artifact.fields.get("prediction_status") not in ALLOWED_PREDICTION_STATES
+        ):
+            errors.append(
+                f"{artifact.path}: change field 'prediction_status' must be "
+                "attempted, skipped, or not-applicable"
+            )
         if (
             status in {"current", "active", "accepted", "resolved"}
             and kind not in {"index", "sources"}
@@ -398,16 +633,45 @@ def validate(workspace: Path) -> dict[str, object]:
         ):
             errors.append(f"{artifact.path}: active artifact state has no sources")
 
+    source_catalog_path = mental_root / "sources.md"
+    source_artifacts = [
+        artifact for artifact in artifacts if artifact.fields.get("kind") == "sources"
+    ]
     source_catalog = next(
-        (a for a in artifacts if a.fields.get("kind") == "sources"), None
+        (artifact for artifact in artifacts if artifact.path == source_catalog_path),
+        None,
     )
-    source_ids = (
-        set(SOURCE_HEADING_RE.findall(source_catalog.body)) if source_catalog else set()
+    if source_catalog is None:
+        errors.append(f"{source_catalog_path}: required source catalog is missing")
+    elif source_catalog.fields.get("kind") != "sources":
+        errors.append(f"{source_catalog_path}: must use kind 'sources'")
+        source_catalog = None
+    for artifact in source_artifacts:
+        if artifact.path != source_catalog_path:
+            errors.append(
+                f"{artifact.path}: kind 'sources' is only allowed at mental/sources.md"
+            )
+    source_id_entries = (
+        SOURCE_HEADING_RE.findall(source_catalog.body) if source_catalog else []
     )
-    if not source_catalog:
-        errors.append(f"{mental_root}: missing a kind=sources artifact")
+    source_ids = set(source_id_entries)
+    duplicate_source_ids = sorted(
+        source_id for source_id in source_ids if source_id_entries.count(source_id) > 1
+    )
+    for source_id in duplicate_source_ids:
+        errors.append(f"{source_catalog_path}: duplicate source id '{source_id}'")
 
     all_ids = set(ids)
+    artifact_kinds = {
+        str(artifact.fields.get("id")): artifact.fields.get("kind")
+        for artifact in artifacts
+        if isinstance(artifact.fields.get("id"), str)
+    }
+    artifacts_by_id = {
+        str(artifact.fields["id"]): artifact
+        for artifact in artifacts
+        if isinstance(artifact.fields.get("id"), str)
+    }
     for artifact in artifacts:
         for source_id in list_field(artifact, "sources"):
             if source_id not in source_ids:
@@ -417,6 +681,28 @@ def validate(workspace: Path) -> dict[str, object]:
                 errors.append(
                     f"{artifact.path}: unknown prerequisite id '{prerequisite}'"
                 )
+        for conflict_id in list_field(artifact, "conflicts"):
+            if artifact_kinds.get(conflict_id) != "conflict":
+                errors.append(f"{artifact.path}: unknown conflict id '{conflict_id}'")
+        kind = artifact.fields.get("kind")
+        if isinstance(kind, str) and kind in {"decision", "change"}:
+            artifact_id = str(artifact.fields.get("id", ""))
+            for field, reciprocal in (
+                ("supersedes", "superseded_by"),
+                ("superseded_by", "supersedes"),
+            ):
+                for target_id in list_field(artifact, field):
+                    target = artifacts_by_id.get(target_id)
+                    if target is None or target.fields.get("kind") != kind:
+                        errors.append(
+                            f"{artifact.path}: {field} target '{target_id}' "
+                            f"must be another {kind} artifact"
+                        )
+                    elif artifact_id not in list_field(target, reciprocal):
+                        errors.append(
+                            f"{artifact.path}: {field} target '{target_id}' "
+                            f"does not link back through {reciprocal}"
+                        )
         for target in LINK_RE.findall(artifact.body):
             target = markdown_destination(target)
             if not target or target.startswith(("#", "http://", "https://", "mailto:")):
@@ -464,21 +750,21 @@ def validate(workspace: Path) -> dict[str, object]:
         errors.append(f"{ignore_file}: private-state ignore file is missing")
     elif ignore_file.is_symlink():
         errors.append(f"{ignore_file}: private-state ignore file must not be a symlink")
-    else:
+    elif require_regular_file(ignore_file, "private-state ignore file", errors):
         try:
-            ignore_lines = {
+            ignore_lines = [
                 line.strip()
                 for line in ignore_file.read_text(encoding="utf-8").splitlines()
                 if line.strip() and not line.lstrip().startswith("#")
-            }
+            ]
         except (OSError, UnicodeError) as exc:
             errors.append(
                 f"{ignore_file}: cannot read ignore file ({type(exc).__name__})"
             )
         else:
-            if ignore_lines != {"*", "!.gitignore"}:
+            if ignore_lines != ["*", "!.gitignore"]:
                 errors.append(
-                    f"{ignore_file}: must ignore everything except .gitignore"
+                    f"{ignore_file}: must contain '*' followed by '!.gitignore'"
                 )
 
     if private_root.is_dir() and not private_root.is_symlink():
@@ -494,58 +780,91 @@ def validate(workspace: Path) -> dict[str, object]:
     elif mastery_file.is_symlink():
         errors.append(f"{mastery_file}: private mastery file must not be a symlink")
     elif mastery_file.exists():
-        try:
-            mastery = json.loads(mastery_file.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            errors.append(f"{mastery_file}: must contain valid JSON")
-        else:
-            if not isinstance(mastery, dict):
-                errors.append(f"{mastery_file}: root must be an object")
+        if require_regular_file(mastery_file, "private mastery file", errors):
+            try:
+                mastery = json.loads(mastery_file.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                errors.append(f"{mastery_file}: must contain UTF-8 valid JSON")
             else:
-                if mastery.get("version") != 1:
-                    errors.append(f"{mastery_file}: version must be 1")
-                if not is_iso_date(mastery.get("updated_at")):
-                    errors.append(
-                        f"{mastery_file}: updated_at must use ISO YYYY-MM-DD format"
-                    )
-                concepts = mastery.get("concepts")
-                if not isinstance(concepts, dict):
-                    errors.append(f"{mastery_file}: concepts must be an object")
+                if not isinstance(mastery, dict):
+                    errors.append(f"{mastery_file}: root must be an object")
                 else:
-                    for concept_id, entry in concepts.items():
-                        if not isinstance(concept_id, str) or not ID_RE.match(
-                            concept_id
-                        ):
-                            errors.append(
-                                f"{mastery_file}: invalid concept id '{concept_id}'"
-                            )
-                            continue
-                        if not isinstance(entry, dict):
-                            errors.append(
-                                f"{mastery_file}: mastery entry '{concept_id}' must be an object"
-                            )
-                            continue
-                        if entry.get("state") not in ALLOWED_MASTERY_STATES:
-                            errors.append(
-                                f"{mastery_file}: invalid mastery state for '{concept_id}'"
-                            )
-                        evidence = entry.get("evidence")
-                        if not isinstance(evidence, list) or not all(
-                            isinstance(item, str) for item in evidence
-                        ):
-                            errors.append(
-                                f"{mastery_file}: evidence for '{concept_id}' must be a string array"
-                            )
-                        if not is_iso_date(entry.get("updated_at")):
-                            errors.append(
-                                f"{mastery_file}: updated_at for '{concept_id}' must use ISO YYYY-MM-DD format"
-                            )
+                    if mastery.get("version") != 1:
+                        errors.append(f"{mastery_file}: version must be 1")
+                    if not is_iso_date(mastery.get("updated_at")):
+                        errors.append(
+                            f"{mastery_file}: updated_at must use ISO YYYY-MM-DD format"
+                        )
+                    concepts = mastery.get("concepts")
+                    if not isinstance(concepts, dict):
+                        errors.append(f"{mastery_file}: concepts must be an object")
+                    else:
+                        for concept_id, entry in concepts.items():
+                            if not isinstance(concept_id, str) or not ID_RE.match(
+                                concept_id
+                            ):
+                                errors.append(
+                                    f"{mastery_file}: invalid concept id '{concept_id}'"
+                                )
+                                continue
+                            if not isinstance(entry, dict):
+                                errors.append(
+                                    f"{mastery_file}: mastery entry '{concept_id}' must be an object"
+                                )
+                                continue
+                            if entry.get("state") not in ALLOWED_MASTERY_STATES:
+                                errors.append(
+                                    f"{mastery_file}: invalid mastery state for '{concept_id}'"
+                                )
+                            evidence = entry.get("evidence")
+                            if not isinstance(evidence, list) or not all(
+                                isinstance(item, str) for item in evidence
+                            ):
+                                errors.append(
+                                    f"{mastery_file}: evidence for '{concept_id}' must be a string array"
+                                )
+                            if not is_iso_date(entry.get("updated_at")):
+                                errors.append(
+                                    f"{mastery_file}: updated_at for '{concept_id}' must use ISO YYYY-MM-DD format"
+                                )
+
+    draft_artifacts = sorted(
+        str(artifact.fields.get("id"))
+        for artifact in artifacts
+        if artifact.fields.get("status") == "draft"
+    )
+    stale_artifacts = sorted(
+        str(artifact.fields.get("id"))
+        for artifact in artifacts
+        if artifact.fields.get("status") == "stale"
+    )
+    pending_decisions = sorted(
+        str(artifact.fields.get("id"))
+        for artifact in artifacts
+        if artifact.fields.get("status") == "pending"
+    )
+    open_conflicts = sorted(
+        str(artifact.fields.get("id"))
+        for artifact in artifacts
+        if artifact.fields.get("kind") == "conflict"
+        and artifact.fields.get("status") == "open"
+    )
+    incomplete = any(
+        (draft_artifacts, stale_artifacts, pending_decisions, open_conflicts)
+    )
 
     return {
         "ok": not errors,
         "files": len(artifacts),
         "errors": errors,
         "warnings": warnings,
+        "readiness": {
+            "state": "incomplete" if incomplete else "ready",
+            "draft_artifacts": draft_artifacts,
+            "stale_artifacts": stale_artifacts,
+            "pending_decisions": pending_decisions,
+            "open_conflicts": open_conflicts,
+        },
     }
 
 
@@ -569,7 +888,7 @@ def main() -> int:
     else:
         exit_code = 0 if result["ok"] else 1
     if args.as_json:
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+        print(json.dumps(result, indent=2, ensure_ascii=True))
     else:
         print(f"Checked {result['files']} artifact(s).")
         for warning in result["warnings"]:
@@ -578,7 +897,12 @@ def main() -> int:
             print(f"error: {error}")
         if "validator_error" in result:
             print(f"validator error: {result['validator_error']}")
-        print("OK" if result["ok"] else "FAILED")
+        if result["ok"]:
+            readiness = result.get("readiness", {}).get("state", "unknown")
+            print("Structure: valid")
+            print(f"Readiness: {readiness}")
+        else:
+            print("Structure: invalid")
     return exit_code
 
 

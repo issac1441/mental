@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -14,9 +15,19 @@ FIXTURES = ROOT / "tests" / "fixtures"
 
 
 def run(
-    *args: str, cwd: Path | None = None, check: bool = True
+    *args: str,
+    cwd: Path | None = None,
+    check: bool = True,
+    timeout: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(args, cwd=cwd, check=check, text=True, capture_output=True)
+    return subprocess.run(
+        args,
+        cwd=cwd,
+        check=check,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+    )
 
 
 class WorkspaceScriptTests(unittest.TestCase):
@@ -254,10 +265,42 @@ class WorkspaceScriptTests(unittest.TestCase):
             report = json.loads(result.stdout)
             self.assertFalse(report["ok"])
             self.assertTrue(
-                any("must ignore everything" in error for error in report["errors"])
+                any("must contain '*'" in error for error in report["errors"])
             )
             self.assertTrue(
                 any("Git does not ignore" in error for error in report["errors"])
+            )
+
+    def test_validator_rejects_reversed_private_ignore_rules(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            run("git", "init", "-q", cwd=workspace)
+            run(
+                "python3",
+                str(SCAFFOLD),
+                str(workspace),
+                "--mode",
+                "learning",
+                "--date",
+                "2026-08-15",
+            )
+            (workspace / ".mental" / ".gitignore").write_text(
+                "!.gitignore\n*\n", encoding="utf-8"
+            )
+
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertFalse(report["ok"])
+            self.assertTrue(
+                any("followed by '!.gitignore'" in error for error in report["errors"])
+            )
+            self.assertTrue(
+                any(
+                    "ignores '.mental/.gitignore' itself" in error
+                    for error in report["errors"]
+                )
             )
 
     def test_validator_rejects_extra_private_unignore_rules(self) -> None:
@@ -286,7 +329,7 @@ class WorkspaceScriptTests(unittest.TestCase):
             report = json.loads(result.stdout)
             self.assertFalse(report["ok"])
             self.assertTrue(
-                any("must ignore everything" in error for error in report["errors"])
+                any("must contain '*'" in error for error in report["errors"])
             )
             self.assertTrue(
                 any("private-export.md" in error for error in report["errors"])
@@ -381,6 +424,64 @@ class WorkspaceScriptTests(unittest.TestCase):
                 any("cannot read artifact" in error for error in report["errors"])
             )
 
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFO files are not supported")
+    def test_validator_rejects_fifo_artifact_without_blocking(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            run(
+                "python3",
+                str(SCAFFOLD),
+                str(workspace),
+                "--mode",
+                "learning",
+                "--date",
+                "2026-08-15",
+            )
+            fifo = workspace / "mental" / "concepts" / "blocking.md"
+            os.mkfifo(fifo)
+
+            result = run(
+                "python3",
+                str(VALIDATE),
+                str(workspace),
+                "--json",
+                check=False,
+                timeout=5,
+            )
+            report = json.loads(result.stdout)
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn("validator_error", report)
+            self.assertTrue(
+                any(
+                    "Markdown artifacts must be regular files" in error
+                    for error in report["errors"]
+                )
+            )
+
+    def test_validator_reports_non_utf8_mastery_as_data_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            run(
+                "python3",
+                str(SCAFFOLD),
+                str(workspace),
+                "--mode",
+                "learning",
+                "--date",
+                "2026-08-15",
+            )
+            (workspace / ".mental" / "mastery.json").write_bytes(b"\xff\xfe")
+
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn("validator_error", report)
+            self.assertTrue(
+                any("UTF-8 valid JSON" in error for error in report["errors"])
+            )
+
     def test_broken_link_and_unknown_source_fail(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory) / "learning"
@@ -447,6 +548,51 @@ class WorkspaceScriptTests(unittest.TestCase):
             )
             result = run("python3", str(VALIDATE), str(workspace), "--json")
             self.assertTrue(json.loads(result.stdout)["ok"], result.stdout)
+
+    def test_source_catalog_path_and_source_ids_are_unique(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "learning"
+            shutil.copytree(FIXTURES / "learning", workspace)
+            sources = workspace / "mental" / "sources.md"
+            sources.write_text(
+                sources.read_text(encoding="utf-8")
+                + "\n## source-event-loop — duplicate\n\n- duplicate\n",
+                encoding="utf-8",
+            )
+            shadow = workspace / "mental" / "concepts" / "shadow-sources.md"
+            shadow.write_text(
+                """---
+id: shadow-sources
+kind: sources
+authority: mechanical
+status: current
+sources: []
+prerequisites: []
+updated_at: 2026-08-16
+---
+
+# Shadow catalog
+""",
+                encoding="utf-8",
+            )
+
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertFalse(report["ok"])
+            self.assertTrue(
+                any(
+                    "duplicate source id 'source-event-loop'" in error
+                    for error in report["errors"]
+                )
+            )
+            self.assertTrue(
+                any(
+                    "only allowed at mental/sources.md" in error
+                    for error in report["errors"]
+                )
+            )
 
     def test_duplicate_ids_unsupported_kinds_and_misplaced_lenses_fail(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -554,14 +700,14 @@ class WorkspaceScriptTests(unittest.TestCase):
 id: incident-commander
 kind: lens
 authority: conceptual
-status: active
+status: draft
 sources:
   - source-repo
 prerequisites: []
 updated_at: 2026-08-16
 assumes:
   - basic service operations
-prioritizes:
+concerns:
   - containment and recovery
 vocabulary:
   - incident
@@ -571,9 +717,6 @@ vocabulary:
 
 Explain runtime effects and recovery decisions first.
 
-## Verification basis
-
-Validated against the repository incident runbook and a recovery scenario.
 """,
                 encoding="utf-8",
             )
@@ -593,7 +736,7 @@ Validated against the repository incident runbook and a recovery scenario.
             report = json.loads(invalid.stdout)
             self.assertTrue(
                 any(
-                    "kind 'lens' requires authority 'conceptual'" in error
+                    "kind 'lens' allows authority: conceptual" in error
                     for error in report["errors"]
                 )
             )
@@ -617,6 +760,260 @@ Validated against the repository incident runbook and a recovery scenario.
                 any(
                     "status 'accepted' is invalid for authority 'mechanical'" in error
                     for error in report["errors"]
+                )
+            )
+
+    def test_kind_authority_matrix_and_scalar_types_are_enforced(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            map_path = workspace / "mental" / "model" / "map.md"
+            map_path.write_text(
+                map_path.read_text(encoding="utf-8")
+                .replace("id: model-map", "id: [model-map]", 1)
+                .replace("kind: map", "kind: [map]", 1)
+                .replace("authority: mechanical", "authority: [conceptual]", 1),
+                encoding="utf-8",
+            )
+
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn("validator_error", report)
+            self.assertTrue(
+                any("'id' must be a scalar" in error for error in report["errors"])
+            )
+            self.assertTrue(
+                any("unsupported kind" in error for error in report["errors"])
+            )
+            self.assertTrue(
+                any("unsupported authority" in error for error in report["errors"])
+            )
+
+    def test_current_mechanical_artifact_requires_rebuild_proof(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            map_path = workspace / "mental" / "model" / "map.md"
+            content = map_path.read_text(encoding="utf-8")
+            content = content.replace(
+                "refresh_basis:\n  - source-repo@2026-08-15\n", "refresh_basis: []\n", 1
+            )
+            content = content.replace("## Evidence", "## Support", 1)
+            map_path.write_text(content, encoding="utf-8")
+
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(
+                any("has no refresh basis" in error for error in report["errors"])
+            )
+            self.assertTrue(
+                any(
+                    "requires an Evidence section" in error
+                    for error in report["errors"]
+                )
+            )
+
+    def test_active_conceptual_artifact_requires_activation_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            index = workspace / "mental" / "index.md"
+            content = index.read_text(encoding="utf-8")
+            content = content.replace(
+                "verification_basis:\n  - source-repo and model-map cover the complete router fixture\n",
+                "verification_basis:\n  - looks good\n",
+                1,
+            )
+            content = content.replace(
+                '  - "failure: /healthy returns the not-found response pair"\n', "", 1
+            )
+            content = content.replace("known_gaps: []\n", "known_gaps: pending\n", 1)
+            index.write_text(content, encoding="utf-8")
+
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(
+                any(
+                    "non-placeholder verification basis" in error
+                    for error in report["errors"]
+                )
+            )
+            self.assertTrue(
+                any(
+                    "failure or boundary prediction" in error
+                    for error in report["errors"]
+                )
+            )
+            self.assertTrue(
+                any(
+                    "conceptual field 'known_gaps' must be a YAML list" in error
+                    for error in report["errors"]
+                )
+            )
+
+    def test_valid_draft_workspace_is_structurally_valid_but_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            run(
+                "python3",
+                str(SCAFFOLD),
+                str(workspace),
+                "--mode",
+                "learning",
+                "--date",
+                "2026-08-15",
+            )
+            result = run("python3", str(VALIDATE), str(workspace), "--json")
+            report = json.loads(result.stdout)
+            self.assertTrue(report["ok"], report)
+            self.assertEqual(report["readiness"]["state"], "incomplete")
+            self.assertIn("mental-index", report["readiness"]["draft_artifacts"])
+
+    def test_decision_and_change_history_are_append_preserving(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            decision = workspace / "mental" / "decisions" / "route-contract.md"
+            decision.write_text(
+                decision.read_text(encoding="utf-8")
+                .replace("status: accepted", "status: superseded", 1)
+                .replace("superseded_by: []", "superseded_by: []", 1),
+                encoding="utf-8",
+            )
+            change = workspace / "mental" / "changes" / "add-timeout.md"
+            change.write_text(
+                change.read_text(encoding="utf-8").replace(
+                    "prediction_status: skipped", "prediction_status: always", 1
+                ),
+                encoding="utf-8",
+            )
+
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(
+                any(
+                    "latest status history entry must match" in error
+                    for error in report["errors"]
+                )
+            )
+            self.assertTrue(
+                any(
+                    "superseded artifact requires 'superseded_by'" in error
+                    for error in report["errors"]
+                )
+            )
+            self.assertTrue(
+                any(
+                    "change field 'prediction_status'" in error
+                    for error in report["errors"]
+                )
+            )
+
+    def test_decision_history_transitions_and_replacement_links_are_validated(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            decision = workspace / "mental" / "decisions" / "route-contract.md"
+            content = decision.read_text(encoding="utf-8")
+            content = content.replace("status: accepted", "status: pending", 1)
+            content = content.replace(
+                "  - 2026-08-15:accepted\n",
+                "  - 2026-08-15:accepted\n  - 2026-08-16:pending\n",
+                1,
+            )
+            content = content.replace(
+                "superseded_by: []", "superseded_by:\n  - replacement-decision", 1
+            )
+            decision.write_text(content, encoding="utf-8")
+            replacement = workspace / "mental" / "decisions" / "replacement.md"
+            replacement.write_text(
+                """---
+id: replacement-decision
+kind: decision
+authority: decision
+status: accepted
+sources:
+  - source-repo
+prerequisites: []
+updated_at: 2026-08-16
+decision_owner: human
+surfaced: pre-approval
+consequential: true
+reversibility: costly
+supersedes: []
+superseded_by: []
+status_history:
+  - 2026-08-16:pending
+  - 2026-08-16:accepted
+---
+
+# Replacement
+""",
+                encoding="utf-8",
+            )
+
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(
+                any(
+                    "invalid status transition 'accepted' to 'pending'" in error
+                    for error in report["errors"]
+                )
+            )
+            self.assertTrue(
+                any(
+                    "does not link back through supersedes" in error
+                    for error in report["errors"]
+                )
+            )
+
+    def test_historical_private_state_is_advisory_not_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            run("git", "init", "-q", cwd=workspace)
+            run("git", "config", "user.email", "mental@example.invalid", cwd=workspace)
+            run("git", "config", "user.name", "mental fixture", cwd=workspace)
+            run(
+                "python3",
+                str(SCAFFOLD),
+                str(workspace),
+                "--mode",
+                "learning",
+                "--date",
+                "2026-08-15",
+            )
+            run("git", "add", "mental", ".mental/.gitignore", cwd=workspace)
+            run("git", "add", "-f", ".mental/profile.md", cwd=workspace)
+            run(
+                "git",
+                "commit",
+                "-qm",
+                "accidentally track private state",
+                cwd=workspace,
+            )
+            run("git", "rm", "--cached", ".mental/profile.md", cwd=workspace)
+            run("git", "commit", "-qm", "stop tracking private state", cwd=workspace)
+
+            result = run("python3", str(VALIDATE), str(workspace), "--json")
+            report = json.loads(result.stdout)
+            self.assertTrue(report["ok"], report)
+            self.assertTrue(
+                any(
+                    "Git history contains private-state paths" in warning
+                    for warning in report["warnings"]
                 )
             )
 

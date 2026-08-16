@@ -8,8 +8,12 @@ sources:
 prerequisites: []
 updated_at: {{TODAY}}
 assumes: []
-prioritizes: []
+concerns: []
 vocabulary: []
+verification_basis: []
+checked_predictions: []
+known_gaps: []
+conflicts: []
 ---
 
 # {{TITLE}}

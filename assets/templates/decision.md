@@ -11,6 +11,10 @@ decision_owner: unassigned
 surfaced: pre-approval
 consequential: true
 reversibility: unknown
+supersedes: []
+superseded_by: []
+status_history:
+  - {{TODAY}}:pending
 ---
 
 # {{TITLE}}

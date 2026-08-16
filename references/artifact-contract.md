@@ -71,6 +71,8 @@ authority: mechanical
 status: current
 sources:
   - source-id
+refresh_basis:
+  - source-id@revision
 prerequisites: []
 updated_at: 2026-08-15
 ---
@@ -86,6 +88,35 @@ Required fields:
 - `prerequisites`: artifact IDs required first.
 - `updated_at`: ISO date of the last material update.
 
+`mental/sources.md` is the single source catalog. No other artifact may use
+`kind: sources`, and every source ID heading in the catalog must be unique.
+
+Kinds allow these authorities:
+
+| Kind | Allowed authority |
+| --- | --- |
+| `index`, `lens`, `learning-path`, `misconception`, `exercise` | `conceptual` |
+| `sources`, `map` | `mechanical` |
+| `glossary`, `concept`, `scenario`, `architecture`, `contract` | `mechanical` or `conceptual` |
+| `decision`, `conflict`, `change` | `decision` |
+
+For a dual-authority kind, classify the artifact by its update contract, not by
+how factual its prose sounds:
+
+- Use `mechanical` only when a deterministic agent pass can stably regenerate
+  the representation from registered evidence without choosing desired behavior
+  or resolving competing interpretations.
+- Use `conceptual` when the representation depends on a useful abstraction,
+  boundary choice, prerequisite structure, or teaching interpretation.
+- Use `decision` only for intended behavior, tradeoffs, ownership, or accepted
+  change.
+
+Every non-catalog mechanical artifact declares `refresh_basis` entries in the
+form `<source-id>@<revision>`. A `current` mechanical artifact needs at least one
+concrete basis, lists each basis source in `sources`, and contains an `Evidence`
+section. If any of those are unavailable, keep it `stale`; do not infer a safe
+refresh from the body alone.
+
 Allowed state machines:
 
 | Authority or kind | Status values | Update rule |
@@ -97,7 +128,7 @@ Allowed state machines:
 
 `index.md` may also declare `mode: repository|learning|hybrid` and `language`. Additional fields are allowed when stable and useful.
 
-A `kind: lens` artifact lives under `mental/lenses/`, uses conceptual authority, and defines YAML lists named `assumes`, `prioritizes`, and `vocabulary`. It describes role needs, not identity, protected traits, or permanent ability.
+A `kind: lens` artifact lives under `mental/lenses/`, uses conceptual authority, and defines YAML lists named `assumes`, `concerns`, and `vocabulary`. It describes role needs, not identity, protected traits, or permanent ability.
 
 ## Evidence and interpretation
 
@@ -109,6 +140,22 @@ Do not require repetitive inline `[observed]`, `[inferred]`, or `[agreed]` label
 - `Conflicts` links first-class conflict artifacts.
 
 Keep source IDs beside material claims or in the nearest Evidence section. An `active` conceptual artifact remains a working model with a verification basis, not guaranteed truth.
+
+Every conceptual artifact declares these YAML lists:
+
+```yaml
+verification_basis: []
+checked_predictions: []
+known_gaps: []
+conflicts: []
+```
+
+Draft and stale artifacts may leave them empty. Before changing a conceptual
+artifact to `active`, record a non-placeholder verification basis plus at least
+one checked `success:` prediction and one checked `failure:` or `boundary:`
+prediction. `conflicts` contains artifact IDs for first-class conflict records;
+use an empty list only when the check found none. Recognition and assent are not
+activation evidence.
 
 ## Conflict artifacts
 
@@ -131,6 +178,10 @@ decision_owner: human
 surfaced: pre-approval
 consequential: true
 reversibility: costly
+supersedes: []
+superseded_by: []
+status_history:
+  - 2026-08-15:pending
 ```
 
 Allowed values:
@@ -141,6 +192,16 @@ Allowed values:
 - `reversibility`: `easy`, `costly`, `irreversible`, or `unknown`.
 
 Preserve prior options, rejected alternatives, and status history. Do not rewrite an accepted decision as if the replacement had always been chosen.
+The last `status_history` entry must match the current status. A superseded
+decision names its replacement in `superseded_by`; the replacement names prior
+records in `supersedes`, and both records link back to each other. History starts
+at `pending`; it may move to `accepted`, `rejected`, or `superseded`.
+`accepted` and `rejected` may later move only to `superseded`, which is terminal.
+
+A `kind: change` also records `prediction_status` as `attempted`, `skipped`, or
+`not-applicable`, `supersedes` and `superseded_by` lists, plus append-preserving
+`status_history`. Do not store the person's prediction answer unless they
+explicitly ask to record it.
 
 Decision Surprise Rate for one reviewed change is:
 
@@ -150,7 +211,7 @@ Report `N/A` when the denominator is zero or review coverage is incomplete. Do n
 
 ## Three gates
 
-- **Mechanical refresh:** registered evidence is sufficient; no human truth approval.
+- **Mechanical refresh:** registered evidence and the recorded refresh basis are sufficient for stable regeneration; no human truth approval.
 - **Conceptual activation:** requires source/test support, checked success and failure predictions, known gaps/conflicts, and a recorded verification basis.
 - **Human decision:** accepts desired behavior or tradeoffs; it cannot validate unsupported facts.
 
@@ -160,7 +221,14 @@ Recognition or “looks good” is not conceptual verification. A learner's unde
 
 Use only sources supplied or placed in scope. The current repository counts as supplied. A provided URL may be fetched with host capabilities; do not expand research scope without permission.
 
-Each `mental/sources.md` entry starts with `## <source-id>`. A localized title may follow an em dash, for example `## source-runtime — 執行期證據`.
+Each `mental/sources.md` entry starts with a unique `## <source-id>`. A localized title may follow an em dash, for example `## source-runtime — 執行期證據`.
+
+## Validation semantics
+
+`doctor` separates structure from readiness. A workspace made entirely of valid
+drafts can report `Structure: valid` and `Readiness: incomplete`. Drafts, stale
+artifacts, pending decisions, and open conflicts are legitimate work states, not
+schema failures; they must remain visible in the readiness report.
 
 ## Language
 

@@ -8,6 +8,10 @@ prerequisites: []
 updated_at: {{TODAY}}
 mode: {{MODE}}
 language: {{LANGUAGE}}
+verification_basis: []
+checked_predictions: []
+known_gaps: []
+conflicts: []
 ---
 
 # Mental model

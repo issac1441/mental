@@ -2,11 +2,12 @@
 id: model-map
 kind: map
 authority: mechanical
-status: current
+status: stale
 sources:
   - {{SOURCE_ID}}
 prerequisites: []
 updated_at: {{TODAY}}
+refresh_basis: []
 ---
 
 # Model map

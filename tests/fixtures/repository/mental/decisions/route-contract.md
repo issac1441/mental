@@ -12,6 +12,11 @@ decision_owner: human
 surfaced: pre-approval
 consequential: true
 reversibility: costly
+supersedes: []
+superseded_by: []
+status_history:
+  - 2026-08-15:pending
+  - 2026-08-15:accepted
 ---
 
 # Preserve exact route matching

@@ -89,7 +89,7 @@ Karpicke 與 Blunt 在科學文本實驗中發現 retrieval practice 優於 elab
 
 Views 留作 agent 內部 audit vocabulary。只有使用者手動指定、不是預設、存在不確定性，或揭露後可以採取行動時才會顯示。熟悉的使用者可以 override，第一次使用不必懂 taxonomy。
 
-Built-in Lens 的名稱看似角色，是使用上的捷徑，不是 identity claim。同一個人可以在一次說明使用 `architect`，下一次改用 `student`。Job 承載眼前的 decision perspective；Lens 提供預設語彙與關注。這個區分仍需實證，因為 agent 若使用不慎，角色標籤仍可能誘發 identity-based inference。
+Built-in Lens 的名稱看似角色，是使用上的捷徑，不是 identity claim。同一個人可以在一次說明使用 `architect`，下一次改用 `student`。Job 決定認知任務；Lens 提供預設知識、語彙與顯著關注。`concerns` 不是白名單：PM Lens 在 Job 是 prediction 時仍然可以追蹤 mechanism。兩者看似衝突時，由 Job 優先、Lens 決定表達方式。這個區分仍需實證，因為 agent 若使用不慎，角色標籤仍可能誘發 identity-based inference。
 
 ### 從 artifact-first 到 value-first
 
@@ -97,7 +97,7 @@ Built-in Lens 的名稱看似角色，是使用上的捷徑，不是 identity cl
 
 ### 從 agent prediction 到 human prediction
 
-曾出貨的 change workflow 要求 agent 寫 Prediction，反而重現產品想阻止的認知外包。現在 `change` 只在能影響重大決策時詢問一個高資訊量 prediction，允許 `skip`，再用證據比較並修正最小 model gap。
+曾出貨的 change workflow 要求 agent 寫 Prediction，反而重現產品想阻止的認知外包。現在 `change` 只在能影響重大決策時詢問一個高資訊量 prediction，允許 `skip`，再用證據比較並修正最小 model gap。`skip` 只影響當次 invocation，不保存成 behavior profile。需要記錄時，只保存 prediction 是 attempted、skipped 或 not applicable；除非使用者要求，答案留在對話而不寫入 artifact。
 
 ### 從單一 promotion gate 到三種 gate
 
@@ -113,11 +113,17 @@ Built-in Lens 的名稱看似角色，是使用上的捷徑，不是 identity cl
 
 來源檔案、code、tests 與 runtime observations 仍是材料／實作真相。團隊共用 artifacts 會宣告 maintenance authority：
 
-- **mechanical** artifacts 是可重新生成的 cache，可自動刷新；
+- **mechanical** artifacts 是可重新生成的 cache；只有具備已記錄 source ID、具體 revision、refresh basis 與 Evidence section 時才可自動刷新；
 - **conceptual** artifacts 是 durable explanation，啟用前需要證據與已檢查 prediction；
 - **decision** artifacts 保存人或 agent 的選擇、被否決替代方案、浮現時機與可逆性。
 
 Authority 與 volatility 是兩個正交軸。Authority 決定誰能更新 artifact；volatility 決定 agent 應多久檢查一次。V1 暫不增加 `volatility` 欄位，因為目前沒有通過驗證的 decay policy。已註冊 source revision 加上 `current|stale` 是較小的操作機制；未來應評估獨立 decay hint 是否能減少掃描，同時不增加另一個儀式性欄位。
+
+Mechanical 不是「完全沒有推論」，而是 bounded agent pass 可以從註冊證據
+穩定重建相同 representation，且不需要選擇期望行為或解決競爭的 conceptual
+interpretation。因此，可同時作為 cache 或 explanation 的 kind 允許 mechanical
+與 conceptual 兩種 authority。只有 artifact 記錄如何重建 mechanical reading
+時才可自動 refresh；否則應標示 stale 並揭露 delta。
 
 Conflicts 是具有穩定 ID、owner、雙方證據與 resolution 的 `open|resolved` artifacts，不再只是 inline confidence label。
 
@@ -147,6 +153,12 @@ Portable plugin 能保證 mental skills 內使用此 policy。要讓 skill 外�
 - **Privacy containment：**個人學習資料是否留在版控 artifacts 之外。
 
 可信研究應記錄 prior knowledge、task class、source quality、artifact authority、耗時、協助程度、harness coverage 與 delayed retention。Prediction task 必須在人先作答後才揭露。
+
+實作保證使用兩個正交層。Deterministic tests 在 CI 中快速驗證 manifests、
+schemas、paths、privacy 與 state transitions；conversation eval 則真的執行
+Claude Code 或 Codex host，保留實際輸出與 workspace delta，再交給 rubric
+judge 評分 conditional behavior。只檢查某句話是否存在，不算 conversation
+eval。Host eval 較慢且具有雜訊，因此是 deterministic layer 的補充，不是替代。
 
 ## 8. 威脅與限制
 
