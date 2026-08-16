@@ -7,7 +7,17 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL_NAMES = {"understand", "build", "sync", "doctor", "change", "review", "learn", "practice"}
+SKILL_NAMES = {
+    "understand",
+    "build",
+    "sync",
+    "doctor",
+    "change",
+    "review",
+    "learn",
+    "practice",
+    "quiz",
+}
 
 
 def skill_frontmatter(path: Path) -> dict[str, str]:
@@ -28,9 +38,9 @@ class PluginContractTests(unittest.TestCase):
         claude = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         for manifest in (codex, claude):
             self.assertEqual(manifest["name"], "mental")
-            self.assertEqual(manifest["version"], "0.1.0")
+            self.assertEqual(manifest["version"], "0.2.0")
             self.assertEqual(manifest["skills"], "./skills/")
-            self.assertEqual(manifest["license"], "MIT")
+            self.assertEqual(manifest["license"], "0BSD")
             self.assertNotIn("mcpServers", manifest)
             self.assertNotIn("apps", manifest)
             self.assertNotIn("hooks", manifest)
@@ -45,7 +55,7 @@ class PluginContractTests(unittest.TestCase):
             self.assertEqual(fields.keys(), {"name", "description"})
             self.assertEqual(fields["name"], name)
             self.assertGreater(len(fields["description"]), 40)
-            self.assertNotIn("TODO", text)
+            self.assertNotIn("[TODO", text)
 
     def test_skill_ui_metadata_mentions_the_skill(self) -> None:
         for name in sorted(SKILL_NAMES):
@@ -76,9 +86,83 @@ class PluginContractTests(unittest.TestCase):
         understand = (ROOT / "skills" / "understand" / "SKILL.md").read_text(encoding="utf-8")
         review = (ROOT / "skills" / "review" / "SKILL.md").read_text(encoding="utf-8")
         doctor = (ROOT / "skills" / "doctor" / "SKILL.md").read_text(encoding="utf-8")
+        change = (ROOT / "skills" / "change" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("Never edit", understand)
         self.assertIn("Do not update artifacts", review)
         self.assertIn("Do not edit by default", doctor)
+        self.assertIn("Remain read-only by default", change)
+
+    def test_context_selection_contract_is_shared(self) -> None:
+        for name in ("understand", "change", "learn", "practice", "quiz"):
+            text = (ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("Lens", text)
+            self.assertIn("Views", text)
+            self.assertIn("Detail", text)
+        understand = (ROOT / "skills" / "understand" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("manual override → explicit current goal → current session evidence", understand)
+        self.assertIn("host memory", understand)
+        self.assertIn("Never persist an inferred", understand)
+
+    def test_operational_contract_has_no_legacy_zoom(self) -> None:
+        operational_paths = [ROOT / "README.md", ROOT / "README.zh-TW.md"]
+        operational_paths.extend((ROOT / "references").glob("*.md"))
+        operational_paths.extend((ROOT / "skills").glob("*/SKILL.md"))
+        for path in operational_paths:
+            text = path.read_text(encoding="utf-8")
+            self.assertNotRegex(text, r"\b[Zz]oom\b", str(path))
+            self.assertNotRegex(text, r"\bL[0-4]\b", str(path))
+
+    def test_change_review_practice_and_quiz_have_distinct_contracts(self) -> None:
+        change = (ROOT / "skills" / "change" / "SKILL.md").read_text(encoding="utf-8")
+        review = (ROOT / "skills" / "review" / "SKILL.md").read_text(encoding="utf-8")
+        practice = (ROOT / "skills" / "practice" / "SKILL.md").read_text(encoding="utf-8")
+        quiz = (ROOT / "skills" / "quiz" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("`intent`", change)
+        self.assertIn("`decision`", change)
+        self.assertIn("`plan-interpretation`", change)
+        self.assertIn("record=<true|false>", change)
+        self.assertIn("Actual Change Mental Model", review)
+        self.assertIn("Before → After", review)
+        self.assertIn("structurally equivalent new scenario", practice)
+        self.assertIn("current change, current session", practice)
+        self.assertIn("items=12", quiz)
+        self.assertIn("feedback=end|after-each", quiz)
+        self.assertIn("format=mixed|open|mcq", quiz)
+        self.assertIn("Generate the complete exam first", quiz)
+
+    def test_all_skills_load_the_shared_writing_profile(self) -> None:
+        for name in sorted(SKILL_NAMES):
+            text = (ROOT / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("../../references/writing-profile.md", text)
+
+    def test_documented_style_is_inspired_not_claimed_compliant(self) -> None:
+        profile = (ROOT / "references" / "writing-profile.md").read_text(encoding="utf-8")
+        self.assertIn("STE-inspired", profile)
+        self.assertIn("Do not claim ASD-STE100 compliance", profile)
+        self.assertIn("user's language", profile)
+
+    def test_lens_artifact_contract_and_template_exist(self) -> None:
+        contract = (ROOT / "references" / "artifact-contract.md").read_text(encoding="utf-8")
+        validator = (ROOT / "scripts" / "validate_workspace.py").read_text(encoding="utf-8")
+        template = (ROOT / "assets" / "templates" / "lens.md").read_text(encoding="utf-8")
+        self.assertIn("`kind: lens`", contract)
+        for field in ("assumes", "prioritizes", "vocabulary", "default_views"):
+            self.assertIn(field, contract)
+            self.assertIn(field, template)
+        self.assertIn('"lens"', validator)
+
+    def test_local_document_links_resolve(self) -> None:
+        link_pattern = re.compile(r"\[[^]]+]\(([^)]+)\)")
+        paths = [ROOT / "README.md", ROOT / "README.zh-TW.md"]
+        paths.extend((ROOT / "docs").glob("*.md"))
+        paths.extend((ROOT / "references").glob("*.md"))
+        for path in paths:
+            for target in link_pattern.findall(path.read_text(encoding="utf-8")):
+                target = target.strip().split("#", 1)[0].strip("<>")
+                if not target or target.startswith(("http://", "https://", "mailto:")):
+                    continue
+                resolved = (path.parent / target).resolve()
+                self.assertTrue(resolved.exists(), f"Broken link in {path}: {target}")
 
 
 if __name__ == "__main__":

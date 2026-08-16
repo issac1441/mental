@@ -10,11 +10,15 @@ updated_at: {{TODAY}}
 
 # {{TITLE}}
 
+## Mode and Question
+
 ## Current Model
 
 ## Prediction
 
 ## Proposed Model Delta
+
+## Actual Effects and Tradeoffs
 
 ## Decision Manifest
 

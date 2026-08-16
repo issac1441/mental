@@ -1,21 +1,29 @@
 ---
 name: practice
-description: Verify and strengthen understanding using retrieval, teach-back, transfer scenarios, debugging, comparison, and counterexamples grounded in supplied mental-model artifacts. Use for quizzes, exercises, interview preparation, or checking whether a concept is truly understood. Track evidence-based mastery privately without numeric scores.
+description: Coach one weak relationship at a time using retrieval, teach-back, transfer scenarios, debugging, comparison, and counterexamples grounded in supplied mental-model artifacts. Use when the next task should adapt after each answer. Track evidence-based mastery privately without numeric scores.
 ---
 
 # Practice
 
-Test whether the learner can reconstruct and transfer the model, not merely recognize its wording.
+Repair and verify a model through an adaptive loop, not a prewritten exam.
+
+## Input contract
+
+`[scope] [lens=<id>] [views=<anchor,map,mechanism,scenario,evidence>] [detail=<brief|standard|deep>]`
+
+Scope may be the current change, current session, a change or artifact ID, an artifact path, a registered source portion, or a natural-language topic. If omitted, prefer a weak prerequisite supported by current-session or private mastery evidence.
 
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, and `../../references/learning-workflow.md` relative to this skill.
-2. Read the relevant canonical artifacts and private mastery state. Select one target that is prerequisite-critical, stale, or supported only by weak evidence.
-3. Choose one practice form: free recall, teach-back, prediction, transfer, debugging, comparison, or counterexample. Avoid multiple-choice unless the user requests it or accessibility requires it.
+1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, and `../../references/writing-profile.md` relative to this skill.
+2. Read the current session, relevant canonical artifacts, and private mastery state. Resolve the requested scope or select one prerequisite-critical, stale, or weakly supported target.
+3. Select Lens, Views, and Detail with the methodology precedence. Use open prediction, free recall, teach-back, transfer, debugging, comparison, or a counterexample by default. Use multiple-choice only when useful, requested, or needed for accessibility.
 4. Ask one focused task and wait. Keep the solution hidden until the learner attempts it or explicitly asks.
-5. Evaluate the relationship model behind the answer. Identify the smallest correct part, the first broken link, and one corrective prompt or example.
-6. Ask a transfer or boundary follow-up before marking `verified`.
-7. Record the attempt and a short evidence note under `.mental/`. Move mastery at most one state unless the answer independently demonstrates explanation, transfer, and a boundary case.
-8. Finish with the current mastery state, supporting evidence, remaining gap, and next recommended practice.
+5. Evaluate the relationship model behind the answer. Name the smallest correct part and the first broken relationship.
+6. Give the minimum correction, hint, or worked fragment needed to repair that relationship. Do not replace the learner's whole answer with a lecture.
+7. Ask a structurally equivalent new scenario, not the same question with different wording. Then require a transfer or boundary follow-up before marking `verified`.
+8. Repeat the loop only while each turn tests a meaningful unresolved relationship. Stop when the target is demonstrated, the user stops, or the remaining prerequisite gap should move to `$learn`.
+9. Record the attempt and a short evidence note under `.mental/` only after response evidence exists. Move mastery at most one state unless the answer independently demonstrates explanation, transfer, and a boundary case.
+10. Finish with the current state, evidence, remaining gap, and next practice. Acknowledge the concrete ability demonstrated, such as “you predicted both the success path and timeout boundary without a hint,” rather than generic praise.
 
-Never publish personal attempts under `mental/`, assign IQ-like labels, or turn subjective confidence into a score.
+Never publish personal attempts under `mental/`, assign IQ-like labels, turn subjective confidence into a score, or use a quiz score as a mastery percentage.

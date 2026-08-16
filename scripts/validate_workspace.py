@@ -16,6 +16,7 @@ ALLOWED_KINDS = {
     "index",
     "sources",
     "glossary",
+    "lens",
     "map",
     "concept",
     "scenario",
@@ -29,6 +30,7 @@ ALLOWED_KINDS = {
 }
 ALLOWED_STATUSES = {"draft", "canonical", "stale"}
 ALLOWED_MASTERY_STATES = {"unknown", "exposed", "working", "verified"}
+ALLOWED_VIEWS = {"anchor", "map", "mechanism", "scenario", "evidence"}
 ID_RE = re.compile(r"^[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 LINK_RE = re.compile(r"\[[^]]*]\(([^)]+)\)")
 
@@ -142,12 +144,26 @@ def validate(workspace: Path) -> dict[str, object]:
         kind = artifact.fields.get("kind")
         if kind not in ALLOWED_KINDS:
             errors.append(f"{artifact.path}: unsupported kind '{kind}'")
+        relative_parts = artifact.path.relative_to(mental_root).parts
+        if kind == "lens" and (not relative_parts or relative_parts[0] != "lenses"):
+            errors.append(f"{artifact.path}: kind 'lens' must live under mental/lenses/")
+        if relative_parts and relative_parts[0] == "lenses" and kind != "lens":
+            errors.append(f"{artifact.path}: artifacts under mental/lenses/ must use kind 'lens'")
         status = artifact.fields.get("status")
         if status not in ALLOWED_STATUSES:
             errors.append(f"{artifact.path}: unsupported status '{status}'")
         for key in ("sources", "prerequisites"):
             if not isinstance(artifact.fields.get(key), list):
                 errors.append(f"{artifact.path}: '{key}' must be a YAML list")
+        if kind == "lens":
+            for key in ("assumes", "prioritizes", "vocabulary", "default_views"):
+                if not isinstance(artifact.fields.get(key), list):
+                    errors.append(f"{artifact.path}: lens field '{key}' must be a YAML list")
+            default_views = artifact.fields.get("default_views", [])
+            if isinstance(default_views, list):
+                for view in default_views:
+                    if view not in ALLOWED_VIEWS:
+                        errors.append(f"{artifact.path}: unsupported default view '{view}'")
         if status == "canonical" and kind not in {"index", "sources"} and not list_field(artifact, "sources"):
             errors.append(f"{artifact.path}: canonical artifact has no sources")
 

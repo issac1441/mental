@@ -3,4 +3,7 @@
 - Preferred language: {{LANGUAGE}}
 - Current goal:
 - Constraints:
-- Notes: Keep observations factual and avoid identity-based inference.
+- Explicit Lens preference:
+- Explicit View preference:
+- Explicit Detail preference:
+- Notes: Record preferences only when the user asks. Keep observations factual and avoid identity-based inference.

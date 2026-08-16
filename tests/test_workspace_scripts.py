@@ -100,6 +100,52 @@ class WorkspaceScriptTests(unittest.TestCase):
             self.assertTrue(any("invalid mastery state" in error for error in report["errors"]))
             self.assertNotIn("self-reported confidence", result.stdout)
 
+    def test_custom_lens_validates_and_rejects_unknown_view(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            lens_dir = workspace / "mental" / "lenses"
+            lens_dir.mkdir()
+            lens_path = lens_dir / "incident-commander.md"
+            lens_path.write_text(
+                """---
+id: incident-commander
+kind: lens
+status: canonical
+sources:
+  - source-repo
+prerequisites: []
+updated_at: 2026-08-16
+assumes:
+  - basic service operations
+prioritizes:
+  - containment and recovery
+vocabulary:
+  - incident
+default_views:
+  - mechanism
+  - scenario
+  - evidence
+---
+
+# Incident commander
+
+[agreed] Explain runtime effects and recovery decisions first.
+""",
+                encoding="utf-8",
+            )
+            valid = run("python3", str(VALIDATE), str(workspace), "--json")
+            self.assertTrue(json.loads(valid.stdout)["ok"], valid.stdout)
+
+            lens_path.write_text(
+                lens_path.read_text(encoding="utf-8").replace("  - mechanism\n", "  - telescope\n"),
+                encoding="utf-8",
+            )
+            invalid = run("python3", str(VALIDATE), str(workspace), "--json", check=False)
+            self.assertNotEqual(invalid.returncode, 0)
+            report = json.loads(invalid.stdout)
+            self.assertTrue(any("unsupported default view 'telescope'" in error for error in report["errors"]))
+
 
 if __name__ == "__main__":
     unittest.main()
