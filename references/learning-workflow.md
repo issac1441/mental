@@ -1,27 +1,22 @@
 # Adaptive learning workflow
 
-## Source-bound learning model
+## Source-bound learning
 
-Build learning content only from supplied material. A learning model normally contains:
+Teach only from supplied or registered material unless the user explicitly expands the source boundary. A prebuilt mental workspace is useful but not required: inspect the supplied source directly, teach the smallest useful model, then offer persistence when it would improve later sessions.
 
-- an anchor and concept relationship map;
-- prerequisite edges;
-- mechanisms or causal chains;
-- representative examples and transfer scenarios;
-- common misconceptions and boundary cases;
-- exercises that test reconstruction, not recognition;
-- evidence links and unresolved gaps.
+A durable learning model may contain:
+
+- an anchor and prerequisite relationship map;
+- mechanisms and representative transfer scenarios;
+- misconceptions and boundary cases;
+- fixed-coverage exercises;
+- evidence links and open conflicts.
 
 ## Diagnostic
 
-Before teaching, ask for the learner's goal and use 2–5 high-information prompts. Prefer prompts that distinguish prerequisite gaps:
+Establish one observable goal and ask 2–5 high-information prompts that distinguish prerequisite gaps. Prefer prediction, explanation, justified choice, debugging, and counterexample prompts.
 
-- predict what happens in a small scenario;
-- explain a relationship in their own words;
-- choose and justify an approach;
-- identify why a plausible counterexample fails.
-
-Ask one compact batch, then wait. Do not diagnose from writing style, identity, confidence, speed, or protected traits. Select Lens, Views, and Detail with the precedence in `methodology.md`.
+Ask one compact batch, then wait. Do not diagnose from writing style, identity, confidence, speed, or protected traits. Use the session Lens and infer the Job; do not require the learner to choose semantic Views.
 
 ## Mastery states
 
@@ -30,26 +25,29 @@ Ask one compact batch, then wait. Do not diagnose from writing style, identity, 
 - `working`: the learner recalled or applied it with support.
 - `verified`: the learner independently explained and transferred it, including a boundary or counterexample.
 
-Move at most one state at a time unless the learner provides unusually strong evidence. A wrong answer is evidence about the model gap, not a judgment about the person. Store the state and a short evidence note in `.mental/mastery.json`.
+Move at most one state unless the response independently provides unusually strong evidence. A wrong answer identifies a model gap, not a personal deficit.
 
 ## Teaching loop
 
-1. State the Lens, Views, Detail, selection basis, and one learning objective.
+1. State one observable objective.
 2. Give an anchor with at most five new relationships.
 3. Walk through one representative scenario.
 4. Show one boundary, failure, or misconception.
-5. Ask the learner to predict or teach back.
-6. Correct the smallest broken relationship.
-7. Update private mastery only after the learner responds.
+5. Ask for prediction or teach-back before revealing the answer.
+6. Correct the first broken relationship.
+7. Test transfer.
+8. Persist private mastery only after response evidence and explicit session persistence consent.
 
-Keep personalized plans and answers private. Shared exercises may live in `mental/exercises/`; personal attempts belong in `.mental/sessions/`.
+Do not print routine Lens/Job metadata unless the choice is non-default, user-selected, uncertain, or actionable.
 
-## Practice design
+## Practice
 
-Practice is adaptive coaching. Ask one focused task, inspect the response, find the first broken relationship, provide the smallest correction or hint, then ask a structurally equivalent scenario rather than rewording the same question. Continue with a transfer and a boundary check. Finish when the target relationship is demonstrated or when the remaining gap is clear.
+Practice is adaptive repair. Ask one focused task, inspect the response, identify the first broken relationship, give the smallest correction, then ask a structurally equivalent scenario. Require independent explanation, transfer, and a boundary before marking `verified`.
 
-Prefer free recall, teach-back, prediction, transfer, debugging, comparison, and counterexamples. Use multiple-choice only when the user requests it, it materially improves the task, or accessibility requires it. Do not reveal the solution until the learner has attempted the task or explicitly asks. End with a concrete statement of what the learner demonstrated, not generic praise.
+Prefer free recall, teach-back, prediction, transfer, debugging, comparison, and counterexamples. Use multiple-choice only when requested, useful, or needed for accessibility.
 
-## Quiz design
+## Quiz
 
-Quiz is a bounded assessment, not an adaptive loop. Resolve a scope, generate the complete exam before collecting answers, keep solutions hidden, then evaluate according to `feedback=end|after-each`. A default quiz has 12 mixed items; accept 10–20 items. Objective scores such as `9/12` are allowed. Do not convert a score into a mastery percentage, IQ-like label, or permanent ability claim.
+Quiz is fixed-coverage assessment, not adaptive repair. Resolve scope, create the coverage map and complete exam first, keep solutions hidden, then evaluate according to `feedback=end|after-each`. Default to 12 mixed items and accept 10–20.
+
+Objective scores such as `9/12` are allowed. Do not turn them into mastery percentages, IQ-like labels, or permanent ability claims.

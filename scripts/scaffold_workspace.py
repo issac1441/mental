@@ -106,6 +106,7 @@ def scaffold(
             mental_root / "concepts",
             mental_root / "model",
             mental_root / "scenarios",
+            mental_root / "conflicts",
             private_root / "sessions",
         ],
     )

@@ -1,4 +1,4 @@
 interface:
   display_name: "Mental Quiz"
-  short_description: "Run a bounded mental model assessment"
-  default_prompt: "Use $quiz to assess my understanding of the current change with 12 mixed questions."
+  short_description: "Run a fixed-coverage understanding test"
+  default_prompt: "Use $quiz to test my understanding of the current change with 12 mixed questions."

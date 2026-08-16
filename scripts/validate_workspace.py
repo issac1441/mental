@@ -11,7 +11,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote
 
-REQUIRED_FIELDS = {"id", "kind", "status", "sources", "prerequisites", "updated_at"}
+REQUIRED_FIELDS = {
+    "id",
+    "kind",
+    "authority",
+    "status",
+    "sources",
+    "prerequisites",
+    "updated_at",
+}
 ALLOWED_KINDS = {
     "index",
     "sources",
@@ -23,34 +31,30 @@ ALLOWED_KINDS = {
     "architecture",
     "contract",
     "decision",
+    "conflict",
     "change",
     "learning-path",
     "misconception",
     "exercise",
 }
-ALLOWED_STATUSES = {"draft", "canonical", "stale"}
+ALLOWED_AUTHORITIES = {"mechanical", "conceptual", "decision"}
+AUTHORITY_STATUSES = {
+    "mechanical": {"current", "stale"},
+    "conceptual": {"draft", "active", "stale"},
+    "decision": {"pending", "accepted", "rejected", "superseded"},
+}
+CONFLICT_STATUSES = {"open", "resolved"}
 ALLOWED_MASTERY_STATES = {"unknown", "exposed", "working", "verified"}
-ALLOWED_VIEWS = {"anchor", "map", "mechanism", "scenario", "evidence"}
+ALLOWED_DECISION_OWNERS = {"human", "agent", "shared", "unassigned"}
+ALLOWED_SURFACED_STATES = {"pre-approval", "post-approval"}
+ALLOWED_REVERSIBILITY = {"easy", "costly", "irreversible", "unknown"}
 ID_RE = re.compile(r"^[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 LINK_RE = re.compile(r"\[[^]]*]\(([^)]+)\)")
 SOURCE_HEADING_RE = re.compile(
     r"^##\s+([a-z0-9]+(?:[.-][a-z0-9]+)*)(?:\s+(?:—|-)\s+\S.*)?$",
     re.MULTILINE,
 )
-PROVENANCE_RE = re.compile(r"\[(?:observed|inferred|agreed|conflict)]")
 ID_TOKEN_RE = re.compile(r"[a-z0-9]+(?:[.-][a-z0-9]+)*")
-SEMANTIC_KINDS = {
-    "lens",
-    "map",
-    "concept",
-    "scenario",
-    "architecture",
-    "contract",
-    "decision",
-    "change",
-    "learning-path",
-    "misconception",
-}
 
 
 @dataclass
@@ -289,9 +293,49 @@ def validate(workspace: Path) -> dict[str, object]:
             errors.append(
                 f"{artifact.path}: artifacts under mental/lenses/ must use kind 'lens'"
             )
+        if kind == "conflict" and (
+            not relative_parts or relative_parts[0] != "conflicts"
+        ):
+            errors.append(
+                f"{artifact.path}: kind 'conflict' must live under mental/conflicts/"
+            )
+        if relative_parts and relative_parts[0] == "conflicts" and kind != "conflict":
+            errors.append(
+                f"{artifact.path}: artifacts under mental/conflicts/ must use kind 'conflict'"
+            )
+        if kind == "decision" and (
+            not relative_parts or relative_parts[0] != "decisions"
+        ):
+            errors.append(
+                f"{artifact.path}: kind 'decision' must live under mental/decisions/"
+            )
+        if relative_parts and relative_parts[0] == "decisions" and kind != "decision":
+            errors.append(
+                f"{artifact.path}: artifacts under mental/decisions/ must use kind 'decision'"
+            )
+        authority = artifact.fields.get("authority")
+        if authority not in ALLOWED_AUTHORITIES:
+            errors.append(f"{artifact.path}: unsupported authority '{authority}'")
         status = artifact.fields.get("status")
-        if status not in ALLOWED_STATUSES:
-            errors.append(f"{artifact.path}: unsupported status '{status}'")
+        if kind == "conflict":
+            allowed_statuses = CONFLICT_STATUSES
+        else:
+            allowed_statuses = AUTHORITY_STATUSES.get(str(authority), set())
+        if status not in allowed_statuses:
+            errors.append(
+                f"{artifact.path}: status '{status}' is invalid for authority '{authority}'"
+            )
+        required_authority = {
+            "sources": "mechanical",
+            "lens": "conceptual",
+            "decision": "decision",
+            "conflict": "decision",
+            "change": "decision",
+        }.get(str(kind))
+        if required_authority and authority != required_authority:
+            errors.append(
+                f"{artifact.path}: kind '{kind}' requires authority '{required_authority}'"
+            )
         if not is_iso_date(artifact.fields.get("updated_at")):
             errors.append(
                 f"{artifact.path}: 'updated_at' must use ISO YYYY-MM-DD format"
@@ -313,32 +357,46 @@ def validate(workspace: Path) -> dict[str, object]:
             if not isinstance(artifact.fields.get(key), list):
                 errors.append(f"{artifact.path}: '{key}' must be a YAML list")
         if kind == "lens":
-            for key in ("assumes", "prioritizes", "vocabulary", "default_views"):
+            for key in ("assumes", "prioritizes", "vocabulary"):
                 if not isinstance(artifact.fields.get(key), list):
                     errors.append(
                         f"{artifact.path}: lens field '{key}' must be a YAML list"
                     )
-            default_views = artifact.fields.get("default_views", [])
-            if isinstance(default_views, list):
-                for view in default_views:
-                    if view not in ALLOWED_VIEWS:
-                        errors.append(
-                            f"{artifact.path}: unsupported default view '{view}'"
-                        )
+        if kind == "conflict":
+            for key in ("owner", "opened_at"):
+                if not isinstance(artifact.fields.get(key), str):
+                    errors.append(
+                        f"{artifact.path}: conflict field '{key}' must be a scalar"
+                    )
+            if not is_iso_date(artifact.fields.get("opened_at")):
+                errors.append(
+                    f"{artifact.path}: conflict 'opened_at' must use ISO YYYY-MM-DD format"
+                )
+            if status == "resolved" and not is_iso_date(
+                artifact.fields.get("resolved_at")
+            ):
+                errors.append(
+                    f"{artifact.path}: resolved conflict requires ISO 'resolved_at'"
+                )
+        if kind == "decision":
+            decision_fields = {
+                "decision_owner": ALLOWED_DECISION_OWNERS,
+                "surfaced": ALLOWED_SURFACED_STATES,
+                "consequential": {"true", "false"},
+                "reversibility": ALLOWED_REVERSIBILITY,
+            }
+            for key, allowed in decision_fields.items():
+                value = artifact.fields.get(key)
+                if value not in allowed:
+                    errors.append(
+                        f"{artifact.path}: decision field '{key}' has invalid value '{value}'"
+                    )
         if (
-            status == "canonical"
+            status in {"current", "active", "accepted", "resolved"}
             and kind not in {"index", "sources"}
             and not list_field(artifact, "sources")
         ):
-            errors.append(f"{artifact.path}: canonical artifact has no sources")
-        if (
-            status == "canonical"
-            and kind in SEMANTIC_KINDS
-            and not PROVENANCE_RE.search(artifact.body)
-        ):
-            warnings.append(
-                f"{artifact.path}: canonical semantic artifact has no claim-provenance labels"
-            )
+            errors.append(f"{artifact.path}: active artifact state has no sources")
 
     source_catalog = next(
         (a for a in artifacts if a.fields.get("kind") == "sources"), None

@@ -4,6 +4,6 @@
 - Current goal:
 - Constraints:
 - Explicit Lens preference:
-- Explicit View preference:
-- Explicit Detail preference:
+- Explicit Job preference:
+- Explicit response-density preference:
 - Notes: Record preferences only when the user asks. Keep observations factual and avoid identity-based inference.

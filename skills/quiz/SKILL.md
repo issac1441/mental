@@ -1,36 +1,29 @@
 ---
 name: quiz
-description: Run a complete bounded assessment of a current change, session, artifact, registered source, or supplied topic. Use when the user wants a 10 to 20 item exam delivered as a whole rather than adaptive coaching. Score objective answers without inventing mastery percentages or permanent ability labels.
+description: Run a complete fixed-coverage assessment of a current change, session, artifact, registered source, or supplied topic. Use when the user wants a 10 to 20 item exam prepared as a whole rather than adaptive coaching; score objective answers without inventing mastery percentages or ability labels.
 ---
 
 # Quiz
 
-Assess whether the learner can reconstruct, predict, transfer, and bound the selected mental model.
+Assess whether the learner can reconstruct, predict, transfer, and bound the selected model.
 
 ## Input contract
 
-`[scope] [items=12] [feedback=end|after-each] [format=mixed|open|mcq]`
+`[scope] [items=12] [feedback=end|after-each] [format=mixed|open|mcq] [lens=<id>]`
 
-- `scope` accepts `current-change`, `current-session`, a change ID, artifact ID or path, a portion of a registered source, or a natural-language topic.
-- `items` accepts 10–20 and defaults to 12.
-- `feedback` defaults to `end`.
-- `format` defaults to `mixed`; `open` avoids multiple-choice and `mcq` requests it.
-
-Examples:
-
-- `$quiz current-change items=12 feedback=end format=mixed`
-- `$quiz mental/concepts/event-loop.md items=10 format=open`
-- `$quiz Test whether I understand the timeout decisions in this session.`
+- Scope accepts `current-change`, `current-session`, an artifact or source, or natural language.
+- Items accepts 10–20 and defaults to 12.
+- Feedback defaults to `end`; format defaults to `mixed`.
 
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
-2. Resolve omitted scope in this order: current change → current session → ask the user. Use only canonical artifacts and supplied or registered sources unless the user explicitly allows clearly labeled draft material.
-3. Select Lens, Views, and Detail with the methodology precedence so wording and emphasis fit the current goal. Do not use this selection to label ability or persist a profile.
-4. Build a coverage map before writing questions. Include the anchor, important relationships or mechanisms, at least one prediction, one transfer, one failure or counterexample, and consequential decisions or evidence gaps when relevant.
-5. Generate the complete exam first. Number every item, state the requested format and scope, and do not include answers, hints, or answer-revealing commentary.
-6. With `feedback=end`, wait for the full submission, then grade all answers. With `feedback=after-each`, still define the complete exam first, but present and evaluate one numbered item at a time without changing the remaining coverage merely to chase one mistake; suggest `$practice` if adaptive repair is needed.
-7. Report an objective score such as `9/12`, answer-specific evidence, demonstrated relationships, unresolved relationships, and recommended follow-up. Do not convert the score into a mastery percentage, IQ-like label, or global ability claim.
-8. Store personal answers and results only under `.mental/sessions/` and only when the user requested persistence in this invocation or explicitly enabled it for the active assessment session. If the user asks to preserve reusable questions, write a `status: draft`, `kind: exercise` artifact under `mental/exercises/`; never publish the learner's answers there.
+1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
+2. Resolve omitted scope as current change → current session → ask. Use supplied sources, current mechanical artifacts, and active conceptual artifacts; clearly identify draft material when the user includes it.
+3. Use the session Lens and `verify` Job. Do not persist the selection or label ability.
+4. Build a coverage map first: anchor, relationships or mechanism, prediction, transfer, failure or counterexample, and consequential decisions or evidence gaps when relevant.
+5. Generate the complete exam before collecting answers. Number every item and do not include answers, hints, or answer-revealing commentary.
+6. With `feedback=end`, wait for the full submission and grade all answers. With `feedback=after-each`, keep the complete coverage fixed while presenting one numbered item at a time; suggest `$practice` for adaptive repair.
+7. Report an objective score such as `9/12`, answer-specific evidence, demonstrated relationships, unresolved relationships, and follow-up. Do not convert it into mastery percentage, IQ-like label, or global ability.
+8. Store personal answers only under `.mental/sessions/` and only with explicit persistence consent for the active assessment. Preserve reusable questions as a conceptual `status: draft`, `kind: exercise` only when requested; never publish learner answers.
 
-Use `$practice` when the user wants answer-by-answer adaptive coaching. Use `$learn` when the assessment exposes a prerequisite gap that needs teaching.
+Use `$practice` for answer-adaptive coaching and `$learn` for prerequisite teaching.

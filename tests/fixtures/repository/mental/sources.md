@@ -1,7 +1,8 @@
 ---
 id: source-catalog
 kind: sources
-status: canonical
+authority: mechanical
+status: current
 sources: []
 prerequisites: []
 updated_at: 2026-08-15

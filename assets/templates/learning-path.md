@@ -1,6 +1,7 @@
 ---
 id: learning-path
 kind: learning-path
+authority: conceptual
 status: draft
 sources:
   - {{SOURCE_ID}}
@@ -12,11 +13,11 @@ updated_at: {{TODAY}}
 
 ## Outcome
 
-[inferred] Define what the learner should be able to predict, explain, or do.
+Define what the learner should be able to predict, explain, or do.
 
 ## Prerequisite graph
 
-[inferred] Add the smallest ordered set of concepts supported by the source.
+Add the smallest ordered set of concepts supported by the source.
 
 ## Verification activities
 
@@ -26,3 +27,9 @@ updated_at: {{TODAY}}
 - Identify a boundary or counterexample.
 
 Personal progress belongs in `.mental/`, not this shared file.
+
+## Verification basis
+
+- Source coverage:
+- Checked success and failure predictions:
+- Known gaps and open conflicts:

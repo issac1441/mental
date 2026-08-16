@@ -1,4 +1,4 @@
 interface:
   display_name: "Mental Understand"
-  short_description: "Explain a subject through its mental model"
-  default_prompt: "Use $understand to explain this through the current session and model; optional controls are lens, views, and detail."
+  short_description: "Understand immediately without setup"
+  default_prompt: "Use $understand to explain this now through the smallest useful mental model."

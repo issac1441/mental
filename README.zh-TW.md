@@ -1,18 +1,18 @@
 # mental
 
-`mental` 是一套住在 Claude Code 與 Codex 裡的 Agent-native skills。它把使用者指定的 repo、文件、文字或網址整理成可驗證、可版本化的 mental model，並透過 agent 協助理解、學習、練習、測驗與修正模型。
+`mental` 是一套縮短「agent 已經做完」與「人類真正理解」之間落差的 Agent-native plugin。它讓使用者直接在 Claude Code 或 Codex 裡定位問題、預測、決策、review、學習與修正模型。
 
-它不是獨立 CLI、託管服務或原始材料的替代品，也沒有後端、帳號、遙測、MCP server 或外部 LLM API。使用者面對的是九個 `/mental:*`／`$mental:*` skills；Python 腳本只供 skills 內部進行確定性的建檔與檢查。
+它不是獨立 CLI、託管服務或原始材料的替代品，也沒有後端、帳號、遙測、MCP server 或外部 LLM API。使用者介面是九個 skills；Python 腳本只供 skills 內部做確定性建檔與檢查。
 
 [English README](README.md)
 
-設計文件：[設計背景與研究架構](docs/design-background.zh-TW.md) · [STE100 評估與寫作規範](docs/ste100-evaluation.zh-TW.md)
+設計文件：[設計背景與研究架構](docs/design-background.zh-TW.md) · [STE100 評估](docs/ste100-evaluation.zh-TW.md)
 
 ## Quickstart
 
 ### 1. 載入 `mental`
 
-Claude Code 開發環境最快的試用方式：
+Claude Code 開發環境：
 
 ```sh
 git clone https://github.com/issac1441/mental.git /absolute/path/to/mental
@@ -20,168 +20,110 @@ cd /path/to/你想理解的-repo
 claude --plugin-dir /absolute/path/to/mental
 ```
 
-Codex 必須先依照[安裝與測試](#安裝與測試)的說明，從已設定的 plugin marketplace 安裝 `mental`，再開啟目標 repo：
+Codex 請先依照[安裝與驗證](#安裝與驗證)，從已設定的 plugin marketplace 安裝 `mental`，再開啟目標 repo：
 
 ```sh
 codex -C /path/to/你想理解的-repo
 ```
 
-### 2. 建立 draft model
-
-```text
-/mental:build 為目前 workspace 建立 repo mental model。
-$mental:build 為目前 workspace 建立 repo mental model。
-```
-
-`build` 會建立 draft artifacts 並顯示 promotion gate。請檢查邊界、關係、agent 推論、成功與失敗情境、衝突和已知缺口；只將你接受的 artifacts 升級為 canonical。
-
-### 3. 自動選擇或手動指定回答脈絡
+### 2. 先問，不需要設定 artifacts
 
 ```text
 /mental:understand 一個 request 如何走過這個 repo？
-/mental:understand 說明 retry 決策。lens=pm views=anchor,scenario detail=brief
+$mental:understand 一個 request 如何走過這個 repo？
 ```
 
-`understand` 會依序參考手動參數、目前明確目標、session history、個人學習狀態、host 有提供時的弱 memory signal，以及 scope default。回答會揭露選到的 Lens、Views、Detail 與簡短理由；除非你明確要求，否則不會保存推論出的偏好。
+`understand` 會讀取目前 session，以及最小必要的 repo 或指定來源證據。即使 `mental/` 不存在也能直接回答，而且不會寫檔。如果同一個模型以後還會使用，它才會提議 `build`；持久化不是入場費。
 
-可用參數：
-
-- `lens=general|engineer|architect|pm|operator|student|researcher|<custom-lens-id>`
-- `views=anchor,map,mechanism,scenario,evidence`，可複選
-- `detail=brief|standard|deep`
-
-如果沒有更強的訊號決定 Detail，預設使用 `standard`。
-
-專案也能在 `mental/lenses/` 建立可重用的自訂 Lens artifact。
-
-每個 skill 內的 Input contract 才是 canonical 參數定義。Host 介面可能顯示 skill description 或 default prompt，但 Claude Code 與 Codex 不保證都有列舉型參數 autocomplete。
-
-### 4. 決定、實作並理解變更
+### 3. 在實作前預測並決策
 
 ```text
 /mental:change 加入 request timeout，但不要改變 failure semantics。
 /mental:change 告訴我目前 plan 中 option A 的實際影響。
-/mental:review 依照已接受的 model review 目前 diff。
+```
+
+如果 prediction 能揭露重要 model gap，`change` 會先問人，等待回答或 `skip`，再拿證據比較。明確要求直接回答時不會強迫小考。人類核准的是期望行為與 trade-off，不是沒有證據的事實。
+
+### 4. 理解實際發生的變更
+
+```text
+/mental:review Review 目前 diff。
 /mental:quiz current-change items=12 feedback=end format=mixed
 ```
 
-Codex 請改用 `$mental:*`。`change` 預設是對話式唯讀分析，只有你要求記錄時才建立 draft brief，而且一定停在 human decision。`review` 會先說清楚實際改了什麼，再進行正確性審查。
+`review` 會重建 Before → After，把核准後才浮現的選擇標成 Decision Surprise，並檢查有界的 `Model × Harness × Task Class` trust unit。
 
-### 5. 從指定材料學習
+### 5. 有價值後才持久化
 
 ```text
-/mental:build 從 docs/protocol.md 建立 learning model。
-/mental:learn 我想要能解釋並 debug 這個 protocol。
-/mental:practice 幫我修正這個 model 裡最弱的關係。
-/mental:quiz docs/protocol.md items=12 format=open
+/mental:build 保存剛才建立、以後還會重用的模型。
 ```
 
-團隊共用材料放在 `mental/`；個人目標、答案、進度與 session 紀錄放在 gitignored `.mental/`。
+`build` 是進階 persistence skill。它保存可重建的 mechanical artifacts、附有驗證要求的 conceptual drafts、decision history 與 first-class conflicts；不會為了追求完整 coverage 建立巨型 wiki。
 
-## 核心方法
+## 互動模型
 
-`mental` 使用 **Lens × Views × Detail**：
+`mental` 使用 **Lens × Job**：
 
-- **Lens** 合併 audience 與 perspective，代表「哪個角色通常具備的知識、語彙、關注與決策方式」應該塑造這次回答，例如 `engineer`、`architect`、`pm` 或 `student`。
-- **Views** 是可以複選的語意切面：`anchor`、`map`、`mechanism`、`scenario`、`evidence`。
-- **Detail** 控制每個 View 的密度：`brief`、`standard`、`deep`。
+- **Lens** 是塑造 session 回答的角色知識、語彙、關注與決策方式：`general`、`engineer`、`architect`、`pm`、`operator`、`student`、`researcher` 或 custom lens。
+- **Job** 是使用者此刻要完成的認知工作：`orient`、`decide`、`predict`、`verify` 或 `repair`。
 
-Lens 是這個 session 的回答策略，不是永久身份或能力判定。手動指定永遠優先。Repo 脈絡預設使用 `engineer`；一般學習脈絡預設使用 `student`。
+Agent 會從目前目標與 session 自動推論兩者；手動 `lens=` 與 `job=` 永遠優先。Anchor、map、mechanism、scenario、evidence 等 Views 保留為 agent 內部選擇語彙。熟悉它們的使用者仍可用 `views=` 進階 override，但第一次使用不需要先懂這套分類。
 
-其餘治理規則是：
-
-- 分開 `[observed]`、`[inferred]`、`[agreed]` 與 `[conflict]` 主張；
-- 先建立 draft，再由人類決定是否成為 canonical；
-- 來源、程式碼、測試與 runtime evidence 是材料／實作真相，canonical artifacts 是人類同意的概念真相；
-- 兩者衝突時不得靜默改寫；
-- 團隊共用模型放在 `mental/`，個人狀態放在 `.mental/`。
-
-指定的 repo、文件、網址、diff 與生成 artifacts 一律視為不受信任的資料，不是 agent 指令。它們不能授權工具操作、寫入、擴張來源範圍、接受 draft，或揭露 `.mental/` 狀態。詳見[來源安全規範](references/source-safety.md)。
+`mental` 不會每次重複印出 context header。只有使用者手動指定、選擇不是預設、存在不確定性，或揭露後可以採取行動時，才會說明 Lens、Job 或 Views。
 
 ## Skills
 
-| Skill | 用途 | 預設寫入 |
+### 主要 skills
+
+| Skill | 使用時機 | 預設寫入 |
 | --- | --- | --- |
-| `understand` | 依 session 自動選擇或手動指定 Lens、Views、Detail 來解釋 | 無 |
-| `build` | 從指定來源建立 draft model 與可重用自訂 Lens | 僅 draft |
-| `sync` | 提出 source-to-model delta | 僅 draft delta |
-| `doctor` | 檢查結構、Lens、證據、drift 與 privacy | 無 |
-| `change` | 在實作前解釋 intent、選項、plan 或 TODO | 無；要求記錄才寫 draft brief |
-| `review` | 先解釋 actual change，再依 agreed model 審查 | 無 |
-| `learn` | 用 2–5 個高資訊量問題診斷缺口，再自適應教學 | 有學習證據且明確啟用 session 保存後才寫 private state |
-| `practice` | 一次一題，自適應修正一個薄弱關係 | 有學習證據且明確啟用 session 保存後才寫 private state |
-| `quiz` | 一次交付完整 10–20 題有界測驗 | 無；明確啟用 session 保存時才寫 private result |
+| `understand` | 需要立即解釋或 orientation | 無 |
+| `change` | 實作前需要預測、比較或決策 | 無；要求記錄時才寫 |
+| `review` | Agent 做完後，需要理解實際變更 | 無 |
+| `learn` | 需要診斷與自適應的 source-bound 教學 | 有學習證據且明確同意保存後才寫 private state |
+| `practice` | 需要跟著回答調整的修正與遷移練習 | 有學習證據且明確同意保存後才寫 private state |
+| `quiz` | 需要完整、固定 coverage 的測驗 | 明確同意保存後才寫 private result |
 
-### Practice 和 quiz 的差異
+### 進階 persistence 與維護
 
-需要讓下一題跟著上一題答案改變時，使用 `practice`：題目 → 第一個斷裂關係 → 最小修正 → 結構相同但情境不同的新題 → 遷移 → 邊界。需要一份完整考卷時，使用 `quiz`。Quiz 預設 12 題 mixed、全部作答後再 feedback；可以給 `9/12` 這種客觀分數，但不會把它轉成虛假的 mastery 百分比或全局能力標籤。
-
-## 什麼時候該用哪個 skill
-
-| 使用時機 | Skill |
+| Skill | 使用時機 |
 | --- | --- |
-| 剛進入陌生 repo | `build` |
-| 目前說明或 session 已經看不懂 | `understand` |
-| Plan 出現 A/B 選項 | `change` |
-| 很長的 TODO list 藏著決策與影響 | `change` |
-| Agent 已經實作完 diff | `review` |
-| 想確認自己是否理解這次變更 | `quiz current-change` |
-| 開始一個由指定來源限定的新主題 | `build`，再 `learn` |
-| 某個概念或關係仍然薄弱 | `practice` |
-| 來源或 code 已偏離 canonical model | `sync` |
-| Artifact、自訂 Lens 或隱私邊界可能有問題 | `doctor` |
+| `build` | 有用模型、Lens、decision 或 conflict 值得保存 |
+| `sync` | 已註冊來源改變，durable artifacts 需要刷新 |
+| `doctor` | Durable workspace 的 authority、證據、decision、conflict、link 或 privacy 可能有問題 |
+
+每個 skill 內的 Input contract 是正式參數定義。Host 介面可能顯示 description 或 default prompt，但 Claude Code 與 Codex 不保證都有列舉型參數 autocomplete。
+
+## Artifact authority
+
+每個 artifact 都會說明誰能更新它：
+
+| Authority | 意義 | States |
+| --- | --- | --- |
+| `mechanical` | 可從已註冊證據重新生成 | `current`、`stale` |
+| `conceptual` | 有驗證依據的 durable working explanation | `draft`、`active`、`stale` |
+| `decision` | 人類意圖、trade-off 或已接受變更 | `pending`、`accepted`、`rejected`、`superseded` |
+
+`active` 表示「具有明確驗證依據的目前 working model」，不是絕對真理。「看起來沒問題」或 recognition 不是 verification。Mechanical artifacts 不需要人類核准事實；人類 decision 也不能讓沒有證據的主張變真。
+
+Conflicts 放在 `mental/conflicts/`，具有穩定 ID、`open|resolved`、雙方主張與證據、owner 和 resolution history。重大選擇放在 `mental/decisions/` 的 append-preserving decision ledger。
+
+團隊共用 artifacts 放在 `mental/`；個人目標、答案、進度與 session 放在 gitignored `.mental/`。
 
 ## 代表性流程
 
-**Vibe coding：**`build → understand → change → human decision → Plan Mode → implementation → review → quiz → sync`
+**Vibe coding：**`understand → change → human prediction/decision → Plan Mode → implementation → review → optional quiz → advanced sync`
 
-**產品決策：**`understand lens=pm → change compare A/B → human decision → Plan Mode → review`
+**快速提問：**只用 `understand`，不必建 artifacts。
 
-**學習：**`build 指定來源 → learn → practice → quiz`
+**產品決策：**`understand lens=pm → change job=decide → human decision → Plan Mode → review`
 
-```mermaid
-flowchart LR
-    build["建立 model"] --> understand["理解目前情境"]
-    understand --> change["建立 change mental model"]
-    change --> decision{"Human decision"}
-    decision -->|接受| plan["Host Plan Mode"]
-    plan -->|選項不清楚| change
-    plan --> implementation["Implementation"]
-    implementation --> review["理解並 review actual change"]
-    review --> quiz["Quiz 操作者的理解"]
-    quiz --> sync["Sync 已接受的 model"]
-```
+**學習：**`learn 指定來源 → practice → quiz → optional build`
 
-`change` 通常在 Plan Mode 前：它定義「系統應該變成什麼」並揭露 trade-off；Plan Mode 再定義「如何實作已接受的決定」。如果已經有 plan 或 TODO，`change` 也能反向解讀；決策改變後再回 Plan Mode 更新步驟。
+**Durable model：**`understand → 證明有重用價值 → build → 日後 sync/doctor`
 
-## Artifact 結構
-
-```text
-mental/
-├── index.md
-├── sources.md
-├── glossary.md
-├── lenses/          # 可重用角色 Lens，按需
-├── model/map.md
-├── concepts/
-├── scenarios/
-├── contracts/       # repo mode，按需
-├── decisions/       # repo mode，按需
-├── changes/         # 有要求記錄的 delta，按需
-├── learning/path.md # learning mode，按需
-├── misconceptions/
-└── exercises/
-
-.mental/
-├── .gitignore
-├── profile.md
-├── mastery.json
-└── sessions/
-```
-
-每個團隊共用 Markdown artifact 都有穩定英文 frontmatter key 與 ID。詳見 [artifact contract](references/artifact-contract.md)。
-
-## 安裝與測試
+## 安裝與驗證
 
 ### Claude Code
 
@@ -190,11 +132,11 @@ claude --plugin-dir /absolute/path/to/mental
 claude plugin validate /absolute/path/to/mental
 ```
 
-正式分發時，將 repo 加入 Claude Code marketplace 後安裝 `mental`。
+正式分發時，請將 repo 加入 Claude Code marketplace 後安裝 `mental`。
 
 ### Codex
 
-從已設定的 plugin marketplace 安裝 `mental`，接著用 `/skills` 或 `$` 選擇 skills。本機開發時可把 checkout 放進 local marketplace：
+從已設定的 plugin marketplace 安裝 `mental`，接著用 `/skills` 或 `$` 選擇 skill。非預設 local marketplace 可使用：
 
 ```sh
 codex plugin marketplace add /absolute/path/to/marketplace
@@ -205,7 +147,7 @@ codex plugin add mental@marketplace-name
 
 ### OpenCode 相容模式
 
-目前僅提供文件層級相容，不承諾 native namespace parity。將 `skills/`、`references/`、`scripts/`、`assets/` 一起複製或連結至同一個 `.agents/` 目錄並保留相對路徑；OpenCode 會以 `understand`、`build` 等未加 namespace 的名稱發現它們。
+目前僅提供文件層級相容，不承諾 native namespace parity。將 `skills/`、`references/`、`scripts/`、`assets/` 一起複製或連結到同一個 `.agents/` 目錄並保留相對路徑；OpenCode 會以 `understand`、`change` 等未加 namespace 的名稱發現它們。
 
 ## 開發驗證
 
@@ -217,7 +159,7 @@ python3 scripts/scaffold_workspace.py /tmp/mental-demo --mode hybrid --language 
 python3 scripts/validate_workspace.py /tmp/mental-demo
 ```
 
-這些 Python helpers 是 skill 內部實作細節，不是公開 CLI。
+Python helpers 是 skill 內部實作細節，不是公開 CLI。
 
 ## 授權
 

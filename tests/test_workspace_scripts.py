@@ -38,6 +38,8 @@ class WorkspaceScriptTests(unittest.TestCase):
             original = index.read_text(encoding="utf-8")
             self.assertIn("mode: hybrid", original)
             self.assertTrue((workspace / "mental" / "contracts").is_dir())
+            self.assertTrue((workspace / "mental" / "conflicts").is_dir())
+            self.assertTrue((workspace / "mental" / "decisions").is_dir())
             self.assertTrue((workspace / "mental" / "learning" / "path.md").is_file())
 
             run(
@@ -103,6 +105,11 @@ class WorkspaceScriptTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     (workspace / "mental" / "contracts").is_dir(),
+                    mode in {"repository", "hybrid"},
+                )
+                self.assertTrue((workspace / "mental" / "conflicts").is_dir())
+                self.assertEqual(
+                    (workspace / "mental" / "decisions").is_dir(),
                     mode in {"repository", "hybrid"},
                 )
                 self.assertEqual(
@@ -301,7 +308,7 @@ class WorkspaceScriptTests(unittest.TestCase):
             map_path = workspace / "mental" / "model" / "map.md"
             map_path.write_text(
                 map_path.read_text(encoding="utf-8").replace(
-                    "status: canonical\n", "", 1
+                    "authority: mechanical\n", "", 1
                 ),
                 encoding="utf-8",
             )
@@ -312,7 +319,7 @@ class WorkspaceScriptTests(unittest.TestCase):
             report = json.loads(result.stdout)
             self.assertTrue(
                 any(
-                    "missing required field 'status'" in error
+                    "missing required field 'authority'" in error
                     for error in report["errors"]
                 )
             )
@@ -324,7 +331,7 @@ class WorkspaceScriptTests(unittest.TestCase):
             index = workspace / "mental" / "index.md"
             content = index.read_text(encoding="utf-8")
             content = content.replace(
-                "status: canonical\n", "status: canonical\nstatus: draft\n", 1
+                "status: active\n", "status: active\nstatus: draft\n", 1
             )
             content = content.replace(
                 "updated_at: 2026-08-15", "updated_at: sometime-last-week", 1
@@ -535,7 +542,7 @@ class WorkspaceScriptTests(unittest.TestCase):
             )
             self.assertNotIn("self-reported confidence", result.stdout)
 
-    def test_custom_lens_validates_and_rejects_unknown_view(self) -> None:
+    def test_custom_lens_validates_and_rejects_wrong_authority(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             workspace = Path(directory) / "repository"
             shutil.copytree(FIXTURES / "repository", workspace)
@@ -546,7 +553,8 @@ class WorkspaceScriptTests(unittest.TestCase):
                 """---
 id: incident-commander
 kind: lens
-status: canonical
+authority: conceptual
+status: active
 sources:
   - source-repo
 prerequisites: []
@@ -557,15 +565,15 @@ prioritizes:
   - containment and recovery
 vocabulary:
   - incident
-default_views:
-  - mechanism
-  - scenario
-  - evidence
 ---
 
 # Incident commander
 
-[agreed] Explain runtime effects and recovery decisions first.
+Explain runtime effects and recovery decisions first.
+
+## Verification basis
+
+Validated against the repository incident runbook and a recovery scenario.
 """,
                 encoding="utf-8",
             )
@@ -574,7 +582,7 @@ default_views:
 
             lens_path.write_text(
                 lens_path.read_text(encoding="utf-8").replace(
-                    "  - mechanism\n", "  - telescope\n"
+                    "authority: conceptual\n", "authority: mechanical\n"
                 ),
                 encoding="utf-8",
             )
@@ -585,9 +593,66 @@ default_views:
             report = json.loads(invalid.stdout)
             self.assertTrue(
                 any(
-                    "unsupported default view 'telescope'" in error
+                    "kind 'lens' requires authority 'conceptual'" in error
                     for error in report["errors"]
                 )
+            )
+
+    def test_authority_status_state_machines_are_enforced(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            map_path = workspace / "mental" / "model" / "map.md"
+            map_path.write_text(
+                map_path.read_text(encoding="utf-8").replace(
+                    "status: current", "status: accepted", 1
+                ),
+                encoding="utf-8",
+            )
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(
+                any(
+                    "status 'accepted' is invalid for authority 'mechanical'" in error
+                    for error in report["errors"]
+                )
+            )
+
+    def test_conflict_and_decision_metadata_are_enforced(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "repository"
+            shutil.copytree(FIXTURES / "repository", workspace)
+            conflict = workspace / "mental" / "conflicts" / "timeout-owner.md"
+            conflict.write_text(
+                conflict.read_text(encoding="utf-8")
+                .replace("status: open", "status: resolved", 1)
+                .replace("owner: unassigned\n", "", 1),
+                encoding="utf-8",
+            )
+            decision = workspace / "mental" / "decisions" / "route-contract.md"
+            decision.write_text(
+                decision.read_text(encoding="utf-8").replace(
+                    "surfaced: pre-approval", "surfaced: eventually", 1
+                ),
+                encoding="utf-8",
+            )
+            result = run(
+                "python3", str(VALIDATE), str(workspace), "--json", check=False
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(
+                any("conflict field 'owner'" in error for error in report["errors"])
+            )
+            self.assertTrue(
+                any(
+                    "resolved conflict requires ISO 'resolved_at'" in error
+                    for error in report["errors"]
+                )
+            )
+            self.assertTrue(
+                any("decision field 'surfaced'" in error for error in report["errors"])
             )
 
 

@@ -1,7 +1,8 @@
 ---
 id: {{ID}}
 kind: change
-status: draft
+authority: decision
+status: pending
 sources:
   - {{SOURCE_ID}}
 prerequisites: []
@@ -12,9 +13,13 @@ updated_at: {{TODAY}}
 
 ## Mode and Question
 
+## Task Class and Trust Basis
+
 ## Current Model
 
-## Prediction
+## Human Prediction and Model Gap
+
+Do not fabricate a human prediction. Record `skipped` when the user requests a direct answer.
 
 ## Proposed Model Delta
 
@@ -28,9 +33,9 @@ updated_at: {{TODAY}}
 
 ## Failure Behavior
 
-## Verification Evidence
+## Verification Harness
 
-## Surprises and Conflicts
+## Open Conflicts
 
 ## Human Decision
 
@@ -38,4 +43,4 @@ updated_at: {{TODAY}}
 - Accepted option or boundary:
 - Decision evidence:
 
-Do not implement or promote this artifact before explicit approval.
+Do not implement before the human decision is accepted.

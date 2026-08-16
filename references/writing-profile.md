@@ -15,7 +15,7 @@ Use this reference for user-visible responses and generated artifacts. The profi
 - Name the actor, object, evidence, and decision state when they matter.
 - Prefer concrete behavior to abstract claims such as “works correctly.”
 - Put prerequisite information before dependent detail.
-- Preserve uncertainty and the `[observed]`, `[inferred]`, `[agreed]`, and `[conflict]` labels.
+- Preserve uncertainty and distinguish evidence, interpretation, decisions, and open conflicts through stable sections and terms.
 - Do not simplify away a boundary, condition, failure, or conflict.
 
 ## Procedure profile

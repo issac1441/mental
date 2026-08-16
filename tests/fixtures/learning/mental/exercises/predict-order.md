@@ -1,7 +1,8 @@
 ---
 id: predict-order
 kind: exercise
-status: canonical
+authority: conceptual
+status: active
 sources:
   - source-event-loop
 prerequisites:

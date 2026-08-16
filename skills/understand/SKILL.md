@@ -1,38 +1,29 @@
 ---
 name: understand
-description: Explain a repository, document set, or supplied topic through an evidence-linked mental model. Use for orientation, architecture walkthroughs, concept explanations, runtime tracing, or any question that should adapt to the current session, a selected role, requested views, and desired detail without changing files.
+description: Explain a repository, document set, current session, or supplied topic immediately through the smallest evidence-linked mental model. Use as mental's first entry point for orientation, mechanisms, architecture, runtime tracing, decisions, or confusion; it works before any mental artifacts exist and remains strictly read-only.
 ---
 
 # Understand
 
-Explain through a mental model while remaining strictly read-only.
+Give useful understanding now. Do not require artifact setup first.
 
 ## Input contract
 
-Use natural language, optionally followed by:
+`<question-or-scope> [job=<orient|decide|predict|verify|repair>] [lens=<built-in-or-custom-id>]`
 
-`lens=<built-in-or-artifact-id> views=<anchor,map,mechanism,scenario,evidence> detail=<brief|standard|deep>`
-
-Views are a comma-separated multi-selection. Manual values override inference. Built-in lenses are `general`, `engineer`, `architect`, `pm`, `operator`, `student`, and `researcher`; a project may add `mental/lenses/*.md`.
+Infer Job and Lens from the request and session. Accept `views=<anchor,map,mechanism,scenario,evidence>` only as an advanced override; do not require it or advertise it as prerequisite knowledge.
 
 ## Workflow
 
-1. Resolve references relative to this `SKILL.md`. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md`.
-2. Read the current request and relevant current session history, including active plans, TODOs, earlier corrections, and demonstrated goals. Read host memory only if the host exposes it; treat it as a weak signal, never as authoritative user state.
-3. Locate the workspace root. Read `mental/index.md`, `mental/model/map.md`, relevant custom lens artifacts, the smallest relevant canonical artifacts, and their cited sources. Read `.mental/profile.md` and `.mental/mastery.json` only when they are relevant to the request.
-4. If no canonical model exists, answer only from supplied sources or the current repository. Label synthesis `[inferred]`, state that no canonical model exists, and suggest `$build`; do not create files.
-5. Select Lens, Views, and Detail using this precedence: manual override → explicit current goal → current session evidence → private profile or mastery → exposed host memory as a weak signal → scope default. Repository questions default to `engineer`; general learning questions default to `student`.
-6. Do not infer ability from grammar, speed, identity, confidence, or protected traits. Never persist an inferred Lens, View, Detail, or preference unless the user explicitly asks.
-7. Build only the requested semantic slices. Keep an `anchor` compact, a `map` to the relationships needed for prediction, a `mechanism` causal, a `scenario` concrete, and `evidence` traceable.
-8. Include a boundary, failure, or counterexample when it prevents overgeneralization. Link claims to exact source paths, sections, URLs, tests, or runtime evidence. Call out stale, inaccessible, or conflicting evidence.
+1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
+2. Read the current request and relevant session history, including plans, TODOs, corrections, answers, and decisions. Use exposed host memory only as a weak signal.
+3. Inspect the smallest relevant supplied source or current repository evidence. When present, also read current mechanical artifacts, active conceptual artifacts, open conflicts, and relevant private profile or mastery state.
+4. If no mental workspace exists, answer directly from supplied evidence. Do not stop to request `$build` and do not create files.
+5. Select Job and Lens with the methodology precedence. Choose internal Views and response density automatically. Disclose them only when user-selected, non-default, uncertain, or actionable.
+6. Lead with the changed prediction or answer. Build only the anchor, relationships, mechanism, scenario, evidence, or boundary needed by the Job.
+7. Separate evidence from interpretation in plain language. Link exact source paths, sections, URLs, tests, or runtime observations. Surface open conflicts instead of reconciling them silently.
+8. When the same model will likely matter again, offer `$build` as an optional way to persist the useful parts. Do not turn persistence into a prerequisite or write without consent.
 
 ## Response contract
 
-Return, in the user's language:
-
-- `Context`: Lens, selected Views, Detail, and one concise sentence explaining the selection basis and uncertainty;
-- the selected View sections only;
-- `Boundary or failure` when material;
-- `Evidence and gaps`.
-
-Expand when requested or when a prediction reveals a missing relationship. Never edit shared artifacts, private state, source files, or Git state.
+Return the answer in the user's language, followed by evidence and gaps when material. Include one boundary, failure, or counterexample when it prevents overgeneralization. Never edit shared artifacts, private state, source files, or Git state.

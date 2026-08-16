@@ -1,7 +1,8 @@
 ---
 id: router-architecture
 kind: architecture
-status: canonical
+authority: mechanical
+status: current
 sources:
   - source-repo
 prerequisites:
@@ -11,4 +12,4 @@ updated_at: 2026-08-15
 
 # Architecture
 
-[observed] The fixture has one routing function and no external dependencies.
+The fixture has one routing function and no external dependencies.

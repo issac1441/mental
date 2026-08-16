@@ -1,7 +1,8 @@
 ---
 id: glossary
 kind: glossary
-status: canonical
+authority: conceptual
+status: active
 sources:
   - source-repo
 prerequisites: []

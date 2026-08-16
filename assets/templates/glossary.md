@@ -1,6 +1,7 @@
 ---
 id: glossary
 kind: glossary
+authority: conceptual
 status: draft
 sources:
   - {{SOURCE_ID}}

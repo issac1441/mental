@@ -1,33 +1,32 @@
 ---
 name: doctor
-description: Audit a mental workspace for artifact structure, frontmatter, custom lenses, evidence coverage, broken links, stale or conflicting claims, orphan concepts, and private-state leakage. Use when mental-model artifacts seem incomplete, invalid, inconsistent, or unsafe to commit. Diagnose read-only by default and repair only when explicitly requested.
+description: Advanced diagnostic skill that audits a mental workspace's structure, authority/state rules, evidence coverage, decision ledger, open conflicts, links, drift, and private-state isolation. Use when durable mental artifacts appear invalid, stale, inconsistent, or unsafe to commit; diagnose read-only by default and repair only when explicitly requested.
 ---
 
 # Doctor
 
-Separate deterministic format failures from semantic model-quality risks.
+Separate deterministic schema failures from semantic model risks.
 
 ## Input contract
 
 `[scope] [repair=<true|false>]`
 
-Scope defaults to the current mental workspace. `repair` defaults to `false`; natural language such as “repair the mechanical issues” is equivalent to `repair=true` but does not authorize semantic changes.
+Scope defaults to the current mental workspace. Repair defaults to false and never authorizes semantic changes.
 
 ## Workflow
 
-1. Read `../../references/artifact-contract.md`, `../../references/methodology.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
-2. Run `python3 ../../scripts/validate_workspace.py <workspace> --json` using an absolute script path resolved from this skill directory.
-3. Independently inspect issues a structural script cannot decide:
-   - important claims without `[observed]`, `[inferred]`, `[agreed]`, or `[conflict]` provenance;
-   - canonical inferences that were never confirmed;
-   - source revisions newer than artifacts;
-   - relationship maps without representative scenarios;
-   - concepts that cannot improve a prediction;
-   - custom lenses whose assumptions or priorities are identity claims rather than role needs;
-   - unresolved conflicts that disappeared from later artifacts;
-   - personal answers or mastery data outside `.mental/`;
-   - tracked private files and any Git privacy check the validator could not complete.
-4. Report findings by `error`, `warning`, and `advisory`. Include file paths and the smallest safe repair.
-5. Do not edit by default. If the user requests repair, fix mechanical structure only; ask before changing meaning, provenance, status, source boundaries, or lens semantics. Re-run validation after repairs.
+1. Read `../../references/artifact-contract.md`, `../../references/methodology.md`, `../../references/output-style.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
+2. Run `python3 ../../scripts/validate_workspace.py <workspace> --json` using absolute paths.
+3. Independently inspect what the structural validator cannot decide:
+   - mechanical artifacts that are not reproducible from registered evidence;
+   - active conceptual artifacts without a real verification basis;
+   - decisions missing rejected alternatives, owner, timing, or history;
+   - material mismatches that lack first-class open conflict artifacts;
+   - resolved conflicts without evidence or a decision;
+   - missing Model × Harness × Task Class coverage behind autonomy claims;
+   - artifacts that do not improve a prediction, decision, repair, or navigation task;
+   - personal answers or mastery outside `.mental/` and Git privacy checks the validator could not complete.
+4. Report `error`, `warning`, and `advisory` findings with the smallest safe repair. Include counts of open conflicts and post-approval consequential decisions when available.
+5. Do not edit by default. With explicit repair, fix mechanical structure only; ask before changing meaning, authority, status, evidence, decision history, conflict resolution, or source boundary.
 
-Never declare the model semantically correct merely because the validator exits successfully.
+Never declare a model correct merely because validation succeeds.

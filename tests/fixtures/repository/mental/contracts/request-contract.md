@@ -1,7 +1,8 @@
 ---
 id: request-contract
 kind: contract
-status: canonical
+authority: mechanical
+status: current
 sources:
   - source-repo
 prerequisites:
@@ -11,6 +12,6 @@ updated_at: 2026-08-15
 
 # Request contract
 
-[agreed] Routing always returns a two-item `(status, body)` pair.
+Routing always returns a two-item `(status, body)` pair.
 
-[observed] Unknown paths return `(404, "not found")`.
+Unknown paths return `(404, "not found")`.

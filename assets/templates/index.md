@@ -1,6 +1,7 @@
 ---
 id: mental-index
 kind: index
+authority: conceptual
 status: draft
 sources: []
 prerequisites: []
@@ -11,11 +12,11 @@ language: {{LANGUAGE}}
 
 # Mental model
 
-> This model is a draft until a human confirms its boundaries, relationships, scenarios, and known gaps.
+> This index starts as a draft. Activate it only after its working-model boundary and verification basis are recorded.
 
 ## Anchor
 
-[inferred] Add a one-sentence purpose and anchor after inspecting the supplied sources.
+Add a one-sentence purpose and anchor after inspecting the supplied sources.
 
 ## Start here
 
@@ -23,8 +24,8 @@ language: {{LANGUAGE}}
 - [Sources](sources.md)
 - [Glossary](glossary.md)
 
-## Canonical status
+## Working-model status
 
-- Decision: pending
-- Confirmed by: —
+- Verification basis: pending
 - Known gaps: source inspection has not been completed
+- Open conflicts: none recorded

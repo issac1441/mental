@@ -1,6 +1,7 @@
 ---
 id: {{ID}}
 kind: lens
+authority: conceptual
 status: draft
 sources:
   - {{SOURCE_ID}}
@@ -9,21 +10,17 @@ updated_at: {{TODAY}}
 assumes: []
 prioritizes: []
 vocabulary: []
-default_views:
-  - anchor
-  - map
-  - scenario
 ---
 
 # {{TITLE}}
 
 ## Role
 
-[inferred] Describe the role whose knowledge and concerns should shape the explanation.
+Describe the role whose knowledge and concerns should shape the explanation.
 
 ## Use when
 
-[inferred] State the task signals that make this lens useful.
+State the task signals that make this lens useful. Job remains a separate per-task control.
 
 ## Boundaries
 
