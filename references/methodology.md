@@ -57,6 +57,8 @@ Detail controls density inside the selected Views:
 
 Detail does not imply expertise. A `student` lens may request `deep`; an `architect` lens may request `brief`.
 
+When no stronger signal selects a value, Detail defaults to `standard`.
+
 ### Selection precedence
 
 Choose context in this order:

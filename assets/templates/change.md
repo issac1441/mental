@@ -34,4 +34,8 @@ updated_at: {{TODAY}}
 
 ## Human Decision
 
-Pending. Do not implement or promote this artifact before explicit approval.
+- State: pending
+- Accepted option or boundary:
+- Decision evidence:
+
+Do not implement or promote this artifact before explicit approval.

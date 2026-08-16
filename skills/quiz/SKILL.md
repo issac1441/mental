@@ -24,13 +24,13 @@ Examples:
 
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, and `../../references/writing-profile.md` relative to this skill.
+1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
 2. Resolve omitted scope in this order: current change → current session → ask the user. Use only canonical artifacts and supplied or registered sources unless the user explicitly allows clearly labeled draft material.
 3. Select Lens, Views, and Detail with the methodology precedence so wording and emphasis fit the current goal. Do not use this selection to label ability or persist a profile.
 4. Build a coverage map before writing questions. Include the anchor, important relationships or mechanisms, at least one prediction, one transfer, one failure or counterexample, and consequential decisions or evidence gaps when relevant.
 5. Generate the complete exam first. Number every item, state the requested format and scope, and do not include answers, hints, or answer-revealing commentary.
 6. With `feedback=end`, wait for the full submission, then grade all answers. With `feedback=after-each`, still define the complete exam first, but present and evaluate one numbered item at a time without changing the remaining coverage merely to chase one mistake; suggest `$practice` if adaptive repair is needed.
 7. Report an objective score such as `9/12`, answer-specific evidence, demonstrated relationships, unresolved relationships, and recommended follow-up. Do not convert the score into a mastery percentage, IQ-like label, or global ability claim.
-8. Store personal answers and results only under `.mental/sessions/` and only when persistence is requested or already in scope. If the user asks to preserve reusable questions, write a `status: draft`, `kind: exercise` artifact under `mental/exercises/`; never publish the learner's answers there.
+8. Store personal answers and results only under `.mental/sessions/` and only when the user requested persistence in this invocation or explicitly enabled it for the active assessment session. If the user asks to preserve reusable questions, write a `status: draft`, `kind: exercise` artifact under `mental/exercises/`; never publish the learner's answers there.
 
 Use `$practice` when the user wants answer-by-answer adaptive coaching. Use `$learn` when the assessment exposes a prerequisite gap that needs teaching.

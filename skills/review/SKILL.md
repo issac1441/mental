@@ -7,11 +7,17 @@ description: Explain and audit a repository diff, branch, commit, or implementat
 
 Give the operator a mental model of what actually changed, then audit whether it is correct. Remain read-only.
 
+## Input contract
+
+`[target] [lens=<id>] [views=<anchor,map,mechanism,scenario,evidence>] [detail=<brief|standard|deep>]`
+
+Target may be the current working diff, staged diff, commit, branch, ref, or completed implementation named in natural language. It defaults to the current diff. Context controls use the methodology precedence.
+
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/repository-workflow.md`, and `../../references/writing-profile.md` relative to this skill.
+1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/repository-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
 2. Resolve the review target without mutating it. Read the relevant canonical artifacts, approved change brief, diff, tests, and runtime evidence.
-3. Reconstruct the `Actual Change Mental Model` first:
+3. Select Lens, Views, and Detail with the methodology precedence. State the selection basis without persisting inferred preferences. Reconstruct the `Actual Change Mental Model` first:
    - `Before → After`;
    - actual model delta;
    - runtime consequences;

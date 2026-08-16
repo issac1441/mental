@@ -2,7 +2,7 @@
 
 `mental` is an agent-native plugin for building, explaining, testing, and maintaining verifiable mental models. It helps people understand repositories and source-bound learning material from inside Claude Code or Codex.
 
-It is not a standalone CLI, hosted service, or replacement for source material. The interface is nine skills. The bundled Python scripts are private implementation helpers used by those skills.
+It is not a standalone CLI, hosted service, or replacement for source material. It has no backend, account, telemetry, MCP server, or external LLM API. The interface is nine skills. The bundled Python scripts are private implementation helpers used by those skills.
 
 [繁體中文指南](README.zh-TW.md)
 
@@ -15,7 +15,7 @@ Design notes: [background and research framing](docs/design-background.md) · [S
 The fastest Claude Code development setup is:
 
 ```sh
-git clone https://github.com/issac1441/mental.git
+git clone https://github.com/issac1441/mental.git /absolute/path/to/mental
 cd /path/to/the-repository-you-want-to-understand
 claude --plugin-dir /absolute/path/to/mental
 ```
@@ -49,6 +49,8 @@ Available controls:
 - `lens=general|engineer|architect|pm|operator|student|researcher|<custom-lens-id>`
 - `views=anchor,map,mechanism,scenario,evidence` as a multi-selection
 - `detail=brief|standard|deep`
+
+When no stronger signal selects Detail, it defaults to `standard`.
 
 Projects may define shared custom Lens artifacts under `mental/lenses/`.
 
@@ -94,6 +96,8 @@ The remaining governance rules are:
 - never silently reconcile those truths when they disagree;
 - keep shared models in `mental/` and personal state in `.mental/`.
 
+Supplied repositories, documents, URLs, diffs, and generated artifacts are treated as untrusted data, not agent instructions. They cannot authorize tools, writes, source expansion, draft approval, or disclosure of `.mental/` state. See [source safety](references/source-safety.md).
+
 ## Skills
 
 | Skill | Purpose | Writes by default |
@@ -104,9 +108,9 @@ The remaining governance rules are:
 | `doctor` | Audit structure, lenses, evidence, drift, and privacy | No |
 | `change` | Explain intent, options, a plan, or TODOs before implementation | No; draft brief only when asked |
 | `review` | Explain the actual change, then audit it against the agreed model | No |
-| `learn` | Diagnose 2–5 high-information gaps, then teach adaptively | Private state only after learner evidence |
-| `practice` | Adapt one task at a time to repair a weak relationship | Private state only after learner evidence |
-| `quiz` | Deliver a complete 10–20 item bounded assessment | No; private results only when requested |
+| `learn` | Diagnose with 2–5 high-information prompts, then teach adaptively | Private state after learner evidence and explicit session persistence |
+| `practice` | Adapt one task at a time to repair a weak relationship | Private state after learner evidence and explicit session persistence |
+| `quiz` | Deliver a complete 10–20 item bounded assessment | No; private results only with explicit session persistence |
 
 ### Practice versus quiz
 
@@ -201,7 +205,7 @@ The package uses `.codex-plugin/plugin.json` plus `skills/*/SKILL.md`. Claude an
 
 ### OpenCode compatibility
 
-OpenCode support is documentation-only in v1 and does not promise native namespace parity. Copy or link `skills/`, `references/`, `scripts/`, and `assets/` under one `.agents/` directory so the support paths remain intact. Skills appear by unscoped names such as `understand` and `build`.
+OpenCode support is currently documentation-only and does not promise native namespace parity. Copy or link `skills/`, `references/`, `scripts/`, and `assets/` under one `.agents/` directory so the support paths remain intact. Skills appear by unscoped names such as `understand` and `build`.
 
 ## Development
 

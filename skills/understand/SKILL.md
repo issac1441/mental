@@ -17,7 +17,7 @@ Views are a comma-separated multi-selection. Manual values override inference. B
 
 ## Workflow
 
-1. Resolve references relative to this `SKILL.md`. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, and `../../references/writing-profile.md`.
+1. Resolve references relative to this `SKILL.md`. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md`.
 2. Read the current request and relevant current session history, including active plans, TODOs, earlier corrections, and demonstrated goals. Read host memory only if the host exposes it; treat it as a weak signal, never as authoritative user state.
 3. Locate the workspace root. Read `mental/index.md`, `mental/model/map.md`, relevant custom lens artifacts, the smallest relevant canonical artifacts, and their cited sources. Read `.mental/profile.md` and `.mental/mastery.json` only when they are relevant to the request.
 4. If no canonical model exists, answer only from supplied sources or the current repository. Label synthesis `[inferred]`, state that no canonical model exists, and suggest `$build`; do not create files.

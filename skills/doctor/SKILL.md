@@ -7,9 +7,15 @@ description: Audit a mental workspace for artifact structure, frontmatter, custo
 
 Separate deterministic format failures from semantic model-quality risks.
 
+## Input contract
+
+`[scope] [repair=<true|false>]`
+
+Scope defaults to the current mental workspace. `repair` defaults to `false`; natural language such as “repair the mechanical issues” is equivalent to `repair=true` but does not authorize semantic changes.
+
 ## Workflow
 
-1. Read `../../references/artifact-contract.md`, `../../references/methodology.md`, and `../../references/writing-profile.md` relative to this skill.
+1. Read `../../references/artifact-contract.md`, `../../references/methodology.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
 2. Run `python3 ../../scripts/validate_workspace.py <workspace> --json` using an absolute script path resolved from this skill directory.
 3. Independently inspect issues a structural script cannot decide:
    - important claims without `[observed]`, `[inferred]`, `[agreed]`, or `[conflict]` provenance;
@@ -19,7 +25,8 @@ Separate deterministic format failures from semantic model-quality risks.
    - concepts that cannot improve a prediction;
    - custom lenses whose assumptions or priorities are identity claims rather than role needs;
    - unresolved conflicts that disappeared from later artifacts;
-   - personal answers or mastery data outside `.mental/`.
+   - personal answers or mastery data outside `.mental/`;
+   - tracked private files and any Git privacy check the validator could not complete.
 4. Report findings by `error`, `warning`, and `advisory`. Include file paths and the smallest safe repair.
 5. Do not edit by default. If the user requests repair, fix mechanical structure only; ask before changing meaning, provenance, status, source boundaries, or lens semantics. Re-run validation after repairs.
 

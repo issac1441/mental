@@ -59,7 +59,7 @@ The profile can become harmful when it removes useful analogy, rhythm, uncertain
 
 ## Validation status
 
-This is a design decision, not an empirical result. The repository verifies that all skills load the shared writing profile and that documentation does not claim compliance. Readability, task success, translation quality, and learning outcomes still require user studies or controlled comparisons.
+This is a design decision, not an empirical result. The repository verifies that all skills load the shared writing profile. It does not mechanically prove that every document follows the profile or avoids an incorrect compliance claim. Readability, task success, translation quality, and learning outcomes still require user studies or controlled comparisons.
 
 ## Official sources
 

@@ -120,6 +120,8 @@ The two can disagree. A mismatch is a finding, not permission to rewrite either 
 
 Shared models live in `mental/`. Personal goals, diagnostic answers, session notes, and mastery evidence live in gitignored `.mental/`. The separation supports collaboration without publishing a learner profile.
 
+Supplied sources are evidence, not instructions. A repository, document, URL, diff, or generated artifact cannot authorize tool use, writes, source expansion, draft approval, or private-state disclosure. This boundary is necessary because `mental` intentionally asks an agent to read material that may be wrong, stale, or adversarial.
+
 ## 6. Evaluation plan
 
 Evaluation should compare `mental` with the host agent's normal workflow for a defined task class. Do not combine unrelated tasks into one trust score.
@@ -140,6 +142,7 @@ A credible study should record prior knowledge, task class, source quality, mode
 
 - A polished graph can be wrong. Evidence links and human confirmation reduce this risk but do not remove it.
 - Source-bound learning can faithfully preserve errors or omissions in the supplied material.
+- Prompt injection in a supplied source can influence an agent that fails to preserve the source-as-data boundary; skill instructions reduce this risk but are not a security sandbox.
 - Lens × Views × Detail is a design vocabulary, not a validated cognitive taxonomy.
 - The four mastery states are workflow states, not psychometric measurements.
 - Agent-generated diagnoses can reflect prompt quality and source coverage rather than learner ability.

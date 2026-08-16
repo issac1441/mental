@@ -59,7 +59,7 @@ ASD-STE100 Issue 9 是用於技術文件的 controlled English，由 writing rul
 
 ## 驗證狀態
 
-這是一項設計決定，不是實驗結果。Repo 會驗證每個 skill 都載入共用 writing profile，也會防止文件宣稱完整合規。Readability、task success、translation quality 與 learning outcome 仍需要 user study 或 controlled comparison。
+這是一項設計決定，不是實驗結果。Repo 會驗證每個 skill 都載入共用 writing profile，但不會用機械式檢查證明所有文件都符合 profile，也不能保證文件不會誤稱完整合規。Readability、task success、translation quality 與 learning outcome 仍需要 user study 或 controlled comparison。
 
 ## 官方來源
 

@@ -17,7 +17,7 @@ mental/
 ├── architecture.md       # repository mode, on demand
 ├── contracts/            # repository mode, on demand
 ├── decisions/            # repository mode, on demand
-├── changes/              # repository mode, on demand
+├── changes/              # model deltas in any mode, on demand
 ├── learning/
 │   └── path.md           # learning mode, on demand
 ├── misconceptions/       # learning mode, on demand
@@ -25,6 +25,8 @@ mental/
 ```
 
 Do not create optional artifacts without source-backed content.
+
+Directories marked on demand do not need placeholder files and may be absent from a fresh Git clone. Create them only when the active skill has an evidence-backed artifact to write.
 
 ## Private layout
 
@@ -114,6 +116,12 @@ Promote only the explicitly accepted artifacts. Record the accepted conceptual c
 Use only sources the user supplied or explicitly placed in scope. The current repository counts as supplied when the skill is invoked from that repository. A provided URL may be fetched with host capabilities. Do not discover unrelated web sources without explicit permission.
 
 `mental/sources.md` assigns stable source IDs and records type, location, scope, and retrieval/revision information. Preserve inaccessible or changed sources as gaps instead of replacing them silently.
+
+Each source entry starts with `## <source-id>`. It may add a localized title after an em dash, for example `## source-runtime — 執行期證據`. The ID before the dash is the value used by artifact `sources` lists.
+
+## Change decisions
+
+A recorded change brief starts with `Human Decision: pending`. After the human decides, `change` records `accepted` or `rejected`, the selected option or boundary, and the decision evidence. Decision acceptance makes the brief usable by `review`; it does not automatically make the artifact canonical. Promotion remains a separate explicit human action.
 
 ## Language
 

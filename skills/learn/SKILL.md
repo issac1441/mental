@@ -15,7 +15,7 @@ Use a natural-language learning goal, optionally followed by:
 
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, and `../../references/writing-profile.md` relative to this skill.
+1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
 2. Read the current session, `mental/index.md`, the concept map, relevant canonical artifacts, relevant custom lenses, and `.mental/profile.md` or `.mental/mastery.json` when present. Treat host memory as a weak signal only when exposed.
 3. If no canonical learning model exists, do not invent a curriculum from general knowledge. Ask the user to provide sources and invoke `$build`, or obtain explicit permission to teach from clearly labeled draft artifacts.
 4. Establish one observable goal: what the learner should predict, explain, build, compare, or debug.
@@ -23,7 +23,7 @@ Use a natural-language learning goal, optionally followed by:
 6. Ask one compact batch of 2–5 high-information diagnostic prompts, then stop for answers.
 7. After the learner responds, identify the smallest broken or missing relationship. Teach one chunk using only the selected Views and Detail. Prefer Anchor → Map → Mechanism → Scenario → Boundary when all are needed.
 8. End with a prediction or teach-back prompt. Do not reveal its answer until the learner attempts it or asks.
-9. Update `.mental/profile.md`, `.mental/mastery.json`, and a private session note only after response evidence exists and only when writing personal progress is in scope. Use `unknown`, `exposed`, `working`, and `verified` with the learning reference's transition rules.
+9. Update `.mental/profile.md`, `.mental/mastery.json`, and a private session note only after response evidence exists and only when the user requested persistence in the current invocation or explicitly enabled it for the active learning session. Use `unknown`, `exposed`, `working`, and `verified` with the learning reference's transition rules.
 10. Recommend the next concept based on prerequisites and observed gaps, not a fixed chapter order. Recommend `$practice` for adaptive coaching or `$quiz` for a bounded exam.
 
 Shared models and reusable exercises belong in `mental/`; personal answers, diagnostics, goals, and progress belong in `.mental/`.

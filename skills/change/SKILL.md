@@ -21,7 +21,7 @@ Examples:
 
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/repository-workflow.md`, and `../../references/writing-profile.md` relative to this skill.
+1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/repository-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
 2. Treat the current request, current session, active Plan Mode result, TODO list, canonical model, and supplied evidence as valid inputs. If no model exists, create no code; label the analysis inferred and recommend `$build` when a durable model would help.
 3. Select Lens, Views, and Detail with the methodology precedence. Manual values win. State the selection basis without persisting inferred preferences.
 4. Auto-detect one mode:
@@ -33,6 +33,6 @@ Examples:
 7. Make consequential choices explicit in the Decision Manifest. Include effects on boundaries, ownership, contracts, invariants, data, user behavior, operations, failure semantics, cost, and verification when material.
 8. Remain read-only by default. Write `mental/changes/<stable-change-id>.md` from `../../assets/templates/change.md` only when the user explicitly asks to record it, including `record=true` or natural wording such as “save this brief.” A recorded brief remains `status: draft`.
 9. End with `Human Decision: pending`, state the exact choices that need a decision, and stop. Do not implement code while the decision is pending.
-10. After explicit approval, hand the accepted delta to the host's Plan Mode. If a later plan option is unclear, run this skill again before revising the plan. After implementation, use `$review`, optionally `$quiz`, then `$sync`.
+10. After explicit approval, treat the accepted option and boundaries as the approved change brief for this session. If a recorded brief exists, update its `Human Decision` section to `accepted` or `rejected`; keep it draft unless the user also approves the artifact as canonical. Then hand only the accepted delta to the host's Plan Mode. If a later plan option is unclear, run this skill again before revising the plan. After implementation, use `$review`, optionally `$quiz`, then `$sync`.
 
 Keep the analysis smaller than the prospective diff. Local code details belong only where they are evidence for a model decision.

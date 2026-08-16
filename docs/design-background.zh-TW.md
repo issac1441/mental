@@ -22,7 +22,7 @@
 
 因此，核心設計問題是：
 
-> Agent 要如何協助人類建立小而可追溯、能支持預測與修正的模型，同時不取代人類判斷？
+> Agent 要如何協助人類建立小而可追溯、能支援預測與修正的模型，同時不取代人類判斷？
 
 ## 2. 設計假說
 
@@ -30,7 +30,7 @@
 
 ### H1 — 關係比清單更重要
 
-由邊界、prerequisite、因果、契約與失敗路徑構成的小型關係圖，應該比完整檔案或事實清單更能支持有用預測。
+由邊界、prerequisite、因果、契約與失敗路徑構成的小型關係圖，應該比完整檔案或事實清單更能支援有用預測。
 
 ### H2 — 適當視角能減少不必要資訊
 
@@ -54,7 +54,7 @@ Agent 可以整理證據並建立 draft；它不能自行決定推論出的邊�
 
 ### Mental model
 
-Johnson-Laird 的早期論述把 mental model 視為認知與推理所使用的表徵。`mental` 借用「有用表徵應該支持推論」這個實務觀點。Repo 中的 Markdown graph 是外部協作 artifact，不代表它等同於人腦內部表徵。
+Johnson-Laird 的早期論述把 mental model 視為認知與推理所使用的表徵。`mental` 借用「有用表徵應該支援推論」這個實務觀點。Repo 中的 Markdown graph 是外部協作 artifact，不代表它等同於人腦內部表徵。
 
 ### 認知負荷與 schema acquisition
 
@@ -62,7 +62,7 @@ Sweller 於 1988 年提出的實驗與模型指出，傳統 means-ends problem s
 
 ### Self-explanation
 
-Chi 等人的研究發現，較成功的學習者在閱讀 worked examples 時產生較多 self-explanation，並把解題步驟連回原理。這支持 teach-back、prediction 與「先修正第一個斷裂關係」的設計，但不代表每次口頭解釋都足以證明 mastery。
+Chi 等人的研究發現，較成功的學習者在閱讀 worked examples 時產生較多 self-explanation，並把解題步驟連回原理。這支援 teach-back、prediction 與「先修正第一個斷裂關係」的設計，但不代表每次口頭解釋都足以證明 mastery。
 
 ### Retrieval 與 transfer
 
@@ -118,7 +118,9 @@ Repo 變更流程是：
 
 兩者可能衝突。衝突是一項發現，不是靜默改寫任何一方的授權。因此 artifacts 使用 `[observed]`、`[inferred]`、`[agreed]` 與 `[conflict]`。
 
-共享模型放在 `mental/`。個人目標、診斷答案、session note 與 mastery evidence 放在 gitignored `.mental/`。這個分離讓團隊能共享模型，又不會公開學習者 profile。
+團隊共用模型放在 `mental/`。個人目標、診斷答案、session note 與 mastery evidence 放在 gitignored `.mental/`。這個分離讓團隊能共用模型，又不會公開學習者 profile。
+
+指定來源是證據，不是指令。Repo、文件、網址、diff 或生成 artifact 都不能授權工具操作、寫入、擴張來源範圍、接受 draft 或揭露個人狀態。`mental` 會要求 agent 閱讀可能錯誤、過期或帶有攻擊性的材料，因此必須保留這條邊界。
 
 ## 6. 評估計畫
 
@@ -140,6 +142,7 @@ Repo 變更流程是：
 
 - 漂亮的 graph 仍可能是錯的。Evidence link 與 human confirmation 只能降低風險。
 - Source-bound learning 也可能忠實保留原始材料的錯誤或缺漏。
+- 如果 agent 沒有守住「來源只是資料」的邊界，指定來源中的 prompt injection 可能影響行為；skill 指令只能降低風險，不是 security sandbox。
 - Lens × Views × Detail 是設計語彙，不是已驗證的認知分類法。
 - 四種 mastery state 是 workflow state，不是心理計量結果。
 - Agent 診斷可能反映 prompt 品質或 source coverage，而不是學習者能力。

@@ -1,15 +1,15 @@
-#!/usr/bin/env python3
 """Internal, dependency-free validator used by mental:doctor and mental:sync."""
 
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote
-
 
 REQUIRED_FIELDS = {"id", "kind", "status", "sources", "prerequisites", "updated_at"}
 ALLOWED_KINDS = {
@@ -33,6 +33,24 @@ ALLOWED_MASTERY_STATES = {"unknown", "exposed", "working", "verified"}
 ALLOWED_VIEWS = {"anchor", "map", "mechanism", "scenario", "evidence"}
 ID_RE = re.compile(r"^[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 LINK_RE = re.compile(r"\[[^]]*]\(([^)]+)\)")
+SOURCE_HEADING_RE = re.compile(
+    r"^##\s+([a-z0-9]+(?:[.-][a-z0-9]+)*)(?:\s+(?:—|-)\s+\S.*)?$",
+    re.MULTILINE,
+)
+PROVENANCE_RE = re.compile(r"\[(?:observed|inferred|agreed|conflict)]")
+ID_TOKEN_RE = re.compile(r"[a-z0-9]+(?:[.-][a-z0-9]+)*")
+SEMANTIC_KINDS = {
+    "lens",
+    "map",
+    "concept",
+    "scenario",
+    "architecture",
+    "contract",
+    "decision",
+    "change",
+    "learning-path",
+    "misconception",
+}
 
 
 @dataclass
@@ -90,6 +108,9 @@ def parse_frontmatter(path: Path) -> tuple[Artifact | None, list[str]]:
             continue
         key, raw = match.groups()
         current_list = None
+        if key in fields:
+            errors.append(f"{path}:{line_number}: duplicate frontmatter field '{key}'")
+            continue
         inline = parse_inline_list(raw)
         if inline is not None:
             fields[key] = inline
@@ -107,23 +128,136 @@ def list_field(artifact: Artifact, key: str) -> list[str]:
     return value if isinstance(value, list) else []
 
 
+def is_iso_date(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        return dt.date.fromisoformat(value).isoformat() == value
+    except ValueError:
+        return False
+
+
+def markdown_destination(raw: str) -> str:
+    raw = raw.strip()
+    if raw.startswith("<"):
+        closing = raw.find(">")
+        return raw[1:closing] if closing != -1 else raw
+    return raw.split(maxsplit=1)[0] if raw else ""
+
+
+def inspect_git_privacy(
+    workspace: Path, private_root: Path, errors: list[str], warnings: list[str]
+) -> None:
+    try:
+        inside = subprocess.run(
+            ["git", "-C", str(workspace), "rev-parse", "--is-inside-work-tree"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        warnings.append(
+            f"{workspace}: Git is unavailable; private-state tracking was not checked"
+        )
+        return
+    if inside.returncode != 0:
+        warnings.append(
+            f"{workspace}: not a Git worktree; private-state tracking was not checked"
+        )
+        return
+
+    tracked_result = subprocess.run(
+        ["git", "-C", str(workspace), "ls-files", "-z", "--", ".mental"],
+        check=False,
+        capture_output=True,
+    )
+    if tracked_result.returncode != 0:
+        warnings.append(f"{workspace}: Git could not inspect tracked private state")
+        return
+    tracked = [
+        item.decode("utf-8", errors="replace")
+        for item in tracked_result.stdout.split(b"\0")
+        if item
+    ]
+    leaked = sorted(path for path in tracked if path != ".mental/.gitignore")
+    if leaked:
+        errors.append(
+            f"{private_root}: private files are tracked by Git: {', '.join(leaked)}"
+        )
+
+    probes = {
+        ".mental/profile.md",
+        ".mental/mastery.json",
+        ".mental/sessions/privacy-probe.md",
+    }
+    if private_root.is_dir() and not private_root.is_symlink():
+        for path in private_root.rglob("*"):
+            if path.is_file() and path.name != ".gitignore" and not path.is_symlink():
+                probes.add(path.relative_to(workspace).as_posix())
+    for probe in sorted(probes):
+        ignored = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(workspace),
+                "check-ignore",
+                "--no-index",
+                "--quiet",
+                "--",
+                probe,
+            ],
+            check=False,
+            capture_output=True,
+        )
+        if ignored.returncode == 1:
+            errors.append(f"{private_root}: Git does not ignore '{probe}'")
+        elif ignored.returncode not in {0, 1}:
+            warnings.append(
+                f"{private_root}: Git could not verify ignore status for '{probe}'"
+            )
+
+
 def validate(workspace: Path) -> dict[str, object]:
     workspace = workspace.resolve()
     if workspace.name == "mental" and (workspace / "index.md").exists():
         mental_root = workspace
         private_root = workspace.parent / ".mental"
+        workspace_root = workspace.parent
     else:
         mental_root = workspace / "mental"
         private_root = workspace / ".mental"
+        workspace_root = workspace
 
     errors: list[str] = []
     warnings: list[str] = []
     artifacts: list[Artifact] = []
     if not mental_root.is_dir():
-        return {"ok": False, "files": 0, "errors": [f"{mental_root}: not found"], "warnings": []}
+        return {
+            "ok": False,
+            "files": 0,
+            "errors": [f"{mental_root}: not found"],
+            "warnings": [],
+        }
+    if mental_root.is_symlink():
+        return {
+            "ok": False,
+            "files": 0,
+            "errors": [f"{mental_root}: must not be a symlink"],
+            "warnings": [],
+        }
+
+    for path in sorted(mental_root.rglob("*")):
+        if path.is_symlink():
+            errors.append(f"{path}: artifact paths must not be symlinks")
 
     for path in sorted(mental_root.rglob("*.md")):
-        artifact, parse_errors = parse_frontmatter(path)
+        if path.is_symlink():
+            continue
+        try:
+            artifact, parse_errors = parse_frontmatter(path)
+        except (OSError, UnicodeError) as exc:
+            errors.append(f"{path}: cannot read artifact ({type(exc).__name__})")
+            continue
         errors.extend(parse_errors)
         if artifact:
             artifacts.append(artifact)
@@ -138,7 +272,9 @@ def validate(workspace: Path) -> dict[str, object]:
             if not ID_RE.match(artifact_id):
                 errors.append(f"{artifact.path}: invalid id '{artifact_id}'")
             elif artifact_id in ids:
-                errors.append(f"{artifact.path}: duplicate id '{artifact_id}' also in {ids[artifact_id]}")
+                errors.append(
+                    f"{artifact.path}: duplicate id '{artifact_id}' also in {ids[artifact_id]}"
+                )
             else:
                 ids[artifact_id] = artifact.path
         kind = artifact.fields.get("kind")
@@ -146,29 +282,70 @@ def validate(workspace: Path) -> dict[str, object]:
             errors.append(f"{artifact.path}: unsupported kind '{kind}'")
         relative_parts = artifact.path.relative_to(mental_root).parts
         if kind == "lens" and (not relative_parts or relative_parts[0] != "lenses"):
-            errors.append(f"{artifact.path}: kind 'lens' must live under mental/lenses/")
+            errors.append(
+                f"{artifact.path}: kind 'lens' must live under mental/lenses/"
+            )
         if relative_parts and relative_parts[0] == "lenses" and kind != "lens":
-            errors.append(f"{artifact.path}: artifacts under mental/lenses/ must use kind 'lens'")
+            errors.append(
+                f"{artifact.path}: artifacts under mental/lenses/ must use kind 'lens'"
+            )
         status = artifact.fields.get("status")
         if status not in ALLOWED_STATUSES:
             errors.append(f"{artifact.path}: unsupported status '{status}'")
+        if not is_iso_date(artifact.fields.get("updated_at")):
+            errors.append(
+                f"{artifact.path}: 'updated_at' must use ISO YYYY-MM-DD format"
+            )
+        if (
+            kind == "index"
+            and "mode" in artifact.fields
+            and artifact.fields.get("mode")
+            not in {
+                "repository",
+                "learning",
+                "hybrid",
+            }
+        ):
+            errors.append(
+                f"{artifact.path}: unsupported mode '{artifact.fields.get('mode')}'"
+            )
         for key in ("sources", "prerequisites"):
             if not isinstance(artifact.fields.get(key), list):
                 errors.append(f"{artifact.path}: '{key}' must be a YAML list")
         if kind == "lens":
             for key in ("assumes", "prioritizes", "vocabulary", "default_views"):
                 if not isinstance(artifact.fields.get(key), list):
-                    errors.append(f"{artifact.path}: lens field '{key}' must be a YAML list")
+                    errors.append(
+                        f"{artifact.path}: lens field '{key}' must be a YAML list"
+                    )
             default_views = artifact.fields.get("default_views", [])
             if isinstance(default_views, list):
                 for view in default_views:
                     if view not in ALLOWED_VIEWS:
-                        errors.append(f"{artifact.path}: unsupported default view '{view}'")
-        if status == "canonical" and kind not in {"index", "sources"} and not list_field(artifact, "sources"):
+                        errors.append(
+                            f"{artifact.path}: unsupported default view '{view}'"
+                        )
+        if (
+            status == "canonical"
+            and kind not in {"index", "sources"}
+            and not list_field(artifact, "sources")
+        ):
             errors.append(f"{artifact.path}: canonical artifact has no sources")
+        if (
+            status == "canonical"
+            and kind in SEMANTIC_KINDS
+            and not PROVENANCE_RE.search(artifact.body)
+        ):
+            warnings.append(
+                f"{artifact.path}: canonical semantic artifact has no claim-provenance labels"
+            )
 
-    source_catalog = next((a for a in artifacts if a.fields.get("kind") == "sources"), None)
-    source_ids = set(re.findall(r"^##\s+([a-z0-9]+(?:[.-][a-z0-9]+)*)\s*$", source_catalog.body, re.MULTILINE)) if source_catalog else set()
+    source_catalog = next(
+        (a for a in artifacts if a.fields.get("kind") == "sources"), None
+    )
+    source_ids = (
+        set(SOURCE_HEADING_RE.findall(source_catalog.body)) if source_catalog else set()
+    )
     if not source_catalog:
         errors.append(f"{mental_root}: missing a kind=sources artifact")
 
@@ -179,34 +356,86 @@ def validate(workspace: Path) -> dict[str, object]:
                 errors.append(f"{artifact.path}: unknown source id '{source_id}'")
         for prerequisite in list_field(artifact, "prerequisites"):
             if prerequisite not in all_ids:
-                errors.append(f"{artifact.path}: unknown prerequisite id '{prerequisite}'")
+                errors.append(
+                    f"{artifact.path}: unknown prerequisite id '{prerequisite}'"
+                )
         for target in LINK_RE.findall(artifact.body):
-            target = target.strip().split(maxsplit=1)[0].strip("<>\"")
+            target = markdown_destination(target)
             if not target or target.startswith(("#", "http://", "https://", "mailto:")):
                 continue
             target_path = unquote(target.split("#", 1)[0])
-            if target_path and not (artifact.path.parent / target_path).resolve().exists():
+            if not target_path:
+                continue
+            destination = Path(target_path)
+            if destination.is_absolute():
+                errors.append(
+                    f"{artifact.path}: local link must be relative and inside the workspace '{target}'"
+                )
+                continue
+            resolved = (artifact.path.parent / destination).resolve()
+            try:
+                resolved.relative_to(workspace_root)
+            except ValueError:
+                errors.append(
+                    f"{artifact.path}: local link escapes the workspace '{target}'"
+                )
+                continue
+            if not resolved.exists():
                 errors.append(f"{artifact.path}: broken local link '{target}'")
 
-    combined = "\n".join(a.body for a in artifacts)
+    token_paths: dict[str, set[Path]] = {}
+    prerequisite_ids: set[str] = set()
+    for artifact in artifacts:
+        prerequisite_ids.update(list_field(artifact, "prerequisites"))
+        for token in set(ID_TOKEN_RE.findall(artifact.body)):
+            token_paths.setdefault(token, set()).add(artifact.path)
     for artifact in artifacts:
         if artifact.fields.get("kind") != "concept":
             continue
         artifact_id = str(artifact.fields.get("id", ""))
-        other_content = combined.replace(artifact.body, "", 1)
-        if artifact_id and artifact_id not in other_content:
-            warnings.append(f"{artifact.path}: concept '{artifact_id}' is not referenced by another artifact")
+        other_paths = token_paths.get(artifact_id, set()) - {artifact.path}
+        if artifact_id and artifact_id not in prerequisite_ids and not other_paths:
+            warnings.append(
+                f"{artifact.path}: concept '{artifact_id}' is not referenced by another artifact"
+            )
 
     ignore_file = private_root / ".gitignore"
-    if not ignore_file.exists():
+    if private_root.is_symlink():
+        errors.append(f"{private_root}: private-state directory must not be a symlink")
+    elif not ignore_file.exists():
         errors.append(f"{ignore_file}: private-state ignore file is missing")
+    elif ignore_file.is_symlink():
+        errors.append(f"{ignore_file}: private-state ignore file must not be a symlink")
     else:
-        ignore_lines = {line.strip() for line in ignore_file.read_text(encoding="utf-8").splitlines() if line.strip()}
-        if "*" not in ignore_lines or "!.gitignore" not in ignore_lines:
-            errors.append(f"{ignore_file}: must ignore everything except .gitignore")
+        try:
+            ignore_lines = {
+                line.strip()
+                for line in ignore_file.read_text(encoding="utf-8").splitlines()
+                if line.strip() and not line.lstrip().startswith("#")
+            }
+        except (OSError, UnicodeError) as exc:
+            errors.append(
+                f"{ignore_file}: cannot read ignore file ({type(exc).__name__})"
+            )
+        else:
+            if ignore_lines != {"*", "!.gitignore"}:
+                errors.append(
+                    f"{ignore_file}: must ignore everything except .gitignore"
+                )
+
+    if private_root.is_dir() and not private_root.is_symlink():
+        for path in sorted(private_root.rglob("*")):
+            if path.is_symlink():
+                errors.append(f"{path}: private-state paths must not be symlinks")
+
+    inspect_git_privacy(workspace_root, private_root, errors, warnings)
 
     mastery_file = private_root / "mastery.json"
-    if mastery_file.exists():
+    if private_root.is_symlink():
+        pass
+    elif mastery_file.is_symlink():
+        errors.append(f"{mastery_file}: private mastery file must not be a symlink")
+    elif mastery_file.exists():
         try:
             mastery = json.loads(mastery_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
@@ -217,26 +446,49 @@ def validate(workspace: Path) -> dict[str, object]:
             else:
                 if mastery.get("version") != 1:
                     errors.append(f"{mastery_file}: version must be 1")
+                if not is_iso_date(mastery.get("updated_at")):
+                    errors.append(
+                        f"{mastery_file}: updated_at must use ISO YYYY-MM-DD format"
+                    )
                 concepts = mastery.get("concepts")
                 if not isinstance(concepts, dict):
                     errors.append(f"{mastery_file}: concepts must be an object")
                 else:
                     for concept_id, entry in concepts.items():
-                        if not isinstance(concept_id, str) or not ID_RE.match(concept_id):
-                            errors.append(f"{mastery_file}: invalid concept id '{concept_id}'")
+                        if not isinstance(concept_id, str) or not ID_RE.match(
+                            concept_id
+                        ):
+                            errors.append(
+                                f"{mastery_file}: invalid concept id '{concept_id}'"
+                            )
                             continue
                         if not isinstance(entry, dict):
-                            errors.append(f"{mastery_file}: mastery entry '{concept_id}' must be an object")
+                            errors.append(
+                                f"{mastery_file}: mastery entry '{concept_id}' must be an object"
+                            )
                             continue
                         if entry.get("state") not in ALLOWED_MASTERY_STATES:
-                            errors.append(f"{mastery_file}: invalid mastery state for '{concept_id}'")
+                            errors.append(
+                                f"{mastery_file}: invalid mastery state for '{concept_id}'"
+                            )
                         evidence = entry.get("evidence")
-                        if not isinstance(evidence, list) or not all(isinstance(item, str) for item in evidence):
-                            errors.append(f"{mastery_file}: evidence for '{concept_id}' must be a string array")
-                        if not isinstance(entry.get("updated_at"), str):
-                            errors.append(f"{mastery_file}: updated_at for '{concept_id}' must be a string")
+                        if not isinstance(evidence, list) or not all(
+                            isinstance(item, str) for item in evidence
+                        ):
+                            errors.append(
+                                f"{mastery_file}: evidence for '{concept_id}' must be a string array"
+                            )
+                        if not is_iso_date(entry.get("updated_at")):
+                            errors.append(
+                                f"{mastery_file}: updated_at for '{concept_id}' must use ISO YYYY-MM-DD format"
+                            )
 
-    return {"ok": not errors, "files": len(artifacts), "errors": errors, "warnings": warnings}
+    return {
+        "ok": not errors,
+        "files": len(artifacts),
+        "errors": errors,
+        "warnings": warnings,
+    }
 
 
 def main() -> int:
@@ -244,7 +496,20 @@ def main() -> int:
     parser.add_argument("workspace", nargs="?", default=".")
     parser.add_argument("--json", action="store_true", dest="as_json")
     args = parser.parse_args()
-    result = validate(Path(args.workspace))
+    # Keep --json machine-readable even when an unexpected validator defect occurs.
+    try:
+        result = validate(Path(args.workspace))
+    except Exception as exc:  # noqa: BLE001
+        result = {
+            "ok": False,
+            "files": 0,
+            "errors": [],
+            "warnings": [],
+            "validator_error": f"{type(exc).__name__}: {exc}",
+        }
+        exit_code = 2
+    else:
+        exit_code = 0 if result["ok"] else 1
     if args.as_json:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
@@ -253,8 +518,10 @@ def main() -> int:
             print(f"warning: {warning}")
         for error in result["errors"]:
             print(f"error: {error}")
+        if "validator_error" in result:
+            print(f"validator error: {result['validator_error']}")
         print("OK" if result["ok"] else "FAILED")
-    return 0 if result["ok"] else 1
+    return exit_code
 
 
 if __name__ == "__main__":
