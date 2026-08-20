@@ -45,6 +45,22 @@ class PluginContractTests(unittest.TestCase):
             self.assertNotIn("apps", manifest)
             self.assertNotIn("hooks", manifest)
 
+    def test_marketplace_manifest_offers_this_plugin(self) -> None:
+        marketplace = json.loads(
+            (ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8")
+        )
+        plugin = json.loads(
+            (ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(marketplace["name"], "mental")
+        self.assertIn("owner", marketplace)
+        entries = marketplace["plugins"]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["name"], plugin["name"])
+        self.assertEqual(entries[0]["source"], "./")
+        self.assertEqual(entries[0]["version"], plugin["version"])
+        self.assertEqual(entries[0]["license"], plugin["license"])
+
     def test_exact_skill_set_and_frontmatter(self) -> None:
         actual = {path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md")}
         self.assertEqual(actual, SKILL_NAMES)
