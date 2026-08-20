@@ -1,0 +1,34 @@
+{
+  "id": 1,
+  "name": "orderflow-trace",
+  "target": "orderflow",
+  "question": "一筆訂單從進來到出貨，這個 codebase 是怎麼處理的？幫我理解整個流程。",
+  "question_type": "mechanism-trace",
+  "probes": [
+    {
+      "id": 1,
+      "question": "處理一筆訂單時，「驗證輸入、保留庫存、計算價格、出貨」這四件事的實際執行順序是什麼？",
+      "ground_truth": "ingest/parse (validate) -> inventory reserve -> pricing -> dispatch. Pricing runs AFTER reservation. Source: orderflow/pipeline.py Pipeline.process."
+    },
+    {
+      "id": 2,
+      "question": "為什麼計價要排在庫存保留之後，而不是先算好價格再保留庫存？",
+      "ground_truth": "Because the reservation captures the unit-price snapshot the order is billed at (ReservedLine.unit_price_cents). Pricing reads the reservation, not the raw order; a rebuilt (expired) reservation re-captures current prices, so pricing must follow reservation. Source: orderflow/inventory.py, orderflow/pricing.py module docstring, pipeline.py comment."
+    },
+    {
+      "id": 3,
+      "question": "某訂單商品小計是 9,000 元，套用了 30% 折扣後變 6,300 元。免運門檻是 8,000 元。這筆訂單要付運費嗎？為什麼？",
+      "ground_truth": "No shipping fee (free shipping). Eligibility checks the PRE-discount goods subtotal (9000 >= 8000 threshold); the discount does not change shipping eligibility. Source: orderflow/pricing.py price() — `if subtotal >= config.FREE_SHIPPING_THRESHOLD_CENTS` uses pre-discount subtotal; tests/test_pipeline.py test_free_shipping_uses_pre_discount_subtotal."
+    },
+    {
+      "id": 4,
+      "question": "稅是以哪個金額為基準計算的？運費要課稅嗎？",
+      "ground_truth": "Tax = TAX_RATE on the DISCOUNTED goods subtotal. Shipping is never taxed (added after tax). Source: orderflow/pricing.py."
+    },
+    {
+      "id": 5,
+      "question": "訂單成功出貨後，呼叫端會拿到什麼？裡面有哪些關鍵欄位？",
+      "ground_truth": "A Receipt object with status=\"dispatched\", carrier, total_cents (and order_id). Source: orderflow/pipeline.py Receipt dataclass."
+    }
+  ]
+}

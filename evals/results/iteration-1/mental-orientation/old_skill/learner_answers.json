@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "answer": "使用者介面就是 9 個 skills：understand、build、sync、doctor、change、review、learn、practice、quiz。說明指出 `mental` 是一個 agent-native plugin，不是 CLI 也不是服務，它對外的整個介面就是這 9 個 skill。一般使用者是在 host 裡操作：在 Claude Code 打 `/mental:<skill>`、在 Codex 打 `$mental:<skill>`，host 會把對應的 SKILL.md 當成指令注入 agent 來執行。bundled 的 Python 腳本並不是介面，而是 skill 的私有實作 helper，不是給人直接使用的 end-user CLI。"
+  },
+  {
+    "id": 2,
+    "answer": "兩者是「薄介面 + 厚共享規則」的關係。skills/ 下的每個 SKILL.md 很薄（約 20–44 行），只寫指令與契約、不含實作；references/（methodology、artifact-contract、writing-profile，以及 repository-workflow / learning-workflow）則是系統的厚共享方法論，是規則的大腦。連結方式是：每個 SKILL.md 的第一步都要把 references resolve 到自己的相對路徑並讀取，所有 skill 開頭都來讀同一套 references。這就是設計精髓——9 個薄 skill 共用同一套厚規則，行為才會一致。"
+  },
+  {
+    "id": 3,
+    "answer": "共享的 mental model 放在目標 repo 的 `mental/` 目錄（包含 index、sources、glossary、model/map、concepts、scenarios、contracts、decisions、changes、lenses… 等）；個人的學習狀態放在 `.mental/` 目錄，且是 gitignored 的（包含 profile、mastery.json、sessions）。兩者都建立在使用者的目標 repo，而不是 mental 這個工具 repo 本身。分開的原因：`mental/` 是要團隊共享、會被提交、可被 doctor 驗證、可被 review/sync 引用的模型；而 `.mental/` 是個人私有狀態，用 gitignore 讓它不被提交、不被共享。一個是可共享的模型內容，一個是個人進度，因此分開存放。"
+  },
+  {
+    "id": 4,
+    "answer": "`scaffold_workspace.py`：非破壞性地建立 workspace 骨架，會用 assets/templates 的模板（{{KEY}} 佔位替換）渲染出 draft 的 `mental/` 與 private 的 `.mental/`；由 build skill 使用。`validate_workspace.py`：零依賴地驗證產物，檢查 frontmatter、id 唯一性、來源是否存在、連結是否壞掉、隱私（`.mental` 是否有正確的 gitignore）以及 mastery.json 的形狀；由 doctor 與 sync 兩個 skill 使用。說明強調這兩支都是 skill 的私有實作 helper，是被 skill（agent）呼叫使用，不是給一般使用者直接執行的 CLI。"
+  },
+  {
+    "id": 5,
+    "answer": "依說明，測試（`tests/test_plugin_contract.py`）把承諾編碼成斷言，其中一條是「恰好這 9 個 skill」。所以除了新增第 10 個 skill 的 SKILL.md 之外，最少必須更新那條「恰好 9 個 skill」的契約測試斷言，讓它改成包含新的第 10 個 skill，否則會因 skill 數量／清單不符而失敗。至於兩個 plugin manifest（`.claude-plugin`、`.codex-plugin`）在說明中都只是指向 `./skills/` 目錄，並未提到需要逐一列舉 skill；其餘內容斷言（例如 understand 必含 `Never edit`、change 必含 intent/decision/plan-interpretation）是針對特定既有 skill，不適用於一般的新 skill。說明中沒有提到新增 skill 還需要改動其他測試才會過。"
+  }
+]

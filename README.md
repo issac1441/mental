@@ -186,15 +186,22 @@ claude --plugin-dir /absolute/path/to/mental
 claude plugin validate /absolute/path/to/mental
 ```
 
-For persistent distribution, add the repository to a Claude Code marketplace and install `mental` from that marketplace.
+The repository is also its own Claude Code marketplace (`.claude-plugin/marketplace.json`), so a persistent install needs no separate marketplace repo:
+
+```sh
+claude plugin marketplace add issac1441/mental
+claude plugin install mental@mental
+```
+
+A local checkout works the same way: `claude plugin marketplace add /absolute/path/to/mental`.
 
 ### Codex
 
-Install `mental` from a configured plugin marketplace, then use `/skills` or type `$` to select a skill. During local development, place this checkout behind a local marketplace entry:
+Install `mental` from a configured plugin marketplace, then use `/skills` or type `$` to select a skill. This repository ships its own marketplace manifest, so the checkout can be registered directly:
 
 ```sh
-codex plugin marketplace add /absolute/path/to/marketplace
-codex plugin add mental@marketplace-name
+codex plugin marketplace add /absolute/path/to/mental
+codex plugin add mental@mental
 ```
 
 The package uses `.codex-plugin/plugin.json` plus `skills/*/SKILL.md`. Claude and Codex share the same skill semantics.
@@ -214,6 +221,8 @@ python3 scripts/validate_workspace.py /tmp/mental-demo
 ```
 
 The helper scripts are internal skill implementation details, not a supported end-user CLI.
+
+Explanation quality is measured by the learning-transfer eval in [`evals/`](evals/README.md): a no-code-access reader answers probe questions using only the skill's explanation, and the result is compared against a bare-model baseline.
 
 ## License
 

@@ -186,15 +186,22 @@ claude --plugin-dir /absolute/path/to/mental
 claude plugin validate /absolute/path/to/mental
 ```
 
-正式分發時，將 repo 加入 Claude Code marketplace 後安裝 `mental`。
+本 repo 已內建 marketplace manifest（`.claude-plugin/marketplace.json`），正式安裝不需要額外的 marketplace repo：
+
+```sh
+claude plugin marketplace add issac1441/mental
+claude plugin install mental@mental
+```
+
+本機 checkout 同理：`claude plugin marketplace add /absolute/path/to/mental`。
 
 ### Codex
 
-從已設定的 plugin marketplace 安裝 `mental`，接著用 `/skills` 或 `$` 選擇 skills。本機開發時可把 checkout 放進 local marketplace：
+從已設定的 plugin marketplace 安裝 `mental`，接著用 `/skills` 或 `$` 選擇 skills。本 repo 自帶 marketplace manifest，checkout 可直接註冊：
 
 ```sh
-codex plugin marketplace add /absolute/path/to/marketplace
-codex plugin add mental@marketplace-name
+codex plugin marketplace add /absolute/path/to/mental
+codex plugin add mental@mental
 ```
 
 套件使用 `.codex-plugin/plugin.json` 與 `skills/*/SKILL.md`；Claude 與 Codex 共用相同技能語意。
@@ -204,6 +211,8 @@ codex plugin add mental@marketplace-name
 V1 僅提供文件層級相容，不承諾 native namespace parity。將 `skills/`、`references/`、`scripts/`、`assets/` 一起複製或連結至同一個 `.agents/` 目錄並保留相對路徑；OpenCode 會以 `understand`、`build` 等未加 namespace 的名稱發現它們。
 
 ## 開發驗證
+
+解釋品質由 [`evals/`](evals/README.md) 的 learning-transfer eval 度量：讓一個看不到程式碼的讀者只憑說明文件作答 probe 題，並與裸模型基準線比較。
 
 本專案沒有 runtime dependencies：
 

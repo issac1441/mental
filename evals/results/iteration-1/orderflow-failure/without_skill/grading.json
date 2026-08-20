@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1: 哪些錯誤會被重試/分類方式",
+      "passed": true,
+      "evidence": "讀者答 RetryableError 會重試(VersionConflict/CarrierTimeout/CarrierUnavailable)、FatalError(UnknownSku/InsufficientStock/驗證錯誤)不重試，涵蓋標準答案分類且更完整。"
+    },
+    {
+      "text": "probe 2: dispatch 最多幾次/失敗後三件事",
+      "passed": true,
+      "evidence": "答 MAX_DISPATCH_ATTEMPTS=3、DispatchExhausted 後釋放庫存+進死信佇列+回 dead_lettered 收據，三件事齊全。"
+    },
+    {
+      "text": "probe 3: 第 3 次前等多久/jitter",
+      "passed": true,
+      "evidence": "答基本 400ms=200×2^(3-2)、jitter=crc32(order_id)%100 為 0-99ms 且每筆固定，與標準答案一致。"
+    },
+    {
+      "text": "probe 4: 保留過期後重處理/總價會不會變",
+      "passed": true,
+      "evidence": "答用當下目錄重建、reprice_required=True、總價可能變(單價快照重取)，命中標準答案關鍵事實。"
+    },
+    {
+      "text": "probe 5: InsufficientStock 會不會重試/呼叫端拿到什麼",
+      "passed": true,
+      "evidence": "答不重試(FatalError)、回 status=\"failed\" 收據、dispatch 不執行，與標準答案一致。"
+    },
+    {
+      "text": "gist: 開頭即給出可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=3，開頭前兩句為元敘述式路線圖(「先給你心智模型，再點出咬人處」)，未直接回答保留/重試/失敗，實質答案要往後讀。"
+    },
+    {
+      "text": "coherence: 敘事連貫、組織服務主題 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，沿 pipeline 流程(整體流程→保留→重試→怎麼失敗→隱藏陷阱)因果鏈展開，失敗點以表格清楚列舉，無割裂重複區塊。"
+    },
+    {
+      "text": "overhead: 內容之前無元資訊/框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，僅一句路線圖式前言，隨即進入內容；術語(VersionConflict=樂觀鎖衝突、reprice_required)首次出現即解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結到具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，幾乎每個主張都附 file:line(pipeline.py:44、inventory.py:68-71、errors.py:32…)與測試名，證據極密。"
+    },
+    {
+      "text": "citations: 抽查的檔案引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽查 errors.py:32(VersionConflict(RetryableError) 精確)、dispatch.py:44-49(BASE*2^(attempt-2)+crc32%100 精確)、inventory.py:68-71(過期分支無 release 支持重複扣庫存主張)，三者皆存在且支持主張。"
+    }
+  ],
+  "scores": {
+    "gist": 3,
+    "coherence": 5,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "probe_summary": {
+    "correct": 5,
+    "total": 5
+  },
+  "summary": {
+    "passed": 9,
+    "failed": 1,
+    "total": 10,
+    "pass_rate": 0.9
+  }
+}

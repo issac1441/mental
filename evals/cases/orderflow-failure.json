@@ -1,0 +1,34 @@
+{
+  "id": 2,
+  "name": "orderflow-failure",
+  "target": "orderflow",
+  "question": "這個系統的庫存保留跟重試是怎麼運作的？什麼情況下一筆訂單會整個失敗？我想搞懂失敗的行為。",
+  "question_type": "failure-semantics",
+  "probes": [
+    {
+      "id": 1,
+      "question": "哪些種類的錯誤會被重試？哪些不會？請具體說明分類方式。",
+      "ground_truth": "Only RetryableError subclasses are retried (CarrierTimeout, CarrierUnavailable, VersionConflict). FatalError subclasses (ValidationError, UnknownSku, InsufficientStock) are never retried — order fails immediately. Source: orderflow/errors.py taxonomy; dispatch.py catches RetryableError only; pipeline.py catches FatalError."
+    },
+    {
+      "id": 2,
+      "question": "出貨（dispatch）最多會嘗試幾次？全部失敗之後系統會做哪三件事？",
+      "ground_truth": "MAX_DISPATCH_ATTEMPTS = 3 total attempts. After exhaustion: (1) the inventory reservation is released (stock returned), (2) the order is appended to the dead-letter queue, (3) caller receives a Receipt with status=\"dead_lettered\" (no exception raised). Source: config.py, pipeline.py DispatchExhausted handling."
+    },
+    {
+      "id": 3,
+      "question": "第 3 次出貨嘗試前，系統會等多久？（基本延遲即可，並說明 jitter 怎麼決定）",
+      "ground_truth": "Base delay before attempt 3 = BASE_RETRY_DELAY_MS * 2^(3-2) = 200 * 2 = 400ms, plus a deterministic jitter of 0-99ms derived from crc32(order_id) % 100. Source: orderflow/dispatch.py backoff_ms; tests test_backoff_doubles_with_stable_jitter."
+    },
+    {
+      "id": 4,
+      "question": "如果一筆訂單的庫存保留過期了，之後再處理同一筆訂單會發生什麼事？總價會不會變？",
+      "ground_truth": "The reservation is rebuilt from the current catalog and flagged reprice_required=True; the pipeline re-prices from the new snapshot, so the total CAN change (unit prices are re-captured). Source: orderflow/inventory.py reserve(); pricing reads reservation snapshot."
+    },
+    {
+      "id": 5,
+      "question": "庫存不足（InsufficientStock）時會重試嗎？呼叫端拿到什麼？",
+      "ground_truth": "No retry — InsufficientStock is a FatalError. Caller gets Receipt status=\"failed\" with a reason (no exception). Dispatch never runs. Source: errors.py, pipeline.py, tests test_insufficient_stock_fails_without_retry."
+    }
+  ]
+}

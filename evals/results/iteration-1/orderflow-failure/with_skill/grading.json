@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1: 哪些錯誤會重試、哪些不會的分類方式",
+      "passed": true,
+      "evidence": "讀者正確分為 FatalError（ValidationError/UnknownSku/InsufficientStock，絕不重試）與 RetryableError（VersionConflict/CarrierTimeout/CarrierUnavailable，可重試），並點出 VersionConflict 屬 RetryableError，涵蓋標準答案全部關鍵事實。"
+    },
+    {
+      "text": "probe 2: dispatch 最多幾次、全失敗後做的三件事",
+      "passed": true,
+      "evidence": "答 MAX_DISPATCH_ATTEMPTS=3，耗盡後 (1) inventory.release() 還庫存 (2) 入 dead_letters (3) 回 status=\"dead_lettered\" 收據且不丟例外，與標準答案完全一致。"
+    },
+    {
+      "text": "probe 3: 第 3 次前的基本延遲與 jitter 決定方式",
+      "passed": true,
+      "evidence": "答基本延遲 200*2^(3-2)=400ms，jitter=crc32(order_id)%100（0–99、每筆固定可重現），與標準答案吻合。"
+    },
+    {
+      "text": "probe 4: 保留過期後重處理會發生什麼、總價會不會變",
+      "passed": true,
+      "evidence": "答以當前型錄重建、標記 reprice_required=True、從新快照重新計價故總價可能改變，命中標準答案核心；額外的重複扣庫存推論不影響正確性。"
+    },
+    {
+      "text": "probe 5: InsufficientStock 會不會重試、呼叫端拿到什麼",
+      "passed": true,
+      "evidence": "答不重試（屬 FatalError）、呼叫端得 status=\"failed\" 收據非例外、dispatch 完全不執行，與標準答案一致。"
+    },
+    {
+      "text": "gist: 開頭即給出可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "開頭三句即涵蓋『兩階段保留＋120s TTL』『兩套獨立重試（樂觀鎖無退避 vs dispatch 指數退避）』『三種收據結局＋逃逸路徑』，直接且完整回答使用者問題，可獨立成立。"
+    },
+    {
+      "text": "coherence: 敘事連貫、組織服務主題 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，沿著 ingest→reserve→price→dispatch 因果鏈與『先錯誤分類、再保留、再重試、最後收斂到失敗』的顯式敘事線展開，標題皆為主題性而非割裂的形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容之前無元資訊/框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，實質內容第一句即出現、術語（idempotent/TTL/VersionConflict）首次出現即解釋；扣一分因結尾殘留方法論框架雜訊（Context lens 行、$build、mental/ 模型），惟皆在實質內容之後。"
+    },
+    {
+      "text": "concreteness: 主張連結到具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，幾乎每一主張都附 file:line 與測試名稱，且經查驗與程式碼精確相符。"
+    },
+    {
+      "text": "citations: 抽查的檔案引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽查 errors.py:12-40（FatalError/RetryableError 分類、VersionConflict@32 屬 RetryableError）、dispatch.py:44-49（backoff=BASE*2^(attempt-2)+crc32%100）、inventory.py:62-75（冪等＋過期重建 reprice_required=True）三處，全部存在且支持主張；另附帶確認 pipeline.py:47/53 只攔 FatalError 使『第四條逃逸路徑』成立、四個測試行號亦精確。"
+    }
+  ],
+  "scores": {
+    "gist": 5,
+    "coherence": 5,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "probe_summary": {
+    "correct": 5,
+    "total": 5
+  },
+  "summary": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "pass_rate": 1.0
+  }
+}

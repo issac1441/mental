@@ -1,0 +1,34 @@
+{
+  "id": 3,
+  "name": "mental-orientation",
+  "target": "mental",
+  "question": "我剛接手這個 repo，幫我快速理解它的整體架構：各個部分是做什麼的、彼此怎麼協作？",
+  "question_type": "orientation",
+  "probes": [
+    {
+      "id": 1,
+      "question": "這個專案的使用者介面是什麼？一般使用者是怎麼操作它的？",
+      "ground_truth": "The interface is nine skills invoked from Claude Code / Codex (e.g. /mental:understand, /mental:build, $mental:*). It is a plugin, not a CLI or service; the bundled Python scripts are internal helpers, not a user-facing CLI. Source: README.md, skills/*/SKILL.md."
+    },
+    {
+      "id": 2,
+      "question": "skills/ 目錄下的 SKILL.md 跟 references/ 目錄是什麼關係？",
+      "ground_truth": "Each SKILL.md instructs the agent to read shared reference docs via relative paths (../../references/methodology.md, artifact-contract.md, writing-profile.md, plus workflow refs). references/ holds the shared methodology all skills follow, so skills stay small and consistent. Source: skills/*/SKILL.md step 1, references/."
+    },
+    {
+      "id": 3,
+      "question": "共享的 mental model 內容與個人的學習狀態分別存放在哪裡？為什麼要分開？",
+      "ground_truth": "Shared, versioned model artifacts live in mental/ (index, sources, glossary, model/map, concepts, scenarios...). Personal state (profile.md, mastery.json, sessions/) lives in .mental/, which is gitignored — privacy boundary: personal answers/ability data must never be committed or published. Source: README artifact layout, references/artifact-contract.md."
+    },
+    {
+      "id": 4,
+      "question": "scripts/ 裡兩支 Python 腳本分別做什麼？誰會用到它們？",
+      "ground_truth": "scaffold_workspace.py creates the mental/ + .mental/ skeleton (used by the build skill); validate_workspace.py checks structural validity of artifacts (frontmatter, kinds, links) and is used by build/sync/doctor skills. They are internal implementation helpers invoked by skills, not an end-user CLI. Source: scripts/, skills/build/SKILL.md, skills/doctor/SKILL.md."
+    },
+    {
+      "id": 5,
+      "question": "如果要新增第 10 個 skill，除了新增它的 SKILL.md 之外，最少還需要動哪些地方測試才會過？",
+      "ground_truth": "Must add skills/<name>/agents/openai.yaml (UI metadata test), and update tests: SKILL_NAMES set in tests/test_plugin_contract.py and a matching entry in tests/behavior_cases.json (tests assert exact skill-set equality and per-skill contract phrases). Source: tests/test_plugin_contract.py, tests/behavior_cases.json."
+    }
+  ]
+}
