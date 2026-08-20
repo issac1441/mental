@@ -1,0 +1,144 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): 出貨前庫存第一步 + 原因",
+      "passed": true,
+      "evidence": "讀者答 re-reserve,因 dead-letter 時 pipeline.py:62 release 已刪 reservation record(inventory.py:91 delete)並還庫存,dispatch 需 Order+Reservation——與標準答案一致"
+    },
+    {
+      "text": "probe 2 (counterfactual): 新價 vs 原收據價 + 為何需人決定",
+      "passed": true,
+      "evidence": "讀者答新價(當前 catalog),因 re-reserve 重擷價、pipeline.py:57 恆重算不看 reprice_required;需人決定屬業務取捨——完全正確且比標準答案更細"
+    },
+    {
+      "text": "probe 3 (diagnosis): 連按兩次 force 的後果",
+      "passed": true,
+      "evidence": "讀者答重複出貨,因 send 無 idempotency、dead_letters append-only 無 status——經 grep 核實 send/dispatch 確無去重,正確"
+    },
+    {
+      "text": "probe 4 (decision): 至少兩個未決事項",
+      "passed": true,
+      "evidence": "讀者列出資料來源/去重/re-reserve Fatal 處置/靜默改價/再次耗盡處置共 5 項+可稽核性,遠超兩項且皆有效"
+    },
+    {
+      "text": "probe 5 (retention): 可直接重用的既有元件",
+      "passed": true,
+      "evidence": "讀者答 dispatch()/inventory.reserve/price()/release/VersionConflict 重試,涵蓋 reserve+price+dispatch 三大核心——與標準答案一致"
+    },
+    {
+      "text": "probe 6 (repair, trap): 新函式=自動保證失敗語意不變? (陷阱)",
+      "passed": true,
+      "evidence": "讀者答『不對』,指出 re-reserve Fatal、雙送、再次耗盡皆為新語意,且暫時性失敗單可能改以 Fatal 收場——未落入陷阱,正確"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=5,首句即點明『不是 dispatch 改動而是 re-reserve→re-price→re-dispatch 復原流程』並帶 pipeline.py:62 證據,前三句自成完整答案"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,依實際流程(現況→被迫做的事→決策清單→鎖住/新開語意)因果推進;僅結尾 Human Decision 區塊與 Decision Manifest 有重複"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,開篇直接進實質,Lens/Views/$build 等元資訊全置於文末;dead-letter、reprice_required 等術語首次出現即以機制解釋"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,幾乎每條主張帶 file:line,並引 test_dead_letter...(test_pipeline.py:51-63)與具體 trace;抽查引用全部核實正確"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "3/3 全揭露:保留釋放需 re-reserve 致總價可能≠原收據(開頭+#4)、send 無去重致重複出貨(開頭+#2)、force 自身失敗語意須新定義(開頭+#3/#5+失敗語意節)"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽查①release 刪 reservation+還庫存(inventory.py:77-91 ✓)②reprice_required 僅 inventory+測試碰、pipeline 不看(grep ✓)③dispatch 重試至 MAX=3 後 raise DispatchExhausted(dispatch.py:61-71,config.py:7 ✓)——0 錯"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "pipeline.py:62(release 呼叫)、inventory.py:77-91(release 本體)、dispatch.py:52-57(需 Order+Reservation)——三處皆存在且支持該處主張"
+    }
+  ],
+  "scores": {
+    "gist": 5,
+    "coherence": 4,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": false
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "boundary_coverage": {
+    "covered": [
+      "死信釋放保留→force 須 re-reserve→快照重建致重出貨總價可能≠原收據(開頭+Decision #4 主動揭露)",
+      "send/dispatch 層無任何去重→force 重複呼叫致重複出貨,冪等性為新決策(開頭『完全沒有任何 idempotency 標記』+Decision #2 標為最高風險)",
+      "『不改變失敗語意』無法自動保證→force 自身失敗語意(re-reserve 失敗、再次耗盡)須新定義(開頭+Decision #3/#5+『失敗語意:哪些被鎖住哪些新開』整節)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0,
+    "overhedged": 0,
+    "notes": "抽查三條肯定斷言全部經程式碼核實為真:(1)release 刪除 reservation 並還庫存=inventory.py:84-91;(2)『全專案只有 inventory 和測試碰 reprice_required、pipeline 每次都重算』=grep 證實只出現在 inventory.py 與 tests,pipeline.py:57 恆呼叫 price();(3)dispatch 重試至 MAX_DISPATCH_ATTEMPTS=3 後 raise DispatchExhausted=dispatch.py:61-71+config.py:7。反向未見可驗證事實被過度 hedge——『總價可能不同』『可能換 carrier』『須確認是否真單進程』皆為條件成立的適當 hedge。"
+  },
+  "extraneous_ratio": 0.12
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "多等約 2400ms（2.4 秒）。現況死信前只在嘗試 2、3 前退避，等 200+400=600ms；A 加到 5 次後，嘗試 4、5 前再等 800+1600=2400ms，總計約 3000ms。差額即 3000−600=2400ms，文件也明講「多等的約 2.4 秒」。",
+    "confidence": 97
+  },
+  {
+    "id": 2,
+    "answer": "選項 B 會讓既有測試失敗。測試是 test_dead_letter_after_exhausted_retries_releases_stock（test_pipeline.py:51-63），因為它斷言死信後庫存會被 release() 歸還；而 B 死信後保留庫存、不釋放，會照設計弄壞這條斷言（文件稱這是編碼現有不變量的測試，改它屬模型決策）。",
+    "confidence": 100
+  },
+  {
+    "id": 3,
+    "answer": "會一直被凍結／洩漏。沒有背景回收，保留會一直掛著直到有人手動處理；若人工一直不處理就永遠掛著。expired() 只在下次對同一 order_id 呼叫 reserve() 時才被評估，所以不會自動過期回收。被凍結的庫存持續累積（抖動風暴時成批出現），最終使其他新訂單在 reserve() 時 InsufficientStock（屬 FatalError、不重試）。",
+    "confidence": 90
+  },
+  {
+    "id": 4,
+    "answer": "選項 B 引入新的待決策：是否把「庫存最終非出即還」的不變量改成第三種「保留給人工」狀態，以及誰擁有／監控／設上限／背景回收這池庫存；並需先建好重派入口、帶 reservation 參照的 DLQ 結構、TTL/created_at 處理，再移除 release()。A 只是改一個常數、可逆，未引入這類新不變量抉擇。",
+    "confidence": 74
+  },
+  {
+    "id": 5,
+    "answer": "A 不改變收據形狀；失敗語意基本不變——一樣走 DispatchExhausted → dead_lettered 收據（pipeline 未被 A 觸及）。唯一差別是 DispatchExhausted 的訊息文字會因讀 config.MAX_DISPATCH_ATTEMPTS 而從「gave up after 3」變成「gave up after 5」。A 只動一個常數、完全可逆。",
+    "confidence": 76
+  },
+  {
+    "id": 6,
+    "answer": "沒有。A 只改 MAX_DISPATCH_ATTEMPTS（嘗試次數），B 改死信後的庫存行為；兩個提案都沒有更動 jitter 演算法，jitter（0–99ms、同一 order_id 每次相同）維持不變。文件另提及若抖動是多秒級可考慮調 BASE_RETRY_DELAY_MS，但那是退避基準、非 jitter 演算法，且非本提案內容。",
+    "confidence": 90
+  }
+]

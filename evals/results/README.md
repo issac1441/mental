@@ -22,3 +22,11 @@
 - **Iteration-8**（修正驗證）：git 白名單放寬＋「發現只寫一次」＋ answer-first 移植後——review dirty 案 with_skill 13/13、**DSR 0%**、subtle 案 12/12 且 gist 反超裸模型（4 vs 2.5）；change probes 維持 12/12，gist 部分改善（2.5/3.5）仍低於裸模型（4/4.5），為下一輪殘留項。
 - 種子沿用規則：floors、bare change、doctor 由 iteration-7 拷貝（輸入未變）。
 - Floor 訊號：review 案 floor 2/6、0/5（高鑑別）；change 案 floor 4/6、5/6（部分可推理猜中，probe 需再 code-bound 化）。
+
+## change 表達層收尾（iteration-9 → 10）
+
+change skill 版本沿革：v1（檔尾一段 presentation 附註，it-8 被測）→ v2（Response contract 章節＋workflow 步驟內就地改寫 `$build`/選型報告的位置，it-9）→ v3（補禁「模式宣告」開場＋methodology 新增 side-effect 主張須 path-specific 規則，it-10）。
+
+- **Iteration-9**（v2 驗證）：intent 案表達痊癒（gist 3.5→**5**、overhead 4→**5**）證明「規則進 workflow 動線」是對的機制；decision 案殘留三句英文 meta 開場（"This is a decision-mode comparison…"，模式宣告不在 v2 禁列）gist 3；另 calibration 抽驗抓到一條真實杜撰——宣稱 force 路徑 rebuild 會設 `reprice_required=True`，實際只有 TTL 過期分支會設（相鄰路徑混淆）。
+- **Iteration-10**（v3 定案）：兩案 **13/13 全過**，gist **5/5**、overhead **5/5**、coherence 4/4、concreteness 5/5、杜撰 0、grader 一致率 1.0——全面追平或反超裸模型（4/4.5）。change 迴圈關閉。
+- 種子沿用：兩輪的 bare 與 floor 均拷自 iteration-8/9（輸入未變，重評只加噪音）。
