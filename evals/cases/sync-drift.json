@@ -13,7 +13,8 @@
     "concepts/pricing-totals.md 的 [agreed] 主張「免運資格以折扣前小計判定、折扣不會影響運費資格」被現行程式反駁：src/orderflow/pricing.py 現以折扣後小計比較 FREE_SHIPPING_THRESHOLD_CENTS，大額折扣會令訂單失去免運 —— contradicted",
     "concepts/pricing-totals.md 主張「稅金按折扣後小計計算」，但 src/orderflow/pricing.py 現以折扣前小計計稅 —— changed",
     "concepts/reservation.md 引用的 config.RESERVATION_TTL_SECONDS 已更名為 RESERVATION_HOLD_SECONDS 且值仍為 120 秒——引用符號失效（removed/changed）但行為等價；報告須指出更名且不得將其誤判為行為層面的漂移",
-    "sources.md 註冊的 doc-pricing-policy（./docs/pricing-policy.md）在工作區中不存在——引用它的主張應歸類 unverifiable / 來源無法存取，且不得自行尋找替代來源充當依據"
+    "sources.md 註冊的 doc-pricing-policy（./docs/pricing-policy.md）在工作區中不存在——引用它的主張應歸類 unverifiable / 來源無法存取，且不得自行尋找替代來源充當依據",
+    "reservation.md 主張 reprice_required 被設定「so the pipeline knows totals must be recomputed」——但全 repo 無任何程式讀取該旗標（僅 inventory.py:69 設定；pipeline.py 無條件重新計價），因果子句已死，主張至少需降級或改寫（iteration-11 由兩個 arm 無提示發現後補進 inventory）"
   ],
   "conformance_checks": [
     "報告以提案形式收尾（proposed delta / 修正草案）並帶 Human Decision: pending（或等義的「待人決定」明示），未宣稱已直接更新 canonical 工件",

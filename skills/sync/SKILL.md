@@ -18,3 +18,5 @@ Detect drift without choosing truth on the user's behalf.
 7. Ask for a decision per coherent delta. After approval, update only accepted artifacts, preserve conflict history in the change record, and restore `canonical` only when evidence and agreement are both present.
 
 Report unchanged areas briefly; focus attention on model changes and decision surprises.
+
+Presentation follows the explanation shape in `methodology.md`: the very first sentence states the headline drift finding (or that no drift was found) — never process narration ("sync 完成"), readiness declarations, or tooling and permission notes, which belong in the closing line. End with the per-delta decisions and `Human Decision: pending`.

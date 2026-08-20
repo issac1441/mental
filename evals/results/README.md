@@ -23,6 +23,14 @@
 - 種子沿用規則：floors、bare change、doctor 由 iteration-7 拷貝（輸入未變）。
 - Floor 訊號：review 案 floor 2/6、0/5（高鑑別）；change 案 floor 4/6、5/6（部分可推理猜中，probe 需再 code-bound 化）。
 
+## sync 漂移偵測首跑（iteration-11）
+
+- 5 個種子漂移＋2 個 conformance 檢查：**兩組全過 7/7、0 誤報**——recall 觸頂（同 doctor 教訓：對被明確指派的「主張對碼」任務，裸 opus-max 就是強審查者）。
+- 鑑別訊號在**廣度**：skill 組 4 個 extra findings（`reprice_required` 死旗標、`choose_carrier` 未建模、pricing 槓桿未點名、attempts 3→4 對 backoff 序列的衍生效應）vs 裸組 1 個；以及收尾紀律（skill 以 D1–D6 逐項決策單收尾、`[agreed]` 改寫要求 commerce 重簽核、stale 標記遵守「明確要求才做」）。
+- **Eval 抓到 fixture 裡未種的真實漂移**：工件裡「so the pipeline knows totals must be recomputed」的因果子句已死（旗標無人讀取）——兩組皆無提示發現；已補為 inventory #6 供未來輪次（本輪以 5 種子計分）。
+- 觀察到未被指標懲罰的不合規：skill 報告開場為流程宣告（「`/mental:sync` 完成。…」）——detection 協定無 gist rubric。已在 sync SKILL.md 補 answer-first 行（**預防性修正，本輪未經 eval 驗證**——recall 飽和，重跑量不到差異）。
+- 下輪 battery 改進：跨檔語意漂移（如 pipeline 呼叫順序變更）、分類精確度計分（changed/contradicted/removed/unverifiable 逐項對標，而非只看實質指出）。
+
 ## change 表達層收尾（iteration-9 → 10）
 
 change skill 版本沿革：v1（檔尾一段 presentation 附註，it-8 被測）→ v2（Response contract 章節＋workflow 步驟內就地改寫 `$build`/選型報告的位置，it-9）→ v3（補禁「模式宣告」開場＋methodology 新增 side-effect 主張須 path-specific 規則，it-10）。
