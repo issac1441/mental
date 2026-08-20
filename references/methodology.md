@@ -98,7 +98,7 @@ C4-style structure answers **what exists**. Runtime scenarios answer **what happ
 
 Lens, Views, and Detail decide what an explanation contains. The subject decides how it reads. The test of an explanation is transfer — how quickly the reader gains a model that predicts — not how visibly the framework was applied.
 
-- Open with the direct answer: two to four sentences that would be true and useful if the reader stopped there.
+- Open with the direct answer: the response's very first sentence states a fact about the subject, and the first two to four sentences would be true and useful if the reader stopped there. No warm-up of any kind — not process narration ("I've read/compared/traced …"), not tooling or permission notes, not methodology preambles or scope declarations. Material caveats (something traced but not executed, an inaccessible source) belong in the evidence footer, not the opening.
 - Organize by the subject's own structure. A runtime question follows the path of execution; an architecture question groups by component and responsibility; a "why" question follows the causal chain; a comparison is organized by the decision.
 - Never use View names or other framework vocabulary as section headers. Apply the selected Views as a completeness checklist while writing: purpose stated, relationships shown, cause explained, one concrete case walked through, claims traceable. Weave a missing piece in where the narrative needs it.
 - Order content shallow to deep. Each section refines what came before instead of depending on what comes after, so the reader can stop at any point with a correct partial model.

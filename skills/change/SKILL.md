@@ -36,3 +36,5 @@ Examples:
 10. After explicit approval, hand the accepted delta to the host's Plan Mode. If a later plan option is unclear, run this skill again before revising the plan. After implementation, use `$review`, optionally `$quiz`, then `$sync`.
 
 Keep the analysis smaller than the prospective diff. Local code details belong only where they are evidence for a model decision.
+
+Presentation follows the explanation shape in `methodology.md`: the first sentence answers the user's question (the comparison verdict, the key delta, or the decisive risk) — never process narration, evidence-scope preambles, or tool suggestions. Keep the Lens/Views/Detail report and any `$build` recommendation to one closing line, in plain words when the audience does not assume this tool's vocabulary.

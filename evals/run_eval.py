@@ -237,7 +237,7 @@ def case_allowed_tools(case: dict) -> str:
     if case.get("allowed_tools"):
         return case["allowed_tools"]
     if case.get("target_setup", {}).get("git"):
-        return READ_ONLY_TOOLS + " Bash(git diff*) Bash(git status*) Bash(git log*) Bash(git show*)"
+        return READ_ONLY_TOOLS + " Bash(git *)"
     return READ_ONLY_TOOLS
 
 
@@ -245,7 +245,7 @@ def case_context_note(case: dict) -> str:
     if case.get("context_note") is not None:
         return case["context_note"]
     if case.get("target_setup", {}).get("git"):
-        return "repo 目前有未提交的 diff（可用 git diff 查看），核准的 change brief 在 CHANGE_BRIEF.md。目前 workspace 沒有 mental/ canonical model。"
+        return "repo 目前有未提交的 diff——請直接執行不加額外旗標的 `git diff` 查看變更；核准的 change brief 在 CHANGE_BRIEF.md。目前 workspace 沒有 mental/ canonical model。"
     if case["target"] == "doctor-workspace":
         return ""
     return "目前 workspace 沒有 mental/ canonical model。"
