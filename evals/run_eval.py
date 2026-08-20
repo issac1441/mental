@@ -61,6 +61,7 @@ def run_claude(
     disallowed_tools: str | None = None,
     add_dirs: list[Path] | None = None,
     max_turns: int | None = None,
+    resume: str | None = None,
 ) -> dict:
     cmd = [
         "claude",
@@ -73,6 +74,8 @@ def run_claude(
         "json",
         "--disable-slash-commands",
     ]
+    if resume:
+        cmd += ["--resume", resume]
     if allowed_tools:
         cmd += ["--allowedTools", allowed_tools]
     if disallowed_tools:
@@ -195,6 +198,8 @@ def target_path(case: dict, workspace: Path) -> Path:
         base = EVALS_DIR / "fixtures" / "orderflow"
     elif case["target"] == "doctor-workspace":
         base = EVALS_DIR / "fixtures" / "doctor-workspace"
+    elif case["target"] == "sync-workspace":
+        base = EVALS_DIR / "fixtures" / "sync-workspace"
     elif case["target"] == "mental":
         base = build_mental_target(workspace)
     else:
@@ -534,9 +539,13 @@ def run_combo(
         inventory = "\n".join(
             f"{i+1}. {b}" for i, b in enumerate(case.get("boundaries", []))
         )
+        conformance = "\n".join(
+            f"{i+1}. {c}" for i, c in enumerate(case.get("conformance_checks", []))
+        ) or "（無）"
         prompt = render(
             load_prompt("grader-detection"),
             INVENTORY=inventory,
+            CONFORMANCE=conformance,
             REPORT=explanation,
         )
         gradings = []
@@ -712,7 +721,9 @@ def main() -> int:
         case_dir = iteration_dir / case["name"]
         case_dir.mkdir(parents=True, exist_ok=True)
         if case.get("protocol") == "detection":
-            assertions = [f"detect: {b}" for b in case.get("boundaries", [])]
+            assertions = [f"detect: {b}" for b in case.get("boundaries", [])] + [
+                f"conformance: {c}" for c in case.get("conformance_checks", [])
+            ]
         else:
             assertions = [
                 f"probe {p['id']} ({p.get('tier', 'retention')}"

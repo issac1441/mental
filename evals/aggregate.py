@@ -35,7 +35,9 @@ def stats(values: list[float]) -> dict:
 
 def load_case_meta() -> dict:
     meta = {}
-    for path in (EVALS_DIR / "cases").glob("*.json"):
+    for path in sorted((EVALS_DIR / "cases").glob("*.json")) + sorted(
+        (EVALS_DIR / "cases" / "dialogue").glob("*.json")
+    ):
         case = json.loads(path.read_text(encoding="utf-8"))
         meta[case["name"]] = {
             "probes": {p["id"]: p for p in case["probes"]},

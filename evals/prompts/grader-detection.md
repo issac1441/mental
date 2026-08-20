@@ -7,6 +7,9 @@
 Inventory（種入的問題清單）：
 {{INVENTORY}}
 
+Conformance checks（對報告自身行為的額外檢查；若下方清單為「（無）」則跳過此節、不要輸出任何 conformance 項）：
+{{CONFORMANCE}}
+
 === 報告開始 ===
 {{REPORT}}
 === 報告結束 ===
@@ -15,7 +18,9 @@ Inventory（種入的問題清單）：
 {
   "expectations": [
     {"text": "detect 1: <問題摘要>", "passed": true, "evidence": "<報告中對應段落的要點，或 missed 原因>"},
-    ...每條 inventory 一項...
+    ...每條 inventory 一項、依編號順序...
+    {"text": "conformance 1: <檢查摘要>", "passed": true, "evidence": "<判定依據>"},
+    ...每條 conformance 一項、接在全部 inventory 項之後、依編號順序...
   ],
   "boundary_coverage": {"covered": ["..."], "missed": ["..."]},
   "false_positives": 0,

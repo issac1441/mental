@@ -53,9 +53,18 @@ v2 battery（[metrics-v2.md](metrics-v2.md) 的 standard 配置）：分層 prob
 - 可續跑：已存在的 stage 輸出會被跳過（`--force` 重跑）。
 - 輸出為 skill-creator 相容格式（`grading.json`、`timing.json`、`outputs/`），可直接餵給其 `aggregate_benchmark` 與 `generate_review.py`。
 
+## 其他協定
+
+- **detection**（`doctor` / `sync`）：無 learner 階段。arm 對目標 workspace 產出審查/漂移報告，grader 以 case 的 `boundaries`（種入問題 inventory）勾稽 recall、統計誤報；`conformance_checks` 另檢報告自身行為（如 sync 不得靜默改寫 `[agreed]`、須以 `Human Decision: pending` 收尾）。sync 的 fixture 是 `fixtures/sync-workspace/`：mental/ 工件寫於 2026-08-05（model@t0），`src/` 其後被改出四處語意漂移＋一個消失的註冊來源，乾淨主張留作誤報餌。
+- **dialogue**（`learn` / `practice`，`run_dialogue_eval.py`）：腳本化學習者（固定迷思劇本，deterministic）與導師 arm 以 `claude -p --resume` 多輪對話；grader 拿完整逐字稿逐條檢核 `dialogue_checks`（診斷先行、最小修正、結構等價新題、不先揭答案、不杜撰 mastery），後測由獨立無程式碼 learner 只讀逐字稿答 probes，floor 照常。cases 在 `cases/dialogue/`（獨立目錄，避免被單輪 runner 撿走）。
+
+```sh
+python3 evals/run_dialogue_eval.py --workspace /tmp/mental-eval --iteration 12 --graders 2
+```
+
 ## Roadmap
 
-指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、output style 與 ELI5 可及性、Lens fitness 與內容高度、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。
+指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、output style 與 ELI5 可及性、Lens fitness 與內容高度、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。尚未實作的協定：`build`（需 write-enabled 沙盒）、`quiz` 閱卷半段（假答卷評分）。
 
 ## Interpreting
 
