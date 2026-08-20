@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "使用者介面就是九個 skill（技能）。mental 是 agent-native 外掛，不是 CLI 也不是服務。每個 skill 是一份 SKILL.md（Markdown 指令檔），由 host agent（Claude Code 或 Codex）讀進去照著執行。一般使用者透過在 host 裡呼叫 skill 來操作，例如 /mental:understand。scripts/ 的 Python 只是 skill 私下呼叫的內部輔助工具，不是給使用者直接用的 CLI。",
+    "confidence": 92
+  },
+  {
+    "id": 2,
+    "answer": "SKILL.md 是介面／orchestration 層（每個 skill 是給 agent 執行的一段「程式」，是產品本體）；references/（5 份）是共用規則／policy 層，放真正的方法論。關係是：所有 skill 的第一步都會先來讀 references/ 取得共用規則與方法論，再照自己的 SKILL.md 執行。references 是被所有 skill 共用的規則來源。",
+    "confidence": 92
+  },
+  {
+    "id": 3,
+    "answer": "共享的 mental model 內容放在目標 repo 的 mental/；個人的學習狀態（學習進度、測驗紀錄等）放在 .mental/。兩者都產生在目標 repo（不在工具 repo）。分開是為了隱私／共享區隔——mental/ 是團隊共用、會進版控的模型，而 .mental/（dot 前綴、本地私有）保存個人狀態、不對外共用；doctor 會稽核「結構與隱私」來維持此區隔。（說明明確指出資料模型為 mental/ 與 .mental/、doctor 稽核隱私；但「.mental/ 專存個人學習狀態」屬依命名慣例與上下文的推論，可見文字未逐字言明。）",
+    "confidence": 55
+  },
+  {
+    "id": 4,
+    "answer": "兩支都是無相依、deterministic 的機械輔助腳本，由 skill 私下呼叫（internal），不是給使用者的 CLI。一支負責「建骨架」（scaffold）：用 assets/templates/* 蓋出種子檔；另一支是 validate_workspace.py，負責「驗結構」（驗證 workspace 結構）。使用者：只有 skill（agent）會呼叫它們；README.md:5 與 scripts/validate_workspace.py:2 標明為 internal。",
+    "confidence": 85
+  },
+  {
+    "id": 5,
+    "answer": "依說明，tests/ 是契約測試，會強制各區塊彼此一致。除了新增該 skill 的 SKILL.md，最少還要：(1) 在該 skill 資料夾補一份 agents/openai.yaml（每個 skill 都有，Codex 介面 metadata 需要）；(2) 在 .claude-plugin/ 登錄該 skill；(3) 在 .codex-plugin/ 登錄該 skill，讓兩個 host 都找得到。（契約測試強制 skills、openai.yaml、兩個 plugin 打包三者一致；確切測試細節因說明被截斷無法完全確認。）",
+    "confidence": 60
+  },
+  {
+    "id": 6,
+    "answer": "doctor——它是專門「稽核結構與隱私」的 skill，負責抓出模型裡的結構／完整性問題，未經確認的 canonical 狀態應由它揪出；此外 review 在改動後「先講實際改了什麼再稽核」也可能在流程中發現。（注意：說明可見部分並未逐字描述「status 改成 canonical 需人類確認」這條規則，該規則可能在 references/ 或被截斷處；此處是依 doctor＝稽核機制推論。）",
+    "confidence": 50
+  },
+  {
+    "id": 7,
+    "answer": "不對。學習者的「測驗結果」屬於個人學習狀態，不是團隊共用的模型內容，不應放在共享的 mental/，也不會給團隊共用；它屬於個人／本地的 .mental/。這正是為何（見第 8 題）clone 後看不到別人的紀錄。錯誤點：把個人學習狀態當成放在 mental/ 的團隊共用內容。（說明可見部分未逐字指明測驗結果的存放路徑，此判斷部分為依「共享 vs 個人」架構的推論。）",
+    "confidence": 58
+  },
+  {
+    "id": 8,
+    "answer": "因為學習進度與測驗紀錄是個人學習狀態，存在個人／本地的 .mental/，而非團隊共用、會進版控的 mental/。個人狀態被刻意與共享模型分離（隱私），屬本地私有、未一起提交，所以 clone 目標 repo 時只會帶到共享的 mental/ 模型，不會帶到前一位工程師的 .mental/ 個人紀錄。（「.mental/ 為本地、不進版控」屬依 dot 前綴慣例與 doctor 稽核隱私的推論。）",
+    "confidence": 60
+  }
+]

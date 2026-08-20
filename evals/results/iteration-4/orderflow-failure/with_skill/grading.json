@@ -1,0 +1,176 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 哪些錯誤重試/不重試及分類方式",
+      "passed": true,
+      "evidence": "讀者完整給出 FatalError(不重試,ValidationError/UnknownSku/InsufficientStock)vs RetryableError(重試,VersionConflict/CarrierTimeout/CarrierUnavailable 兩層),與 errors.py 分類一致。"
+    },
+    {
+      "text": "probe 2 (retention): dispatch 最多幾次/耗盡後三件事",
+      "passed": true,
+      "evidence": "答 MAX_DISPATCH_ATTEMPTS=3,耗盡後 release 還庫存/進 dead_letters/回 dead_lettered receipt(非例外),完全命中 pipeline.py:61-67。"
+    },
+    {
+      "text": "probe 3 (near): 第3次嘗試前的基本延遲與 jitter",
+      "passed": true,
+      "evidence": "答 ~400ms=BASE*2^(3-2) 加 0-99ms、由 order_id 決定的 jitter,與 dispatch.py backoff_ms 一致。"
+    },
+    {
+      "text": "probe 4 (near): 保留過期後重處理/總價會否變",
+      "passed": true,
+      "evidence": "答過期(>120s)重建 current catalog + reprice_required=True、總價可變,符合 inventory.reserve。"
+    },
+    {
+      "text": "probe 5 (retention): InsufficientStock 是否重試/呼叫端拿到什麼",
+      "passed": true,
+      "evidence": "答不重試(FatalError)、呼叫端得 status=\"failed\"、dispatch 未跑(calls==[]),命中測試。"
+    },
+    {
+      "text": "probe 6 (counterfactual): MAX_DISPATCH_ATTEMPTS 3→1 的行為與 backoff",
+      "passed": true,
+      "evidence": "答第1次即耗盡→dead-letter,backoff 只在 attempt>=2 前發生故不觸發,與 dispatch 迴圈 `if attempt>1` 一致。"
+    },
+    {
+      "text": "probe 7 (repair/trap): VersionConflict 重試耗盡→failed 收據？",
+      "passed": true,
+      "evidence": "正確判定為錯——VersionConflict 屬 RetryableError,pipeline 只接 FatalError,例外逸出 process() 無收據,命中 trap 核心。"
+    },
+    {
+      "text": "probe 8 (counterfactual): offshore 5000g 用哪家 carrier + 第2次前等多久",
+      "passed": false,
+      "evidence": "等待(~200ms+jitter)正確,但 carrier 答「說明沒提到」;ground truth 為 \"air\"(offshore 覆蓋重量)屬真實事實,非「沒提到」→不通過;根因是說明整段省略 choose_carrier 選商邏輯。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=3，開頭第一句是元資訊(「你的系統沒有 mental/ 模型…我直接讀碼」),前三句只到「四階段+保留凍結庫存與單價/120s TTL」,尚未觸及重試分類與失敗條件兩個明確提問。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，沿 ingest→reserve→dispatch→邊界的因果鏈組織,兩層重試以對照表釐清,無互相重複的形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": false,
+      "evidence": "score=4，僅開頭一句方法論小負擔,實質內容隨即展開;冪等/樂觀鎖/reprice 等術語首次出現即解釋,lens 元資訊置於文末不阻擋。 [graders disagreed]"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，幾乎每條主張皆附 file:line 與可執行測試/數值例(ANVIL stock=2→failed、backoff 200/400ms、庫存還原至 2)。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 全 3:VersionConflict 逸出於「邊界」段 [inferred];Fatal 立即失敗於重試/失敗段;dispatch 耗盡補償三件事於 dead_lettered 段。missed 無。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽「attempt1 不等+2nd~200/3rd~400ms」「三次全敗才拋 DispatchExhausted」「release 直接 put 未包重試、併發下可能 VersionConflict 逸出(inventory.py:90)」三條,核碼全部正確。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽 inventory.py:127(_put_with_retry,_PUT_ATTEMPTS=3、無 backoff、耗盡重拋)、dispatch.py:44-49(BASE*2^(attempt-2)+crc32 jitter)、tests/test_pipeline.py:51-63(dead-letter 還原 ANVIL 至 2)—三者皆存在且支持主張。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    },
+    {
+      "id": 7,
+      "correct": true
+    },
+    {
+      "id": 8,
+      "correct": false
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": false
+      },
+      {
+        "id": 2,
+        "correct": false
+      },
+      {
+        "id": 3,
+        "correct": false
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": false
+      },
+      {
+        "id": 7,
+        "correct": false
+      },
+      {
+        "id": 8,
+        "correct": false
+      }
+    ]
+  },
+  "scores": {
+    "gist": 2.5,
+    "coherence": 5,
+    "overhead": 3.5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "VersionConflict 保留階段重試耗盡後以未攔截例外逸出 process()、無 failed/dead_lettered 收據(「邊界」段 [inferred] 明列)",
+      "只有 RetryableError 被重試;Fatal 類(驗證/庫存/未知SKU)立即失敗不重試(兩層重試段 + 失敗段明述)",
+      "dispatch 耗盡補償:release 釋放保留、進 dead-letter queue、回 dead_lettered 收據而非例外(dead_lettered 段明述,含測試佐證)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.205,
+  "grader_agreement": 0.933,
+  "summary": {
+    "passed": 12,
+    "failed": 3,
+    "total": 15,
+    "pass_rate": 0.8
+  },
+  "graders": 2
+}

@@ -1,0 +1,176 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 四階段實際執行順序",
+      "passed": true,
+      "evidence": "讀者答 ingest→reserve→price→dispatch 且明言計價在保留之後,與 pipeline.py Pipeline.process 一致。"
+    },
+    {
+      "text": "probe 2 (near): 為何計價排在保留庫存之後",
+      "passed": true,
+      "evidence": "讀者指出保留單凍結單價快照、計價吃快照非原始訂單,與 pricing.py 文件與 ReservedLine.unit_price_cents 相符。"
+    },
+    {
+      "text": "probe 3 (near, trap): 折後6300<8000 是否付運費",
+      "passed": true,
+      "evidence": "讀者答免運,理由為折前9000≥8000門檻,成功避開『6300<8000要付運費』陷阱。"
+    },
+    {
+      "text": "probe 4 (retention): 稅基與運費是否課稅",
+      "passed": true,
+      "evidence": "讀者答稅=round(折後小計×0.05)、運費從不課稅,與 pricing.py:55/57-60 一致。"
+    },
+    {
+      "text": "probe 5 (retention): 成功後呼叫端拿到什麼",
+      "passed": true,
+      "evidence": "讀者答 Receipt(status=dispatched, carrier, total_cents),涵蓋 pipeline.py Receipt 關鍵欄位。"
+    },
+    {
+      "text": "probe 6 (counterfactual): 運費120→0影響哪些訂單",
+      "passed": true,
+      "evidence": "讀者答僅折前小計<8000者受影響、已免運者不變,正確組合 FLAT_SHIPPING 與折前門檻。"
+    },
+    {
+      "text": "probe 7 (diagnosis): 隔天重算總價不同的原因鏈",
+      "passed": true,
+      "evidence": "讀者答 TTL(120s)過期→以現價重建保留單+reprice→計價吃新快照→總價變,完整命中原因鏈。"
+    },
+    {
+      "text": "probe 8 (edges): 列≥5條因果關係",
+      "passed": true,
+      "evidence": "讀者列8條(快照→小計、折前小計→運費、region/重量→載具、TTL→重建、重試用盡→死信+釋放、折後→稅、order_id→jitter、FatalError→failed)皆有效、0捏造。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=5,前兩句即給出完整四階段流程+進入點+三種結局+『保留在計價前(快照)』的關鍵理由。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,嚴格依 pipeline 階段1→4→結局→旋鈕→例子→邊界組織,對照程式碼因果鏈,無形式化重複區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,開篇直入流程,元資訊(sources/gaps、lens 註腳)置於文末;術語首次出現即解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,幾乎每項主張帶 file:line 引用+具體數字例子($6615)+測試名,經核對皆準確。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3:免運看折前(⚠️段+規則4)、計價吃保留快照非原始/型錄(intro+階段三+邊界)、折扣不疊加取最高優先(規則2)。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽『先全驗再全扣』(inventory.py:93-112)、『只重試RetryableError→DispatchExhausted』(dispatch.py:67/71)、『免運看折前+稅在折後/運費不課稅』(pricing.py:55-60)皆正確;另核對『dispatch不對稱』屬實。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "pipeline.py:44=def process、pricing.py:57=折前小計判免運、inventory.py:68-71=過期重建+reprice_required,三處皆存在且支持。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    },
+    {
+      "id": 7,
+      "correct": true
+    },
+    {
+      "id": 8,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": false
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": false
+      },
+      {
+        "id": 7,
+        "correct": true
+      },
+      {
+        "id": 8,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 5,
+    "coherence": 5,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "免運門檻檢查折扣前小計,折扣不影響運費資格(⚠️段+階段三規則4,pricing.py:57)",
+      "計價讀 reservation 捕捉的單價快照,非原始訂單/當前型錄;重建後總價可能改變(intro+階段三+TTL邊界)",
+      "折扣不疊加,只套用符合門檻中優先度最高的一條(階段三規則2,_select_discount)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.125,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 15,
+    "failed": 0,
+    "total": 15,
+    "pass_rate": 1.0
+  },
+  "graders": 2
+}
