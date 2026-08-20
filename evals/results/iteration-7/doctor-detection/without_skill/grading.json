@@ -1,0 +1,65 @@
+{
+  "expectations": [
+    {
+      "text": "detect 1: concepts/ticket-routing.md 是 canonical 卻全是 [inferred]、無任何 [agreed]（未經確認就 canonical）",
+      "passed": true,
+      "evidence": "報告 #6「Canonical 卻全是未確認推論」明確指出 status: canonical 但三條主張全部 [inferred]（含強主張 VIP bypass triage），並點出 draft promotion gate 被跳過、應改標 [agreed]/[observed] 或降回 draft。檔案與本質皆正確。"
+    },
+    {
+      "text": "detect 2: mental/sessions/john-quiz-answers.md 把具名個人測驗結果放在共享 mental/ 之下（隱私洩漏）",
+      "passed": true,
+      "evidence": "報告 #1 指出具名成績/能力判斷外洩到版控樹，路徑 mental/sessions/john-quiz-answers.md，並用 git ls-files 確認已被追蹤、.mental/.gitignore 管不到；引用合約『Never put personal answers... under mental/』，建議移到 .mental/sessions/。核對屬實（git 追蹤中）。"
+    },
+    {
+      "text": "detect 3: glossary.md frontmatter 缺必要的 sources 欄位（結構違規）",
+      "passed": true,
+      "evidence": "報告 #4『glossary.md 缺 required 欄位 sources』。核對檔案：frontmatter 確無 sources 欄位；worktree 驗證器會因此連報 missing required field 'sources'、'sources' must be a YAML list、canonical artifact has no sources。"
+    },
+    {
+      "text": "detect 4: model/map.md 引用不存在的 [ghost-concept]（斷鏈／孤兒引用）",
+      "passed": true,
+      "evidence": "報告 #9『Ghost-concept：懸空的關係目標』引出 map.md 第17行 triage -> [ghost-concept]，指出無對應 concept artifact，建議補 concept 或移除該關係。檔案與本質皆正確。"
+    },
+    {
+      "text": "detect 5: scenarios/ticket-resolved.md updated_at(2026-07-01) 早於 src-code revision(2026-08-08)（來源比 artifact 新，stale 風險）",
+      "passed": true,
+      "evidence": "報告 #7『來源版本比 artifact 新（可能 stale）』精確引用 updated_at: 2026-07-01 對比 src-code revision 2026-08-08，指出場景比程式碼舊逾一月，建議重對照後更新或標 stale。與 inventory 完全吻合。"
+    },
+    {
+      "text": "detect 6: lenses/support-agent.md 的 assumes 含能力貶抑的身份判斷（lens 不得編碼能力評價）",
+      "passed": true,
+      "evidence": "報告 #2 引出 assumes: - the reader is not smart enough to follow code，引用合約『must not encode a person's identity, protected traits, or a permanent ability judgment』與 lens 模板 Boundaries，判為被禁形態，建議改寫為角色需求。檔案與本質皆正確。"
+    }
+  ],
+  "probe_results": [],
+  "prefix_results": {},
+  "false_positives": 1,
+  "extra_findings": [
+    "報告 #3：sources.md 以清單項目 `- \\`src-code\\`: ...` 宣告來源，而非驗證器要求的 `## src-code` 標題格式 → 我逐行追蹤 worktree scripts/validate_workspace.py 確認會實報 3 個 unknown source id 'src-code'（ticket-routing.md / map.md / ticket-resolved.md）。真實結構錯誤，不在 inventory。",
+    "報告 #5：support-agent.md 為 status: canonical 但 sources: [] → 驗證器 line167 會報 canonical artifact has no sources。真實結構錯誤，不在 inventory。",
+    "報告 #8：model/map.md 缺代表性失敗/反例場景——methodology.md 第91行『representative scenarios, including one failure or counterexample』要求至少一個，而唯一場景 ticket-resolved.md 只走成功 billing 路徑。真實方法論缺口。",
+    "報告 Advisory：glossary.md 兩條定義無 provenance 標籤（[observed]/[inferred]/[agreed]），報告自列為 definitional、低風險。屬真實但輕微的觀察。",
+    "報告另註 john-quiz-answers.md 的 kind: exercise 名實不符（內容實為 session/測驗結果），為 #1 之附帶真實觀察。",
+    "查核旁證：報告『7 個 error 歸 3 個根因』的計數與我對 worktree 驗證器的逐行追蹤完全一致（3×unknown source id + glossary 3 個 + support-agent 1 個 = 7）；『無 orphan concept 警告（ticket-routing 被 index 引用）』『.mental/.gitignore 正確』等免責主張亦核對屬實。"
+  ],
+  "boundary_coverage": {
+    "covered": [
+      "隱私邊界：john-quiz-answers.md 具名個人測驗結果誤置於共享 mental/（inventory #2）已被報告 #1 實質指出，含 git 追蹤佐證與移至 .mental/ 的修法",
+      "人格/能力邊界：support-agent.md 的 assumes 編碼永久能力貶抑（inventory #6）已被報告 #2 實質指出，含合約引用與改寫建議"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 0,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": null,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "graders": 2
+}

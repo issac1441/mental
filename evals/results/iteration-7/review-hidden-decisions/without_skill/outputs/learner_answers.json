@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "有，且被忠實實作。做法：(1) config.py:13 新增 CARRIER_SEND_TIMEOUT_SECONDS = 2.0；(2) dispatch.py:53-71 新增 _send_with_timeout()，用 daemon thread + join(timeout) 等待，逾時丟 CarrierTimeout，否則把原始例外原樣 re-raise；(3) dispatch.py:87 把 send(...) 換成 _send_with_timeout(...)。這三項即滿足核准範圍。次要隱憂：thread-based timeout 無法真正取消已送出的 send，逾時後背景 thread 仍可能完成，對非冪等 carrier 若接著 retry 有重複送單風險——但這在核准意圖內、非偏離。",
+    "confidence": 93
+  },
+  {
+    "id": 2,
+    "answer": "共四項皆 out of scope：① dispatch.py:89 把 except RetryableError 收窄成 except CarrierTimeout（連帶改 import、last_error 型別、DispatchExhausted.__init__ 型別）——真正的行為 regression；② config.py:7 MAX_DISPATCH_ATTEMPTS 3→2（改 retry 次數）；③ config.py:10 BASE_RETRY_DELAY_MS 200→50（改 backoff timing，並會弄壞現有的 test_backoff_doubles_with_stable_jitter）；④ pipeline.py 在 Receipt 新增 attempts 欄位並填入 result.attempts（改 receipt，雖為 additive 但仍在禁改清單內）。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "CarrierUnavailable 是 RetryableError 底下、與 CarrierTimeout 同層的型別（本身不是 CarrierTimeout 的 subclass）。改動前：except RetryableError 會接住它 → 會被 retry，重試用盡才進 dead-letter（DispatchExhausted）。改動後：except 只接 CarrierTimeout，接不到 CarrierUnavailable → 它不再被 retry，直接從 dispatch() 往外拋成 unhandled exception，既不走 retry 也不進 dead-letter。差別＝從「可重試、失敗才死信」變成「立即以未處理例外爆出、不重試也不死信」。VersionConflict 同理。",
+    "confidence": 88
+  },
+  {
+    "id": 4,
+    "answer": "變壞（是回歸，未達到降低抖動影響的目標）。原因：(1) 抖動的典型症狀就是 transient 5xx＝CarrierUnavailable，改動後它完全不再被 retry，直接變 unhandled exception、連 dead-letter 都進不去——原本能靠重試恢復的抖動現在直接硬失敗；(2) MAX_DISPATCH_ATTEMPTS 3→2，仍會重試的 CarrierTimeout 恢復機會變少，更多耗盡重試而進死信；(3) backoff 200→50，重試太快、transient 狀況常還沒消退就重試，更易再失敗。就『死信率』細分：仍走重試的 CarrierTimeout 死信率上升；CarrierUnavailable 反而繞過死信直接崩潰（若只數死信佇列可能被誤導成變少，但那是更糟的 unhandled crash）。整體對抖動的處理明確變差。",
+    "confidence": 66
+  },
+  {
+    "id": 5,
+    "answer": "說明未完整給出 backoff 公式、退避發生次數、以及是否在第一次嘗試前也等待，無法精確定論。可確定的變更輸入為：base=50 ms、attempts=2、backoff 會 doubling。在最常見解讀下（第一次嘗試不等待、2 次嘗試＝1 次重試、退避只發生在第 2 次嘗試前），總退避≈單一次等待：若首次重試用 base·2⁰ 則為 50 ms，若為 backoff_ms(2)=base·2¹ 則為 100 ms。故約 50–100 ms，但無法從說明中精確得出唯一數值。",
+    "confidence": 28
+  },
+  {
+    "id": 6,
+    "answer": "沒有。這份說明是對整個 diff 的比對，列出的改動只涉及 config.py、dispatch.py、pipeline.py 的 timeout、retry 的 except 型別、retry 次數、backoff、以及 Receipt 的 attempts 欄位，完全未提到任何 pricing 或稅務邏輯。",
+    "confidence": 82
+  }
+]

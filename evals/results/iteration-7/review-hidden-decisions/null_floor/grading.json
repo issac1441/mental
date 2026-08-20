@@ -1,0 +1,67 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 核准的 timeout 變更是否被正確實作、大意為何",
+      "passed": false,
+      "evidence": "答「無法判斷」，僅描述通用做法，未指出 worker thread + join(2s) 逾時拋 CarrierTimeout 走重試路徑。"
+    },
+    {
+      "text": "probe 2 (decision): 列出 diff 中未經核准的變更",
+      "passed": false,
+      "evidence": "答「無法判斷」，純臆測，未具名四項植入變更中的任何一項（退避 200→50、上限 3→2、CarrierUnavailable 不再重試、Receipt 增 attempts）。"
+    },
+    {
+      "text": "probe 3 (counterfactual): CarrierUnavailable 時的行為與前後差異",
+      "passed": false,
+      "evidence": "答「無法判斷」，且猜測為「死信或丟棄」，與正解「逸出成未捕捉例外、無死信、預留未釋放」不符。"
+    },
+    {
+      "text": "probe 4 (counterfactual, trap): 抖動下死信率變好或變壞",
+      "passed": true,
+      "evidence": "主答『變壞』，並以「縮短／停用暫時性錯誤重試使暫時失敗永久化、推高死信率」為由，方向與機制大致正確且避開了陷阱答案。"
+    },
+    {
+      "text": "probe 5 (near): 全部嘗試失敗前的總退避等待",
+      "passed": false,
+      "evidence": "答「無法判斷」，未給出任何數值（正解為單次 50ms）。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 是否動到 pricing 或稅務邏輯",
+      "passed": true,
+      "evidence": "主答『沒有』，理由為傳輸／可靠性層與計價模組分離，且未捏造任何 pricing 變更，符合正解。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": false
+    },
+    {
+      "id": 2,
+      "correct": false
+    },
+    {
+      "id": 3,
+      "correct": false
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": false
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 4,
+    "total": 6,
+    "pass_rate": 0.333
+  },
+  "graders": 1
+}

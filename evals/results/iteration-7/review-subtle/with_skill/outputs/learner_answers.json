@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "answer": "有,核准的 timeout 主線有被忠實實作:新增 `CARRIER_SEND_TIMEOUT_SECONDS = 2.0`(config.py:12-13),並用 `_send_with_timeout` 把 send 包一層(dispatch.py:53-71),send 丟到 daemon thread 用 `join(2s)` 等待,逾時拋 `CarrierTimeout`(屬 RetryableError)走既有重試路徑。retry 次數(MAX_DISPATCH_ATTEMPTS=3)、backoff 與 jitter 都未被動過(表格判定為相符)。",
+    "confidence": 97
+  },
+  {
+    "id": 2,
+    "answer": "有,超出核准範圍的行為變更有兩個:(1) dispatch 迴圈新增 `except Exception`(dispatch.py:91-92),把所有非 retryable 例外(含 FatalError)也包成 `CarrierTimeout` 重試、最終 dead-letter,擴大了可重試錯誤集合並改變 dead-letter 內容;(2) 逾時的 send 執行緒不會被取消,worker 會在背景繼續跑完真正的 send,帶來重複投遞風險。核准書明列這兩類(可重試錯誤類型、dead-letter 行為)為 out of scope,故屬未核准的變更/隱藏決策。",
+    "confidence": 96
+  },
+  {
+    "id": 3,
+    "answer": "改動後:TypeError 不是 RetryableError,不會被 `except RetryableError` 接住,而是落到新增的 `except Exception`,被包成 `CarrierTimeout`,重試 3 次(MAX_DISPATCH_ATTEMPTS=3)後拋 `DispatchExhausted`,pipeline 釋放庫存並回 `dead_lettered` receipt(與 Fatal/ValueError/ConnectionError 等非 OrderError 例外同一條路徑)。改動前:迴圈只有 `except RetryableError`,TypeError 不會被接,依 docstring 契約(只有 RetryableError 會重試,其餘立即往外拋)立即往外拋,不重試也不 dead-letter,整條 pipeline.process 會拋出該例外。",
+    "confidence": 86
+  },
+  {
+    "id": 4,
+    "answer": "不對。說明明確指出這個 diff 夾帶了未經核准且違反既有 contract 的變更——至少包含 `except Exception` catch-all(讓 FatalError 變成可重試並最終 dead-letter)以及不取消 in-flight send(重複投遞風險)。因此『完全符合 brief、沒有任何未核准變更』的說法是錯的。",
+    "confidence": 97
+  },
+  {
+    "id": 5,
+    "answer": "說明中沒有提到 diff 有修改 Receipt 的欄位。dead-letter 的補償機制本身(釋放庫存並回 `dead_lettered` receipt,位於 pipeline.py:59-67)是既有路徑,並未被直接改動。但 diff 間接改變了『哪些錯誤會進入 dead-letter』:因新增的 `except Exception`,fatal/非 retryable 錯誤現在也會被重試後 dead-letter,審核把這個效果標為逾越核准範圍。結論:Receipt 欄位未改(說明未提及);補償機制未直接改,但實際進入 dead-letter 的錯誤集合有變。",
+    "confidence": 80
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "多等約 2.4 秒（2400 毫秒，不含 jitter）。A 把嘗試從 3 次增為 5 次，多出的第 4、5 次嘗試各自 backoff 為 BASE·2^(4-2)=800ms 與 BASE·2^(5-2)=1600ms（BASE=200ms），合計 2400ms；與說明中所述『約 2.4 秒』一致。",
+    "confidence": 90
+  },
+  {
+    "id": 2,
+    "answer": "說明中沒有提到。文件在描述 reservation rebuild 分支處即被截斷；雖提到已讀過全部測試，但並未點名任何一個會失敗的既有測試、也未說明原因，故無法從可見內容確定。",
+    "confidence": 60
+  },
+  {
+    "id": 3,
+    "answer": "被保留的庫存不會被還回 catalog，會持續被占住（形同洩漏/卡住）。因為 B 就是不呼叫 release()，而 release() 是唯一把庫存還回 catalog 並刪除 reservation 的動作；人工若始終不處理，就沒有新的 reserve() 觸發 rebuild、也沒有其他路徑呼叫 release，庫存便一直被扣住。（註：120 秒 TTL 只影響日後有新 reserve() 時的 rebuild 分支，其細節正好在截斷處，故此點有不確定性。）",
+    "confidence": 55
+  },
+  {
+    "id": 4,
+    "answer": "選項 B。它引入了『照字面不呼叫 release』與現有 120 秒 reservation TTL 交互所產生的庫存重複扣減隱藏 bug——必須決定 TTL／人工重派時機／庫存對帳要如何處理，不能只是拿掉 release。A 則是界限明確、成本可量化的參數調整，未引入新的待決策。",
+    "confidence": 50
+  },
+  {
+    "id": 5,
+    "answer": "沒有影響（依說明的直接推論）。A 只是把重試上限由 3 改為 5，用盡後仍丟 DispatchExhausted、走 dead-letter 並回 dead_lettered receipt，收據形狀與失敗語意不變；改變的只是重試次數，連帶影響尾端延遲（+2.4s）與死信率。",
+    "confidence": 60
+  },
+  {
+    "id": 6,
+    "answer": "沒有。提案只有 A（重試 3→5）與 B（不釋放庫存），兩者都沒有更動 jitter 演算法；A 的額外嘗試仍沿用現有 backoff 公式中的 jitter(0–99ms)，B 根本不動 dispatch。第 1 題也特別註明『不含 jitter』，顯示 jitter 維持原樣。",
+    "confidence": 70
+  }
+]
