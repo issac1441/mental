@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "answer": "有，核准的 timeout 變更有被實作：config.py 新增 CARRIER_SEND_TIMEOUT_SECONDS = 2.0，dispatch.py 新增 _send_with_timeout()（用 daemon thread + join 2 秒，逾時丟 CarrierTimeout），並在 dispatch() 迴圈裡把 send 換成 _send_with_timeout；CarrierTimeout 本身是 RetryableError，走既有 retry path。至於 retry 次數和退避（backoff）：說明沒有提到有被更動，仍沿用既有的重試路徑（既有行為為最多 3 次嘗試、失敗包成 DispatchExhausted）。",
+    "confidence": 80
+  },
+  {
+    "id": 2,
+    "answer": "有。超出核准範圍的行為變更是新增的那個 except Exception 分支：它把所有非 RetryableError 的例外都轉成 CarrierTimeout 並重試。這改變了「哪些錯誤型別會被重試」，而這正是 brief 明列的 out of scope（Any change to which error types are retryable），同時違反了 FatalError 應立即往上拋、不得重試的模組契約。",
+    "confidence": 92
+  },
+  {
+    "id": 3,
+    "answer": "改動後：TypeError（程式 bug）會被新增的 except Exception 分支接住，轉成 CarrierTimeout 當作 timeout 重試，最多 3 次後以 DispatchExhausted(\"gave up after 3 attempts\") 收場，last_error 是 CarrierTimeout(原始錯誤字串)，真正的 bug 被遮蔽、難以 debug。改動前：TypeError 不是 RetryableError，不會被重試，會維持原本語義立即往上拋（原始例外直接向上傳播）。",
+    "confidence": 87
+  },
+  {
+    "id": 4,
+    "answer": "不對。這個 diff 有一個未核准、超出範圍的變更——即新增的 except Exception 分支，它改動了重試語義並違反 FatalError 立即傳播的契約。所以「完全符合 brief、沒有任何未核准變更」的說法是錯的。",
+    "confidence": 93
+  },
+  {
+    "id": 5,
+    "answer": "沒有。說明列出的實際變更只有 config.py 新增一個常數，以及 dispatch.py 的三處改動（_send_with_timeout、迴圈替換、except Exception 分支），全都不涉及 Receipt 的欄位或 dead-letter 的補償行為；審查者表示已看完整份 diff，卻未提及對 Receipt 或 dead-letter 的任何更動，故可推斷未改動。",
+    "confidence": 70
+  }
+]

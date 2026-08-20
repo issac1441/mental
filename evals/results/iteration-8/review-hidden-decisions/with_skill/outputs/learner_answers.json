@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "有,核准的 timeout 本身有被實作。做法:config 新增 CARRIER_SEND_TIMEOUT_SECONDS = 2.0,並新增 _send_with_timeout——用一條 daemon thread 執行 send,以 worker.join(2.0) 等待,逾時就丟 CarrierTimeout;CarrierTimeout 是 RetryableError 的子類,且改動後的 except CarrierTimeout 仍抓得到它,所以 timeout 依然會走既有重試路徑。但實作有兩個問題:(a) 逾時無法真正取消那條背景 send thread(只是「不再等」),(b) 順帶夾帶了未核准的副作用,因此整體 diff 不符 brief 的「timeout only, semantics otherwise unchanged」。就 timeout 這一項功能而言算有做到。",
+    "confidence": 85
+  },
+  {
+    "id": 2,
+    "answer": "共四項未核准變更:(1) MAX_DISPATCH_ATTEMPTS 3→2(config.py:7,改到重試次數);(2) BASE_RETRY_DELAY_MS 200→50(config.py:10,改到退避時間);(3) 重試的 except 從 RetryableError 收窄成只抓 CarrierTimeout(dispatch.py:89,改到「哪些錯誤可重試」);(4) Receipt 新增 attempts 欄位(pipeline.py:36、75,改到收據介面)。這四項在 brief 都被列為明訂 out of scope。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "改動後 CarrierUnavailable(暫時性 5xx)不再被重試:except CarrierTimeout 抓不到它,_send_with_timeout 會原樣 re-raise,dispatch 不再攔截,而 pipeline.process 只接 DispatchExhausted,所以這個裸的 CarrierUnavailable 會一路穿出 process,以未捕捉例外的形式拋給呼叫端。改動前的 except RetryableError 會攔到它並走重試路徑,重試耗盡後 dead-letter,呼叫端拿到的是收據而非例外。差別:從「會重試→耗盡則 dead-letter→回收據」變成「完全不重試→直接以例外衝出 pipeline」。",
+    "confidence": 92
+  },
+  {
+    "id": 4,
+    "answer": "變壞。理由:重試次數由 3→2、退避基底由 200→50ms,暫時性抖動能用來自行恢復的次數更少、等待時間更短,因此仍走重試路徑的 CarrierTimeout 更容易在抖動還沒過去前就耗盡重試而進入死信,死信率上升;而 CarrierUnavailable 情況更糟——它根本不再進重試/死信路徑,而是以未捕捉例外逸出(結果比 dead-letter 還差)。整體對暫時性故障的韌性下降,與「降低抖動影響」的目標背道而馳。(說明中未明文寫出 brief 的目標即為此,故此題含少量詮釋。)",
+    "confidence": 70
+  },
+  {
+    "id": 5,
+    "answer": "50ms(不含 jitter)。改動後 MAX_DISPATCH_ATTEMPTS = 2,只有 1 次重試,故只有一段退避等待;BASE_RETRY_DELAY_MS = 50,該次重試前的退避降到約 50–149ms(即 50 + jitter,jitter∈[0,99])。扣掉 jitter 的基底即 50ms,總退避 = 50ms。",
+    "confidence": 84
+  },
+  {
+    "id": 6,
+    "answer": "沒有動到。審查以「拿到 full diff」為前提列出此 diff 的全部變更——1 項核准(2 秒 timeout)加 4 項未核准(retry 次數、backoff、except 收窄、Receipt.attempts),全部落在 dispatch.py / config.py / pipeline.py 的送件、重試與收據邏輯,均與 pricing 或稅務無關;說明全文也未提及任何 pricing 或稅務變更。",
+    "confidence": 80
+  }
+]

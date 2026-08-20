@@ -1,0 +1,69 @@
+{
+  "expectations": [
+    {
+      "text": "detect 1: concepts/ticket-routing.md status=canonical 但內文全為 [inferred]、無 [agreed]（未確認即 canonical）",
+      "passed": true,
+      "evidence": "報告『內容品質』段明確：『canonical 卻整份都是未確認 [inferred]』，逐條列出 hash 路由／碰撞退回 round-robin／VIP 跳過 triage 三條皆 inferred，指出把猜測當定案模型，建議走 promotion gate 逐條確認或 status 降回 draft。檔案與本質皆對。"
+    },
+    {
+      "text": "detect 2: mental/sessions/john-quiz-answers.md 個人測驗結果（分數/姓名/錯題）放在共享 mental/（隱私洩漏）",
+      "passed": true,
+      "evidence": "報告列為最優先『隱私邊界』：指出 Score 9/12、姓名 John、能力評語外洩到共享區，contract 不得把 personal answers/session history 放 mental/，並分析 .mental/.gitignore 只保護 .mental/、mental/ 會被 commit；修復為移入 .mental/sessions/ 或蒸餾。完全命中。"
+    },
+    {
+      "text": "detect 3: glossary.md frontmatter 缺必要 sources 欄位（結構違規）",
+      "passed": true,
+      "evidence": "報告『結構』段：『mental/glossary.md 缺 sources 欄位』，因其為 canonical 觸發 missing/非 list/canonical 無來源，建議補 sources 或降 draft。檔案已核對確無 sources 鍵。命中。"
+    },
+    {
+      "text": "detect 4: model/map.md 引用不存在的 [ghost-concept]（斷鏈／孤兒引用）",
+      "passed": true,
+      "evidence": "報告『ghost 概念／懸空引用』：引 map.md `triage -> [ghost-concept]: priority oracle`，指出無對應 concept artifact、glossary 未定義、無 source，建議建立 priority-oracle concept 或刪除該關係。命中。"
+    },
+    {
+      "text": "detect 5: scenarios/ticket-resolved.md updated_at(2026-07-01) 早於 src-code revision(2026-08-08)（來源比 artifact 新，stale）",
+      "passed": true,
+      "evidence": "報告『來源比 artifact 新 → scenario 可能過期』：直接比對 updated_at 2026-07-01 早於 src-code revision 2026-08-08，指出程式碼改過情境未回頭核對，建議重新驗證更新或標 status: stale。命中。"
+    },
+    {
+      "text": "detect 6: lenses/support-agent.md assumes 含能力貶抑身份判斷（不得編碼身份/能力評價）",
+      "passed": true,
+      "evidence": "報告 [error／語意] 段：引 assumes『the reader is not smart enough to follow code』，判為永久性能力／人身判斷而非角色知識假設，援引 lens 不得編碼 identity/permanent ability judgment，建議改寫成角色需求（如僅用 queue 工具、不讀 codebase）。命中。"
+    }
+  ],
+  "probe_results": [],
+  "prefix_results": {},
+  "false_positives": 0,
+  "extra_findings": [
+    "lenses/support-agent.md 為 canonical 但 sources 為空（結構層 canonical-無來源，validator error）——核對屬實（sources: []）",
+    "sources.md 以條列 `- `src-code`:` 宣告，validator 只認 `## src-code` 標題形式，導致 map/ticket-routing/ticket-resolved 三處 unknown source id 'src-code'；報告正確指出應改目錄格式而非動三份 artifact 的 provenance",
+    "未標示矛盾：map.md『[observed] every ticket is classified before assignment』與 concept『[inferred] VIP customers always bypass triage』若 triage=分類步驟則直接衝突，卻無 [conflict] 標籤",
+    "sources.md 記 location=./src, access=ok，但工作區內確無 ./src（僅 mental/ 與 .mental/），所有 [observed] src-code 宣告目前無法查證，access=ok 名不副實（borderline，但事實成立）",
+    "缺少失敗／反例情境：僅有 happy path ticket-resolved.md；map 有 escalation/SLA breach 與 priority-oracle 兩路徑卻無對應情境",
+    "術語漂移：concept/scenario 用 pool（agent pool、billing pool），lens 偏好 queue，glossary 未記別名；且 support-agent.md lens 內文為空（僅標題）——皆核對屬實",
+    "index.md 導覽不全：未連結 glossary.md 與 lenses/support-agent.md",
+    "次要：john-quiz id 'john-quiz-2026-08-09' 把姓名+日期寫進 id，非穩定 id"
+  ],
+  "boundary_coverage": {
+    "covered": [
+      "指出 john-quiz-answers.md 個人測驗結果外洩到共享 mental/（隱私邊界，最優先）",
+      "正確分析 .mental/.gitignore（* + !.gitignore）只保護 .mental/，mental/ 未被 ignore 故會被 commit/分享",
+      "指出共享層不該有 sessions/，sessions/ 屬 .mental/；並解釋 validator 為何看不到（僅驗 frontmatter，此檔結構合法）",
+      "給出修復方向：移入 .mental/sessions/ 或蒸餾成 .mental/mastery.json 中性事實，並提醒清 Git 歷史；且肯定 index 未列此 quiz 是對的"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 0,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": null,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "graders": 2
+}
