@@ -1,0 +1,12 @@
+{
+  "learn": {
+    "tokens": 24787,
+    "duration_ms": 62507,
+    "calls": 1
+  },
+  "grade": {
+    "tokens": 37820,
+    "duration_ms": 138173,
+    "calls": 1
+  }
+}

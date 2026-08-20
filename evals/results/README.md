@@ -23,6 +23,14 @@
 - 種子沿用規則：floors、bare change、doctor 由 iteration-7 拷貝（輸入未變）。
 - Floor 訊號：review 案 floor 2/6、0/5（高鑑別）；change 案 floor 4/6、5/6（部分可推理猜中，probe 需再 code-bound 化）。
 
+## learn / practice 多輪首跑（iteration-12，`run_dialogue_eval.py`）
+
+- 協定驗證通過：`claude -p --resume` 多輪、腳本化迷思學習者、逐字稿契約檢核、獨立後測 learner、floor 全管線串通。
+- **learn-pricing**：skill 組 **9/9**；裸組 8/9——唯一失分正是 learn 教義的核心鑑別項：裸導師第一輪直接倒滿整套課（模型＋對照表＋完整範例）再出題，無「診斷 2–5 題先停」。skill 組第一輪＝主題錨定＋明說「先不給答案」＋三題診斷＋停等。後測兩組 4/4（floor 2/4）。
+- **practice-dispatch**：裸組 9/9；skill 組 8/9——失分經細讀屬**檢核項設計瑕疵**：檢核 2 把「backoff 最小修正」與「jitter 糾正」綁成一條，但 skill 按「一次修一個關係」教義刻意把 jitter 留待下輪（學習者其後自行修正、導師確認）；grader 註明最小修正部分對 dispatch.py:47 核實完美。下輪修正：拆開連言式檢核、將「延後但最終處理」計為合規。後測 4/4（floor 1/4，高鑑別）。
+- 後測 probes 兩案皆兩組 4/4 飽和——只要對話涵蓋主題，後測就可從逐字稿推出；下輪需加「對話未明說、須組合推理」的 transfer 題。
+- 觀察到未被檢核懲罰的不合規：practice 導師開場 readiness declaration（「我已經讀完 dispatch.py…完整掌握」）——已在 practice SKILL.md 補 per-turn answer-first 行（**預防性、本輪未經 eval 驗證**）；下輪 battery 將 no-warm-up 納入 dialogue_checks。
+
 ## sync 漂移偵測首跑（iteration-11）
 
 - 5 個種子漂移＋2 個 conformance 檢查：**兩組全過 7/7、0 誤報**——recall 觸頂（同 doctor 教訓：對被明確指派的「主張對碼」任務，裸 opus-max 就是強審查者）。

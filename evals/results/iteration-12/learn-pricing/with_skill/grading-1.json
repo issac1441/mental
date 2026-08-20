@@ -1,0 +1,75 @@
+{
+  "expectations": [
+    {
+      "text": "dialogue 1: 第一輪先診斷（2-5 題）後停下等待，不倒完整課程",
+      "passed": true,
+      "evidence": "第 1 則提出 Q1（折扣×稅）、Q2（折扣×免運）、Q3（折扣疊加）共 3 題聚焦問題，明說「所以我先不給答案。給我你現在的直覺」「答完這三題，我會…教一小塊，而不是整套倒給你」，停下等回答。"
+    },
+    {
+      "text": "dialogue 2: 教學聚焦學習者暴露的斷裂關係，一次一個連貫塊",
+      "passed": true,
+      "evidence": "第 3 則明確收斂「這一輪我只帶你把免運這條走透；稅和疊加我先擱著」；第 5 則處理稅、第 7 則處理折扣疊加，逐塊推進，未無差別講解 dispatch/inventory 等整個 repo（僅末尾以選項提及）。"
+    },
+    {
+      "text": "dialogue 3: 逐項糾正第二輪試算（免運0/稅315/總額6615）並佐以 pricing.py",
+      "passed": true,
+      "evidence": "針對第 4 則的 6870 錯算，第 5 則用表格逐格糾正：稅 9000×5%=450✗→6300×5%=315✓、運費 6300<8000→120✗→9000≥8000→0✓、總額 6615；引用 `tax = round(discounted * TAX_RATE)`、`if subtotal >= …` 及測試 `total_cents == 6615_00`，與 pricing.py:55/57、測試檔一致。"
+    },
+    {
+      "text": "dialogue 4: 以預測題/teach-back 收尾，且學習者嘗試前不揭答",
+      "passed": true,
+      "evidence": "第 3 則末「換你預測」（$8500 折後 $5950 免運或收 $120）、第 5 則末「再試一張」（$10000→$7000 先講基準）、第 7 則末「換你預測」（把 loyalty-10 priority 改 30）——皆提問後停住，未預先揭露答案。"
+    },
+    {
+      "text": "dialogue 5: 未宣稱寫入 mastery/profile 狀態，未憑空貼能力標籤",
+      "passed": true,
+      "evidence": "全程無「已更新/寫入 mastery」之語；第 1 則反而聲明「此 repo 無 mental/ 模型，我教的是程式碼現況」。對學習者的評語（如第 7 則「你已經接起來了」）均緊扣其第 6 則正確重述，非憑空標籤。"
+    },
+    {
+      "text": "probe 1 (near): 9000 折前小計、30% 折扣後運費多少、為什麼",
+      "passed": true,
+      "evidence": "讀者答 $0、折前 9000≥8000 判定、折後 6300 不影響——與標準答案一致。"
+    },
+    {
+      "text": "probe 2 (retention): 稅以哪個金額計、運費是否課稅",
+      "passed": true,
+      "evidence": "讀者答折後金額計稅（5%）、運費不課稅，並引 `tax = round(discounted * TAX_RATE)`——正確。"
+    },
+    {
+      "text": "probe 3 (retention, trap): 兩折扣同時符合會如何",
+      "passed": true,
+      "evidence": "讀者答只套一條、不疊加，取 priority 最高的 spring-30（20>10），並點出「挑 priority 非挑折最多」——正確且抓到陷阱。"
+    },
+    {
+      "text": "probe 4 (counterfactual): 免運改折後判定，9000 單總額差多少",
+      "passed": true,
+      "evidence": "讀者答多收 $120、6615→6735——與標準答案一致。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    }
+  ],
+  "false_certainty": {
+    "sampled": 2,
+    "wrong_flat": 0,
+    "notes": [
+      "斷言（第 3/5 則）『免運用折扣前原始小計判斷，if subtotal >= FREE_SHIPPING_THRESHOLD_CENTS』：核對 pricing.py:57 條件用的 `subtotal`（line 49 折扣前總和），config.py:16 門檻 8000_00——正確。",
+      "斷言（第 5 則）『稅對折後金額課，tax = round(discounted * TAX_RATE)、TAX_RATE=0.05』：核對 pricing.py:55 對 `discounted`（line 53）課稅、config.py:13 TAX_RATE=0.05，且 total 只加 discounted+tax+shipping（運費不課稅）——正確。"
+    ]
+  }
+}

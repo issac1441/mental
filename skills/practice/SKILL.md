@@ -27,3 +27,5 @@ Scope may be the current change, current session, a change or artifact ID, an ar
 10. Finish with the current state, evidence, remaining gap, and next practice. Acknowledge the concrete ability demonstrated, such as “you predicted both the success path and timeout boundary without a hint,” rather than generic praise.
 
 Never publish personal attempts under `mental/`, assign IQ-like labels, turn subjective confidence into a score, or use a quiz score as a mastery percentage.
+
+Every turn follows the explanation shape in `methodology.md`: open with the task, the verdict on the learner's answer, or the correction itself — never process narration or readiness declarations ("I've read the code and have a full picture").

@@ -1,0 +1,75 @@
+{
+  "expectations": [
+    {
+      "text": "dialogue 1: 先出聚焦任務並停下等待，學習者嘗試前不給解答",
+      "passed": true,
+      "evidence": "第1則以 Q1/Q2/Q3 開放預測題出手（『你用自己的話回答就好，我再逐題對照程式碼』），只給常數 MAX=3、BASE=200 當背景、不揭答案，明確停下等學習者第2則作答。"
+    },
+    {
+      "text": "dialogue 2: 對第一輪給最小修正——指數(n-2)、第2次前等200ms，並糾正 jitter 為 CRC32 確定值非亂數",
+      "passed": true,
+      "evidence": "第3則先肯定『指數退避+翻倍』骨架正確，再只點兩處斷裂：指數是 attempt-2 非 n-1、第2次嘗試前 200×2^0=200 非400（200→400 非 400→800）；並糾正 jitter=zlib.crc32(order_id)%100 為確定值非 random。核對 dispatch.py:47-48 吻合，未重講整個 dispatch。"
+    },
+    {
+      "text": "dialogue 3: 修正後出結構等價新情境驗證，而非同題換句話重問",
+      "passed": true,
+      "evidence": "第7則『變化題』給全新 send 序列（第1次 CarrierTimeout、第2次 ValidationError），問呼叫次數/return-raise/Receipt-例外/庫存釋放——結構等價但屬新情境，刻意測 dead-letter『不收例外』的邊界，非同題重問。"
+    },
+    {
+      "text": "dialogue 4: 糾正 dead-letter 誤解（catch/釋放庫存/入死信/回 dead_lettered Receipt、呼叫端無例外），以 pipeline.py 佐證",
+      "passed": true,
+      "evidence": "第5則糾正第4則『直接拋給呼叫端』的誤解：process() 不上拋，而是 except DispatchExhausted 接住→inventory.release→append dead_letters→return status=dead_lettered Receipt、呼叫端不需 try/except；明確引 pipeline.py 61-67 行，與程式完全一致。"
+    },
+    {
+      "text": "dialogue 5: 未在答對前宣告掌握/verified，未宣稱寫入 mastery 檔",
+      "passed": true,
+      "evidence": "所有 ✅／『成立』皆落在學習者答對之後（第5則確認接第4則正解、第7則『六點都成立』接第6則正確總結）；全程無任何『已寫入 mastery／已 verified』宣稱，環境維持唯讀。"
+    },
+    {
+      "text": "probe 1: 第3次嘗試前固定等待與公式",
+      "passed": true,
+      "evidence": "答 400ms、公式 200×2^(attempt-2)、attempt=3→400，與標準答案完全一致。"
+    },
+    {
+      "text": "probe 2 (trap): MAX_DISPATCH_ATTEMPTS=3 是總3次或3次重試",
+      "passed": true,
+      "evidence": "答『總共3次嘗試（含第一次）、只有2次退避』，正確避開『3重試+第一次共4次』陷阱。"
+    },
+    {
+      "text": "probe 3: 全部失敗後呼叫 process() 端看到什麼",
+      "passed": true,
+      "evidence": "答 status=dead_lettered 的 Receipt、非例外、庫存已釋放、訂單入死信佇列，涵蓋標準答案全部關鍵事實。"
+    },
+    {
+      "text": "probe 4: jitter 產生方式與同單兩次是否相同",
+      "passed": true,
+      "evidence": "答 zlib.crc32(order_id)%100、確定性、只依 order_id（與 attempt 無關）、同單兩次相同，與標準答案一致。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    }
+  ],
+  "false_certainty": {
+    "sampled": 2,
+    "wrong_flat": 0,
+    "notes": [
+      "斷言①（第3則）：退避=BASE×2^(attempt-2)，attempt 從1起、attempt=1不sleep，故第2次前200、第3次前400，是 200→400 非 400→800。核對 dispatch.py:47 `base = BASE_RETRY_DELAY_MS * (2 ** (attempt - 2))`、dispatch.py:62 `if attempt > 1`、config BASE=200：正確。",
+      "斷言②（第3則）：jitter=zlib.crc32(order_id)%100，0-99ms、確定性、只跟 order_id 有關與 attempt 無關、同單每次相同。核對 dispatch.py:48 `jitter = zlib.crc32(order_id.encode()) % 100`：正確。"
+    ]
+  }
+}

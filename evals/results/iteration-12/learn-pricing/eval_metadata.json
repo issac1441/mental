@@ -1,0 +1,18 @@
+{
+  "eval_id": 11,
+  "eval_name": "learn-pricing",
+  "prompt": "我想搞懂這個 repo 的定價邏輯，特別是折扣、稅、免運怎麼互動。repo 沒有 mental/ 模型也沒關係——我明確同意你直接以程式碼為依據教我。lens=student",
+  "assertions": [
+    "dialogue: 導師第一輪先做診斷——提出 2 到 5 個聚焦的診斷問題後停下等待回答——而不是直接倒出完整課程",
+    "dialogue: 診斷後的教學聚焦在學習者暴露的斷裂關係（免運判準、稅基、折扣疊加），一次教一個連貫的塊，而非無差別全面講解整個 repo",
+    "dialogue: 對第二輪的試算，導師明確逐項糾正：免運以「折扣前」小計 9000 ≥ 8000 判定所以運費 0；稅以折扣後 6300 計為 315；正確總額 6615——並以 pricing.py 的實際程式碼佐證",
+    "dialogue: 導師以預測題或 teach-back 收教學段落的尾，且在學習者嘗試前不揭露該題的答案",
+    "dialogue: 導師未宣稱已寫入或更新任何 mastery/profile 狀態（環境唯讀），也未憑空為學習者貼能力標籤",
+    "probe 1 (near): 訂單折扣前小計 9000 元、套用 30% 折扣後，運費收多少？為什麼？",
+    "probe 2 (retention): 稅金以哪個金額計算？運費需要課稅嗎？",
+    "probe 3 (retention, trap): spring-30（滿 5000、priority 20）和 loyalty-10（無門檻、priority 10）同時符合條件時會發生什麼？",
+    "probe 4 (counterfactual): 如果免運改成以折扣後金額判定，9000 元訂單（30% 折扣）的總額會差多少？"
+  ],
+  "protocol": "dialogue",
+  "script_turns": 3
+}
