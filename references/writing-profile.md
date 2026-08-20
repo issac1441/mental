@@ -29,7 +29,10 @@ Use this reference for user-visible responses and generated artifacts. The profi
 
 ## Technical-description profile
 
-- Give information gradually: anchor, relationships, scenario, boundary, evidence.
+- Open with the direct answer; put supporting detail after it.
+- Give information gradually: purpose and intuition, then relationships, then mechanism, then exact evidence — as a flow, not as labeled sections.
+- Organize by the subject's own structure; never use framework or process vocabulary as headings.
+- Define a term at first use or choose a plainer one; never make the reader decode labels invented mid-answer.
 - Keep one main topic in each sentence or paragraph when practical.
 - Keep English sentences short. Treat 25 words as a review signal, not a hard validator rule.
 - Link related sentences with stable key terms instead of unnecessary synonyms.

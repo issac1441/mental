@@ -47,6 +47,8 @@ Views are fixed semantic slices and may be combined. Preserve this vocabulary so
 
 Choose only the Views needed to answer the current question. Manual input accepts a comma-separated multi-selection such as `views=map,scenario,evidence`.
 
+Views select content; they are not an output format. Never render View names as section headers or deliver one section per View — see Explanation shape below.
+
 ### Detail
 
 Detail controls density inside the selected Views:
@@ -90,6 +92,18 @@ A useful model contains only what improves prediction:
 
 C4-style structure answers **what exists**. Runtime scenarios answer **what happens**. Decision records answer **why this shape was chosen**. Do not collapse these into a single large document.
 
+## Explanation shape
+
+Lens, Views, and Detail decide what an explanation contains. The subject decides how it reads. The test of an explanation is transfer — how quickly the reader gains a model that predicts — not how visibly the framework was applied.
+
+- Open with the direct answer: two to four sentences that would be true and useful if the reader stopped there.
+- Organize by the subject's own structure. A runtime question follows the path of execution; an architecture question groups by component and responsibility; a "why" question follows the causal chain; a comparison is organized by the decision.
+- Never use View names or other framework vocabulary as section headers. Apply the selected Views as a completeness checklist while writing: purpose stated, relationships shown, cause explained, one concrete case walked through, claims traceable. Weave a missing piece in where the narrative needs it.
+- Order content shallow to deep. Each section refines what came before instead of depending on what comes after, so the reader can stop at any point with a correct partial model.
+- Ground every abstraction. A claim about behavior points to a path, test, command, or quoted source. One concrete scenario belongs inside the narrative, not appended as ceremony.
+- Include the boundary or failure that prevents the most likely overgeneralization.
+- Keep bookkeeping out of the reader's way. Evidence sits beside the claims or in a compact footer; the Lens, Views, and Detail report is one closing line, not an opening header; provenance labels mark genuinely uncertain or conflicting claims, not every sentence.
+
 ## Change workflow
 
 The recommended repository lifecycle is:
@@ -112,4 +126,4 @@ Use `practice` for adaptive coaching and `quiz` for a complete bounded assessmen
 
 ## Presentation
 
-Apply `writing-profile.md` to user-visible responses and generated artifacts. Use the procedure profile for actions and approval gates, the technical-description profile for models and reviews, and the learning profile for lessons, practice, and quizzes. Follow the user's language. Do not trade away uncertainty, evidence, or boundary conditions to make text shorter.
+Apply `writing-profile.md` to user-visible responses and generated artifacts. Use the procedure profile for actions and approval gates, the technical-description profile for models and reviews, and the learning profile for lessons, practice, and quizzes. Explanatory responses also follow Explanation shape above. Follow the user's language. Do not trade away uncertainty, evidence, or boundary conditions to make text shorter — cut ceremony and framework display instead.

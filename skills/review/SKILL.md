@@ -24,6 +24,6 @@ Give the operator a mental model of what actually changed, then audit whether it
 
 ## Response contract
 
-Return `Actual Change Mental Model`, `Proposed vs Actual`, `Findings`, `Decision Surprises`, `Evidence`, and `Open Questions`. If there are no findings, say so and name residual evidence gaps.
+Open with two or three plain-language sentences stating what actually changed and whether it matches what was agreed — a reader who stops there should already have the verdict. Then return `Actual Change Mental Model`, `Proposed vs Actual`, `Findings`, `Decision Surprises`, `Evidence`, and `Open Questions`. If there are no findings, say so and name residual evidence gaps.
 
 Do not update artifacts, mastery, source files, code, or Git state. Suggest `$quiz` when the operator wants to verify their own understanding and `$sync` when implementation evidence makes the canonical model stale.

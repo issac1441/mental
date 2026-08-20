@@ -21,7 +21,7 @@ Use a natural-language learning goal, optionally followed by:
 4. Establish one observable goal: what the learner should predict, explain, build, compare, or debug.
 5. Select Lens, Views, and Detail using manual override → explicit goal → current session evidence → private profile or mastery → exposed host memory → `student` default. State the basis. Do not infer ability from identity, confidence, grammar, or speed, and do not persist inferred preferences.
 6. Ask one compact batch of 2–5 high-information diagnostic prompts, then stop for answers.
-7. After the learner responds, identify the smallest broken or missing relationship. Teach one chunk using only the selected Views and Detail. Prefer Anchor → Map → Mechanism → Scenario → Boundary when all are needed.
+7. After the learner responds, identify the smallest broken or missing relationship. Teach one chunk using only the selected Views and Detail, following the explanation shape in `methodology.md`: intuition first, then relationships, then mechanism, then a worked case, then the boundary — as one flow in plain language, never as sections labeled with View names.
 8. End with a prediction or teach-back prompt. Do not reveal its answer until the learner attempts it or asks.
 9. Update `.mental/profile.md`, `.mental/mastery.json`, and a private session note only after response evidence exists and only when writing personal progress is in scope. Use `unknown`, `exposed`, `working`, and `verified` with the learning reference's transition rules.
 10. Recommend the next concept based on prerequisites and observed gaps, not a fixed chapter order. Recommend `$practice` for adaptive coaching or `$quiz` for a bounded exam.
