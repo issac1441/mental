@@ -41,10 +41,13 @@
 ```sh
 python3 evals/run_eval.py \
   --workspace /tmp/mental-eval \
-  --iteration 1 \
+  --iteration 2 \
   --arms with_skill,old_skill,without_skill \
-  --old-skill-path /path/to/skill-snapshot/skills/understand/SKILL.md
+  --old-skill-path /path/to/skill-snapshot/skills/understand/SKILL.md \
+  --graders 2
 ```
+
+v2 battery（[metrics-v2.md](metrics-v2.md) 的 standard 配置）：分層 probe（retention/near/counterfactual/diagnosis/repair/edges/scope/decision，含 trap 標記）、learner 信心收集（Brier）、前 25% 截斷閱讀（由淺入深曲線）、`nontech-pm` persona case（S1 可及性＋F5 內容高度）、埋藏邊界覆蓋勾稽、肯定斷言抽驗（false certainty）、逐段 extraneous 記帳、grader ensemble（`--graders 2`，保守 AND 合併並記錄一致率）、`null_floor` 控制組（無說明作答的先備知識地板，主指標改看 lift over floor；`--no-floor` 可關）。
 
 - 需要已登入的 `claude` CLI。所有子代理固定 `--model claude-opus-4-8 --effort max`（可用 `--model/--effort` 覆蓋，但除非你要測的變因就是模型，否則不要改）。
 - 可續跑：已存在的 stage 輸出會被跳過（`--force` 重跑）。
