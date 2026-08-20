@@ -106,6 +106,22 @@ repo 的差異化主張是 `[observed]/[inferred]/[agreed]/[conflict]`。如果�
 | G3 **orientation efficiency** | 已有 time/tokens；補上「每千字說明的 lift-over-floor」＝單位閱讀成本的知識增量 |
 | G4 **drift detection**（`sync`/`doctor`，後續） | 在 canonical artifact 裡埋一條與程式碼矛盾的過期主張；skill 是否找到、是否保持 `[conflict]` 可見而不悄悄改寫（H5 + §5 真值治理）|
 
+## 2.5 各 skill 的迴圈協定現況
+
+| skill | 協定 | 狀態 |
+| --- | --- | --- |
+| `understand` | learning-transfer（A–F 全族） | ✅ 已跑 4 輪，v3.1 定版 |
+| `change` | learning-transfer 變體：learner 讀分析後答「決策 probe」（選項實際效果、隱藏耦合、待決策項、埋藏邊界） | ✅ cases: change-decision / change-intent |
+| `review` | **Decision Surprise Rate**：git 佈置的真 diff＋埋入未核准決策清單；boundary coverage 即（1−surprise rate）；另計誤報 | ✅ cases: review-hidden-decisions / review-subtle |
+| `doctor` | **detection 協定**（無 learner）：種毒 workspace（6 violations）→ 報告 vs inventory 的 recall＋false positives | ✅ case: doctor-detection |
+| `sync` | detection 變體：canonical model＋漂移後的 source → 偵測 `changed/contradicted/removed`、且不得悄悄改寫 `[agreed]`（保持 `[conflict]` 可見）。fixture 需一組「model@t0 + source@t1」對 | 📐 設計完成，待建 fixture |
+| `build` | 工件品質：build 產出 draft model → learner **只讀產出的 mental/ 工件**答 understand 同款 probes（模型可教性）＋ validate_workspace 通過率＋ promotion gate 是否完整呈現 | 📐 設計完成，需 write-enabled 沙盒跑法 |
+| `learn` | 多輪協定：腳本化學習者 persona（帶預設迷思）與 skill 對話 N 輪；量測——診斷題是否 2–5 題且先停、第一輪教學是否只教最小斷裂關係、迷思是否被修正（後測 probe）、mastery 是否只在有證據後移動一格 | 📐 設計完成，需 `claude -p --resume` 多輪 harness |
+| `practice` | 多輪協定：學習者按劇本答錯特定關係 → 量測 skill 是否找到「第一個斷裂關係」、給最小修正、出**結構等價新情境**（非改寫原題）、transfer+boundary 後才 `verified` | 📐 同上 |
+| `quiz` | 單輪可測一半：出題品質（涵蓋圖 vs 稿定 coverage map、無答案洩漏、格式合規）；閱卷需第二輪（提交假答卷 → 評分準確性、不得產生假 mastery 百分比） | 📐 出題半段可直接沿用現 harness |
+
+多輪 harness 的共同機制：`claude -p --resume <session>` 續同一 session，學習者側用固定劇本（腳本化錯誤與迷思），每輪之間由 runner 檢查停等契約（該停沒停即 fail）。
+
 ## 3. 控制組與統計加固
 
 | 機制 | 說明 |
