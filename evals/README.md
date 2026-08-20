@@ -52,7 +52,7 @@ python3 evals/run_eval.py \
 
 ## Roadmap
 
-指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、Lens fitness、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。
+指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、output style 與 ELI5 可及性、Lens fitness 與內容高度、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。
 
 ## Interpreting
 

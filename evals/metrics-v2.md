@@ -71,6 +71,18 @@ repo 的差異化主張是 `[observed]/[inferred]/[agreed]/[conflict]`。如果�
 | E2 **deterministic load metrics**（腳本算，零 judge 噪音） | (a) 術語先用後定義的次數；(b) 前向引用數；(c) 進入第一個實質主張前的字元數；(d) 碎裂指數：同一機制被拆到幾個不相鄰段落 |
 | E3 **extraneous-content ratio**（取代 overhead 主觀分） | grader 逐段標注 {回答問題 / 支撐預測 / meta / 框架 / 填充}，報告 extraneous 佔比。段落級記帳，比 1–5 分穩定 |
 
+### Family S — Output style 與語言可及性（ELI5-ness；writing-profile 的操作化）
+
+**先承認一個測量盲點**：目前的 learner 是預設模型——它是專家讀者，任何生澀術語都讀得懂，所以「人看不看得懂」在行為層測不到，只剩 judge 印象分。修法是把 learner 鎖進 persona，讓可及性失敗變成可觀察的行為。
+
+| 指標 | 操作化 |
+| --- | --- |
+| S1 **persona-locked comprehension**（核心） | learner 的系統提示鎖定非技術 persona：「你是非工程背景的 PM。文中未解釋的技術術語對你是不可理解的雜訊；依賴這些術語的句子視為讀不懂，相關題答『看不懂』。」probe 改問功能/執行層問題（「出貨一直失敗，客戶最後會遇到什麼？」「這筆訂單為什麼變貴了？」）。用語生澀的說明會在這裡行為性地現形——這是 ELI5 的行為化，不是品味打分 |
+| S2 **jargon density / first-use definition** | 每個 fixture 維護一張技術術語表（`optimistic concurrency`、`idempotent`、`TTL`、`dead-letter`…）。計數：出現在論述主幹、首次出現未被白話解釋的術語數/千字。code identifier 出現在**證據引用位置**（如文末 Sources、括號路徑）不罰；撐起論述卻無解釋才罰 |
+| S3 **concrete-example coverage** | 每個抽象主張（規則、不變量、策略）±2 句內是否有具體落地（數字、情境、walkthrough）。coverage % —— writing-profile「Prefer concrete behavior to abstract claims」的直接檢驗 |
+| S4 **analogy quality & boundary marking** | 出現比喻時：是否對應真實機制、是否標明失效點（writing-profile:「Mark where an analogy stops working」）。沒有比喻不罰——錯誤比喻比沒有比喻更糟 |
+| S5 **sentence load**（純腳本、零成本） | zh：平均句長（字元）與逗號鏈深度；en：>25 words 句比率。跨迭代追蹤趨勢 |
+
 ### Family F — 角色職責 Lens fitness（H2 role-conditioning；design doc「Lens 合併 audience 與 perspective」）
 
 目前完全沒測。新增 lens 變因 case（同一問題 × `lens=pm` / `lens=operator` / 預設）：
@@ -81,6 +93,7 @@ repo 的差異化主張是 `[observed]/[inferred]/[agreed]/[conflict]`。如果�
 | F2 **assumed-knowledge violation** | 依 methodology 中該 lens 的 `assumes` 清單，grader 數「未定義就使用、且該角色不能被假設已懂」的術語數。pm 說明裡裸奔的 `optimistic concurrency` = 1 次違規 |
 | F3 **cross-lens consistency + divergence** | 同題不同 lens 的兩份說明：抽取事實主張，**矛盾率必須為 0**（lens 改變強調，不能改變真值）；同時測**內容分佈差異**——重疊率太高代表 lens 是裝飾品，矛盾代表 lens 是危險品 |
 | F4 **default-lens appropriateness** | 自動選擇的 lens 是否符合問題隱含的角色（以 grader 判斷 + skill 自報的 Context 行核對）|
+| F5 **abstraction-altitude fit**（認知邊界的內容面） | grader 逐段標注高度 {purpose / functional / operational / implementation}，與該 lens 的目標分佈比對。pm 目標：purpose+functional+operational ≥ 80%、implementation ≤ 10% 且只能以可選的證據指標形式出現（文末 Sources、括號引用）；違規 = 未標記為可選就往下潛的段落數。engineer 反向成立：只有 purpose 空談、無 mechanism 也算高度不足。這抓的是「詞彙都解釋了、但內容根本不該出現在這個高度」的失配——S2 數不到的那種 |
 
 ### Family G — 問題核心：決策與變更（§6；agent throughput > human model rebuild）
 
@@ -105,8 +118,8 @@ repo 的差異化主張是 `[observed]/[inferred]/[agreed]/[conflict]`。如果�
 
 ## 4. 分級路線
 
-- **v2（改 case schema + prompts 即可，不動架構）**：A3–A5、B1–B4、C1–C2、D1、E1–E3、null floor、repeats、ensemble。
-- **v3（需要新 case 類型/多輪協定）**：C3–C4、D2–D3、F 全族、G1–G2。
+- **v2（改 case schema + prompts 即可，不動架構）**：A3–A5、B1–B4、C1–C2、D1、E1–E3、S1–S3、S5、null floor、repeats、ensemble。
+- **v3（需要新 case 類型/多輪協定）**：C3–C4、D2–D3、S4、F 全族（F5 可提前併入 v2 的 grader 附加任務）、G1–G2。
 - **只能靠人類研究**（誠實邊界，呼應 §7）：真實 orientation time、7 天延遲保留、主觀認知負荷量表、真實團隊的 Decision Surprise Rate。LLM 模擬版本一律標注 `simulated`。
 
 ## 5. Case schema 擴充（v2）
@@ -131,17 +144,24 @@ repo 的差異化主張是 `[observed]/[inferred]/[agreed]/[conflict]`。如果�
     ["reservation", "captures unit-price snapshot", "pricing"],
     ["RetryableError", "triggers backoff retry", "dispatch"]
   ],
-  "prefixes": [0.25, 0.5, 1.0]          // E1 截斷點
+  "prefixes": [0.25, 0.5, 1.0],         // E1 截斷點
+  "personas": ["nontech-pm"],           // S1 persona-locked learner
+  "jargon_list": ["optimistic concurrency", "idempotent", "TTL", "dead-letter"],
+  "altitude_target": {                  // F5 各 lens 的內容高度分佈
+    "pm": {"implementation_max": 0.10}
+  }
 }
 ```
+
+Persona 定義集中在 `evals/prompts/personas/*.md`，probe 可加 `"audience": "pm"` 指定只給某 persona 作答。
 
 ## 6. 成本估算（3 cases × 3 arms）
 
 | 配置 | claude 呼叫數/迭代 | 相對 iteration-1 |
 | --- | --- | --- |
 | iteration-1（現況） | 27 | 1× |
-| **v2 standard**：10 probes、repeats×2、prefix 2 點、null floor、ensemble×2 | ≈ 80 | ≈ 3× |
-| v2 full：repeats×3、prefix 3 點、ensemble×3、ceiling | ≈ 150 | ≈ 5.5× |
+| **v2 standard**：10 probes、repeats×2、prefix 2 點、null floor、ensemble×2、S1 persona×1 | ≈ 90 | ≈ 3.3× |
+| v2 full：repeats×3、prefix 3 點、ensemble×3、ceiling、persona×2 | ≈ 170 | ≈ 6× |
 
 建議日常迭代跑 standard，發版前跑 full。所有呼叫依 subagent 政策固定 `claude-opus-4-8 --effort max`。
 
