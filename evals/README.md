@@ -50,6 +50,10 @@ python3 evals/run_eval.py \
 - 可續跑：已存在的 stage 輸出會被跳過（`--force` 重跑）。
 - 輸出為 skill-creator 相容格式（`grading.json`、`timing.json`、`outputs/`），可直接餵給其 `aggregate_benchmark` 與 `generate_review.py`。
 
+## Roadmap
+
+指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、Lens fitness、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。
+
 ## Interpreting
 
 - `without_skill` 是要打敗的線：使用者回饋裸 Opus 的說明比舊版 skill 好懂約 20%。
