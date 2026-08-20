@@ -110,11 +110,45 @@ def run_claude(
 
 
 def extract_json(text: str, opener: str, closer: str):
+    """Return the largest parseable JSON value delimited by opener/closer.
+
+    Grader/learner prose can contain stray braces (rubric snippets, code),
+    so a naive first-to-last slice breaks; walk balanced spans instead."""
+    best = None
     start = text.find(opener)
-    end = text.rfind(closer)
-    if start == -1 or end == -1 or end <= start:
+    while start != -1:
+        depth = 0
+        in_string = False
+        escaped = False
+        for idx in range(start, len(text)):
+            char = text[idx]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == opener:
+                depth += 1
+            elif char == closer:
+                depth -= 1
+                if depth == 0:
+                    candidate = text[start : idx + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                        if best is None or len(candidate) > best[0]:
+                            best = (len(candidate), parsed)
+                    except json.JSONDecodeError:
+                        pass
+                    break
+        start = text.find(opener, start + 1)
+    if best is None:
         raise ValueError(f"no JSON found in output: {text[:200]}...")
-    return json.loads(text[start : end + 1])
+    return best[1]
 
 
 def envelope_tokens(envelope: dict) -> int:

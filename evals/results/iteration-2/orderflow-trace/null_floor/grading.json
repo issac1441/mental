@@ -1,0 +1,85 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1: 訂單四步驟（驗證/保留庫存/計價/出貨）的實際執行順序",
+      "passed": true,
+      "evidence": "答出驗證→保留庫存→計價→出貨，計價明確排在保留之後，與標準 validate→reserve→pricing→dispatch 一致。"
+    },
+    {
+      "text": "probe 2: 計價為何要排在庫存保留之後",
+      "passed": false,
+      "evidence": "只提 fail-fast 與依保留數量計價，未點出關鍵機制——保留會擷取單價快照(ReservedLine.unit_price_cents)、計價讀取保留而非原始訂單。"
+    },
+    {
+      "text": "probe 3: 折扣後 6300、免運門檻 8000，是否付運費（陷阱題）",
+      "passed": false,
+      "evidence": "以折扣後 6300 比較而判定要付運費，正中陷阱；免運門檻應看折扣前小計 9000≥8000，實為免運。"
+    },
+    {
+      "text": "probe 4: 稅基以哪個金額計、運費是否課稅",
+      "passed": false,
+      "evidence": "雖傾向對折扣後商品課稅，但對運費是否課稅明言『無法斷定、各地不一』，未確定『運費一律不課稅』，屬無法判斷。"
+    },
+    {
+      "text": "probe 5: 出貨成功後呼叫端取得什麼、關鍵欄位",
+      "passed": true,
+      "evidence": "答出會拿到收據物件，含訂單編號、狀態、總價（並提及物流資訊），涵蓋 Receipt 的關鍵欄位。"
+    },
+    {
+      "text": "probe 6: 固定運費由 120 改 0，哪些訂單受影響/不受影響",
+      "passed": true,
+      "evidence": "正確指出原本付運費(未達門檻)者運費 120→0 而總價下降、原本免運者不變，構成與標準一致。"
+    },
+    {
+      "text": "probe 7: 同一筆訂單隔天重算總價不同的最可能原因鏈",
+      "passed": false,
+      "evidence": "歸因於『缺乏價格快照、即時讀取當下設定』，與實際『快照因保留 TTL 過期→重建→重新擷取現價』機制相反，未點出保留過期重建。"
+    },
+    {
+      "text": "probe 8: 列出至少 5 條 A→影響→B 因果邊",
+      "passed": true,
+      "evidence": "列出 7 條，僅『折扣後金額→免運門檻』一條錯誤，其餘（折扣→稅基、稅率→稅額、固定運費→運費、庫存→保留→出貨、驗證→後續步驟）有效，符合≥4 有效且至多 1 錯。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": false
+    },
+    {
+      "id": 3,
+      "correct": false
+    },
+    {
+      "id": 4,
+      "correct": false
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    },
+    {
+      "id": 7,
+      "correct": false
+    },
+    {
+      "id": 8,
+      "correct": true
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 4,
+    "total": 8,
+    "pass_rate": 0.5
+  },
+  "graders": 1
+}

@@ -1,0 +1,153 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 免運資格條件",
+      "passed": true,
+      "evidence": "讀者答『折扣前小計達8000免運、非折扣後實付』，與標準答案語意一致。"
+    },
+    {
+      "text": "probe 2 (near): 出貨一直失敗的最終結局",
+      "passed": true,
+      "evidence": "讀者答『重試3次後轉dead_lettered、退回庫存、進待處理佇列、訂單不消失』，涵蓋全部關鍵事實。"
+    },
+    {
+      "text": "probe 3 (near): 延後處理為何價格會變",
+      "passed": true,
+      "evidence": "讀者答『單價快照只鎖2分鐘，過期改用當下目錄價重算』，與標準答案一致。"
+    },
+    {
+      "text": "probe 4 (near, trap): 原價9500/折後7000是否免運",
+      "passed": true,
+      "evidence": "讀者答『免運，看折扣前9500≥8000』，未落入7000<8000的陷阱。"
+    },
+    {
+      "text": "probe 5 (decision): 改看折後金額的受影響客群",
+      "passed": true,
+      "evidence": "讀者正確指出『折前達標、折後掉破門檻』客群會開始付運費、體驗變差、且無人新獲免運。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 是否支援分期付款",
+      "passed": true,
+      "evidence": "讀者答『說明中沒有提到』，與ground truth(材料未涵蓋)一致且未編造細節。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=3，前三句為『我讀完系統/以PM角度說明/orderflow是流水線』的元框架，兩問的直接答案落在其後的『直接答案』區塊，未落在前三句內。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，依『流程→出貨失敗→價格→邊界』因果鏈組織；摘要段與細節段有刻意重述但屬答案先行、非機械式重複區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，正文前僅兩句輕框架，idempotent/dead-letter/reprice_required等術語首次出現即附中文解釋，lens/選項設定置於文末不擋路。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，幾乎每個主張都附file:line、具名測試(test_pipeline.py:51/:22)與$6,615等可算實例。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "3/3全數主動揭露：免運看折扣前、快照2分鐘過期後按當下價重算、重試3次上限後dead-letter並釋放庫存。"
+    },
+    {
+      "text": "calibration: 抽查3條肯定斷言0條錯誤",
+      "passed": true,
+      "evidence": "抽退避時間(0.2/0.4秒+0-0.1秒抖動)、免運判定用折扣前subtotal、過期重建以_build重扣庫存三條，經讀碼與grep核對全部屬實。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "pipeline.py:44-74、inventory.py:54-75、pricing.py:48三處均存在且支持對應主張(唯config.py:6指向註解行、差一行,不影響)。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": false
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 3,
+    "coherence": 4.5,
+    "overhead": 4.5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "免運資格看折扣前原價(pricing.py:57 subtotH>=門檻)——文件明確揭露並附$9,000→$6,300仍免運的實例",
+      "價格/庫存快照僅保留2分鐘,過期後按當下目錄價重算、總價可能改變(inventory.py:66-71,TTL=120)",
+      "出貨重試上限3次,之後轉dead_lettered、釋放庫存、回收據而非例外(pipeline.py:59-67,MAX_DISPATCH_ATTEMPTS)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.215,
+  "altitude": {
+    "implementation_share": 0.14
+  },
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 12,
+    "failed": 1,
+    "total": 13,
+    "pass_rate": 0.923
+  },
+  "graders": 2
+}

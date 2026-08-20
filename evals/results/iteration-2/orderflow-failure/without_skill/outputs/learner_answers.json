@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "分類依例外型別。會被重試的是 RetryableError 家族，透過兩個獨立機制：(a) 儲存層 _put_with_retry 針對樂觀鎖的 VersionConflict，最多重試 3 次（_PUT_ATTEMPTS=3）；(b) dispatch 針對 carrier 的 RetryableError（CarrierTimeout、CarrierUnavailable），最多 3 次。不會被重試的是 FatalError：parse_order 的錯誤（order_id 缺失、region 不合法、無 line、sku 缺失、quantity 非正整數）以及 reserve 的 UnknownSku、InsufficientStock，這些立即判 failed 且無重試。另外 carrier 若拋出非 retryable 的 OrderError，也不會被 dispatch 重試。",
+    "confidence": 92
+  },
+  {
+    "id": 2,
+    "answer": "最多 MAX_DISPATCH_ATTEMPTS=3 次。三次都因 RetryableError 失敗後會丟 DispatchExhausted，被 process() 攔下，狀態設為 dead_lettered，並做三件事：(1) 釋放庫存（release）、(2) 送進死信佇列、(3) 回一張收據。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "第 3 次嘗試前約等 400ms。公式為 BASE(200ms)×2^(attempt-2)，attempt=3 → 200×2^1=400ms。jitter 由 crc32(order_id) % 100 決定（範圍 0–99，單位毫秒），對同一筆 order_id 是固定值，加在基本延遲之上。",
+    "confidence": 90
+  },
+  {
+    "id": 4,
+    "answer": "TTL（120 秒）過期後，reserve 會用『當下的目錄』重新 _build 一份保留，並打上 reprice_required=True，讓定價依現在的目錄重算總額。所以總價會被重新計算——若目錄單價已變動，總價就會跟著變（單價未變則數字相同但仍為重算）。此外文件指出一個隱藏 bug：過期分支只呼叫 _build、沒有先 release 舊保留，導致同一筆訂單的庫存被重複扣兩次。",
+    "confidence": 87
+  },
+  {
+    "id": 5,
+    "answer": "不會重試。InsufficientStock 屬 FatalError，reserve 會直接拋出，process() 立即判定 status=failed，無任何重試。呼叫端拿到一張 status=failed 的收據（由 test_insufficient_stock_fails_without_retry 驗證）。",
+    "confidence": 93
+  },
+  {
+    "id": 6,
+    "answer": "改成 1 後，dispatch 只會嘗試一次；若第一次就遇到 RetryableError，因為沒有後續重試，會立刻丟 DispatchExhausted 而進入 dead_lettered 流程。退避（backoff）等待不會發生——backoff 是發生在『嘗試之間』（第 2、3 次前才等），只剩一次嘗試就沒有『之間』，也就不會有 200ms/400ms 的等待。",
+    "confidence": 83
+  },
+  {
+    "id": 7,
+    "answer": "不對。VersionConflict 屬 RetryableError，不是 FatalError；而 process() 對 reserve 只 except FatalError。當 _put_with_retry 三次重試耗盡、把 VersionConflict 往外拋時，沒有任何 except 接住它，例外會直接逃出 process()。這筆訂單既不是 failed 也不是 dead_lettered，呼叫端拿到的是一個未捕捉的例外（exception），而非 failed 收據。這是文件沒明講的第四種失敗模式。",
+    "confidence": 93
+  },
+  {
+    "id": 8,
+    "answer": "carrier 部分：說明中沒有提到——文件並未描述任何依 region 或重量（如 offshore、5000g）選擇 carrier 的規則，只泛稱 carrier。第 2 次嘗試前的等待：約 200ms（BASE×2^(2-2)=200×1=200ms），再加上 jitter = crc32(order_id) % 100 毫秒（0–99，因 order_id 未知故無法算出確切值）。",
+    "confidence": 82
+  }
+]

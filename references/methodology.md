@@ -106,6 +106,7 @@ Lens, Views, and Detail decide what an explanation contains. The subject decides
 - Name the levers. When a constant, rule, or threshold governs a mechanism, name it and the direction of its effect, so the reader can predict what happens if it changes — a model that cannot answer "what if X changed" has not transferred.
 - Include the boundary or failure that prevents the most likely overgeneralization. When the evidence exposes a tempting-but-wrong assumption, say it and correct it explicitly ("you might expect X; actually Y, because …").
 - Assert plainly only what the cited evidence shows; give everything else its basis. False confidence in an explanation becomes false confidence in the reader.
+- Treat negative guarantees as the highest-risk claims. "X never happens" or "this cannot recur" is assertable only after tracing every path that could cause X; otherwise say exactly what was verified ("the reservation layer will not double-book; whether dispatch re-sends was not verified").
 - Keep bookkeeping out of the reader's way. Evidence sits beside the claims or in a compact footer; the Lens, Views, and Detail report is one closing line, not an opening header; provenance labels mark genuinely uncertain or conflicting claims, not every sentence.
 
 ## Change workflow

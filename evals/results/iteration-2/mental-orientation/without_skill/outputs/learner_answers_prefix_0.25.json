@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "使用者介面就是那 9 個 skill（README:「The interface is nine skills」）。它是 agent-native 外掛，同時給 Claude Code 和 Codex 用；一般使用者透過 agent host（Claude Code / Codex）來操作——由 agent 讀取並執行各 skill 的 SKILL.md 規格，去建立/解釋/評測/維護對某 repo 或學習素材的心智模型。使用者不會直接呼叫那兩支 Python 腳本（它們是私有實作輔助，不是介面）。",
+    "confidence": 80
+  },
+  {
+    "id": 2,
+    "answer": "references/*.md 是共用契約層，是「9 個 skill 全部載入的單一真相來源」。每個 skills/<name>/SKILL.md 是該 skill 各自的行為規格（真正內容），而它們全部都會載入 references/ 這份共用契約。也就是：SKILL.md = 個別 skill 的規格；references/ = 所有 skill 共享、共同載入的單一真相來源。",
+    "confidence": 90
+  },
+  {
+    "id": 3,
+    "answer": "共享的 mental model 內容放在 mental/（共用、會進 git）；個人的學習狀態放在 .mental/（私人、被 gitignore）。分開的原因：mental/ 要納入版本控制並跟團隊共享，.mental/ 則是個人/私人狀態，保持本地、不進 git，所以兩者分屬『共用』與『私人』兩條路。",
+    "confidence": 85
+  },
+  {
+    "id": 4,
+    "answer": "一支是 scaffold（建骨架，會用到 assets/templates/ 樣板），另一支是 validate（驗證）。README 說它們是「private implementation helpers」（私有實作輔助），並非使用者介面；因此不是給一般使用者直接用，而是由 skill/agent 內部或維護者在建立骨架、驗證時使用。",
+    "confidence": 78
+  },
+  {
+    "id": 5,
+    "answer": "依說明描述的每個 skill 結構與註冊層直接推論：除了 SKILL.md，每個 skill 都還有 skills/<name>/agents/openai.yaml（Codex 端 4 行介面殼），而封裝/註冊層的兩個 manifest（.claude-plugin/plugin.json、.codex-plugin/plugin.json）負責讓 skill 被發現，所以合理上最少還要新增 openai.yaml 並在這兩個 manifest 裡註冊。但說明恰好在描述 manifest 處被截斷，也沒說明 validate/測試實際檢查什麼，因此『測試才會過』的確切條件在說明中沒有明確提到。",
+    "confidence": 45
+  },
+  {
+    "id": 6,
+    "answer": "說明中並沒有描述 concept 檔的 frontmatter、status 欄位、canonical 值或任何『需人類確認』的機制（文件在講到 manifest 時就被截斷）。文件唯一提到的驗證機制是 scripts/validate.py（『驗證』），它是最可能抓出這類不一致的工具，但說明並未說它會檢查 canonical 狀態或人類確認，故無法確定；就此特定機制而言，說明中沒有明確提到。",
+    "confidence": 30
+  },
+  {
+    "id": 7,
+    "answer": "不對。個人的測驗/學習狀態屬於私人學習狀態，應放在私人、被 gitignore 的 .mental/，而不是共用、會進 git 的 mental/。錯在把個人測驗結果放進 mental/ 並宣稱『讓團隊共用』——這與設計（個人狀態私有、不進 git）相反。另外，說明也沒有明確提到 exercises/ 這個路徑。",
+    "confidence": 76
+  },
+  {
+    "id": 8,
+    "answer": "因為個人的學習進度與測驗紀錄屬於個人學習狀態，存在 .mental/，而 .mental/ 是私人且被 gitignore 的，不會被 commit 進版本控制，所以 clone 時不會一起帶下來。只有共用的 mental/（進 git）才會被分享，因此你看不到前一位工程師 .mental/ 裡的進度與測驗紀錄。",
+    "confidence": 88
+  }
+]

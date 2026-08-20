@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "實際執行順序為：①驗證輸入（parse_order 進單驗證）→ ②保留庫存（Inventory.reserve，同時凍結價格快照）→ ③計算價格（price，依快照計價）→ ④出貨（dispatch，失敗時重試 ≤ 3 次）。這是說明中固定四段流水線的順序。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "因為保留庫存這一段（Inventory.reserve）在扣庫存的同時會凍結一份價格快照，把這張單將被計價的單價鎖定；而計價（price）是依快照計價，必須使用保留階段凍結的快照，所以計價一定排在保留之後。此設計也讓價格在保留有效期間保持穩定、可冪等重跑（重跑同一張單沿用原快照價）。",
+    "confidence": 85
+  },
+  {
+    "id": 3,
+    "answer": "說明中沒有提到。折扣、免運門檻、運費等計價規則屬於流水線第 3 段（price），說明文件在第 2 段（庫存）之後即被截斷，未描述免運門檻是以折扣前或折扣後金額比較，也沒有運費規則，因此無法判斷是否要付運費。",
+    "confidence": 88
+  },
+  {
+    "id": 4,
+    "answer": "說明中沒有提到。稅基（以哪個金額計稅）與運費是否課稅屬於計價（price）段的規則，說明文件在該段之前已被截斷，未提供相關資訊。",
+    "confidence": 88
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端會拿到一張 Receipt（整條線對外只回傳 Receipt）。成功出貨時 status 為 dispatched，關鍵欄位包含：狀態 status（dispatched）、carrier（出貨商）、total_cents（總金額，以分為單位）。",
+    "confidence": 92
+  },
+  {
+    "id": 6,
+    "answer": "說明中沒有提到。運費如何計入總價（是否有免運門檻、固定運費怎麼套用）屬於計價段規則，說明在該段前被截斷，故無法判斷哪些訂單總價會受影響、哪些不會。",
+    "confidence": 85
+  },
+  {
+    "id": 7,
+    "answer": "最可能的原因鏈：價格在 Inventory.reserve 保留庫存時被凍結成快照，而冪等（回傳原快照）只在未過期的預留下成立。隔天重新處理時，原預留很可能已過期 → reserve 不再回傳原份，而是建立新的預留與新的價格快照 → 若該 SKU 單價在這段期間有變動，新快照價就不同 → 計價依新快照 → 總價因而不一樣。",
+    "confidence": 80
+  },
+  {
+    "id": 8,
+    "answer": "（1）errors.py 的 FatalError/RetryableError 分類 → 影響 → 錯誤要不要重試；（2）parse_order 驗證失敗（ValidationError）→ 影響 → process 直接回 Receipt(failed) 且 dispatch 完全不執行；（3）Inventory.reserve 凍結的價格快照 → 影響 → price 計價（依快照計價）；（4）dispatch 重試用盡（>3 次）→ 影響 → release 退還庫存並回 Receipt(dead_lettered)；（5）同一 order_id 已有未過期預留 → 影響 → reserve 直接回傳原份（冪等、不重複扣庫存、價格維持）；（6）UnknownSku/InsufficientStock（皆 FatalError）→ 影響 → Receipt(failed)；（7）region 未提供 → 影響 → 預設 domestic。",
+    "confidence": 92
+  }
+]

@@ -24,7 +24,7 @@ Views are a comma-separated multi-selection. Manual values override inference. B
 5. Select Lens, Views, and Detail using this precedence: manual override → explicit current goal → current session evidence → private profile or mastery → exposed host memory as a weak signal → scope default. Repository questions default to `engineer`; general learning questions default to `student`.
 6. Do not infer ability from grammar, speed, identity, confidence, or protected traits. Never persist an inferred Lens, View, Detail, or preference unless the user explicitly asks.
 7. Compose the explanation for transfer, following the explanation shape in `methodology.md`:
-   - Open with the direct answer: two to four sentences that answer the question correctly on their own. A reader who stops there should leave with a true, if coarse, model.
+   - Open with the direct answer: two to four sentences that answer the question correctly on their own. A reader who stops there should leave with a true, if coarse, model. Never open with process narration — "I have read the code / the skill / the references" tells the reader nothing about the subject; the first sentence is about the system, not about you.
    - Organize the body by the subject's own structure — follow the request through the system for a trace, group by component for architecture, follow the causal chain for a "why". Never use View names or framework vocabulary as section headers; the selected Views are a private completeness checklist, not an outline.
    - Order content shallow to deep so each section refines the previous one and the reader can stop at any point with a correct partial model.
    - Ground every abstraction: tie claims to exact paths such as `src/router.py:42`, tests, commands, or quoted source, and weave one concrete scenario into the narrative instead of appending it as ceremony.
@@ -41,6 +41,6 @@ Return, in the user's language:
 - the direct answer first, then a body organized by the subject's own structure;
 - the material boundary or failure, woven in or as a short closing note;
 - a compact `Sources and gaps` footer listing the exact paths, sections, URLs, tests, or runtime evidence behind the answer, plus open uncertainties;
-- one final `Context` line naming the Lens, selected Views, Detail, and the selection basis in one clause, so the reader can steer the next answer — for example `Context: engineer lens · map,mechanism,scenario · standard — from the current debugging goal; adjust with lens= views= detail=`.
+- one final `Context` line naming the Lens, selected Views, Detail, and the selection basis in one clause, so the reader can steer the next answer — for example `Context: engineer lens · map,mechanism,scenario · standard — from the current debugging goal; adjust with lens= views= detail=`. When the lens does not assume this tool's vocabulary (`general`, `pm`, `student`), write that line in plain words instead of control syntax — for example 「本次以產品視角、著重功能與情境、標準深度說明；想更深或改視角，直接說即可」 — and keep tool suggestions such as `$build` out of the reader's way unless asked.
 
 Expand when requested or when a prediction reveals a missing relationship. Never edit shared artifacts, private state, source files, or Git state.

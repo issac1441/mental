@@ -1,0 +1,67 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 訂單在什麼情況下可免運費",
+      "passed": true,
+      "evidence": "答出達 8,000 門檻即免運、抓到關鍵門檻值；雖借用第4題題幹洩漏的數字、且未點明「折扣前」，仍屬功能性正確。"
+    },
+    {
+      "text": "probe 2 (near): 出貨一直失敗最終結果、是否無限重試",
+      "passed": true,
+      "evidence": "正確答出不會無限重試、達上限後停止並進入失敗／待人工處理終態；漏掉退回庫存與「3 次」屬次要細節，未影響核心。"
+    },
+    {
+      "text": "probe 3 (near): 為何同一訂單晚點處理價格可能不同",
+      "passed": false,
+      "evidence": "僅給「即時以現價計算」的通用推測且誤稱價格「不鎖定」，漏掉關鍵的短暫保留窗（約 120 秒）到期後重新定價的機制。"
+    },
+    {
+      "text": "probe 4 (near, trap): 原價 9,500、實付 7,000 是否付運費",
+      "passed": true,
+      "evidence": "正確答免運並以折扣前 9,500≥8,000 為依據，成功避開「7,000<8,000 要付運費」的陷阱。"
+    },
+    {
+      "text": "probe 5 (decision): 改看折扣後金額的受影響客群與體驗",
+      "passed": true,
+      "evidence": "精準指出「原價≥8,000 但折扣後<8,000」客群將由免運變付運、體驗變差，且無人新獲免運。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 系統是否支援分期付款",
+      "passed": false,
+      "evidence": "答「無法判斷」屬 floor 裸猜的 punt，依規則一律不通過（未展現實質範圍知識，非對材料靜默的判讀）。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": false
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": false
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 2,
+    "total": 6,
+    "pass_rate": 0.667
+  },
+  "graders": 1
+}
