@@ -32,7 +32,9 @@ Use this reference for user-visible responses and generated artifacts. The profi
 - Open with the direct answer; put supporting detail after it.
 - Give information gradually: purpose and intuition, then relationships, then mechanism, then exact evidence — as a flow, not as labeled sections.
 - Organize by the subject's own structure; never use framework or process vocabulary as headings.
-- Define a term at first use or choose a plainer one; never make the reader decode labels invented mid-answer.
+- Define a term at first use or choose a plainer one; never make the reader decode labels invented mid-answer. What counts as needing definition depends on the audience the Lens assumes, not on the writer's own vocabulary.
+- Tie every abstract rule to a concrete case within a sentence or two — a number, a walkthrough, a named file.
+- Mark where an analogy stops working. A wrong analogy is worse than none.
 - Keep one main topic in each sentence or paragraph when practical.
 - Keep English sentences short. Treat 25 words as a review signal, not a hard validator rule.
 - Link related sentences with stable key terms instead of unnecessary synonyms.

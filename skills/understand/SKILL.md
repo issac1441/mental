@@ -28,7 +28,9 @@ Views are a comma-separated multi-selection. Manual values override inference. B
    - Organize the body by the subject's own structure — follow the request through the system for a trace, group by component for architecture, follow the causal chain for a "why". Never use View names or framework vocabulary as section headers; the selected Views are a private completeness checklist, not an outline.
    - Order content shallow to deep so each section refines the previous one and the reader can stop at any point with a correct partial model.
    - Ground every abstraction: tie claims to exact paths such as `src/router.py:42`, tests, commands, or quoted source, and weave one concrete scenario into the narrative instead of appending it as ceremony.
-   - Include a boundary, failure, or counterexample when it prevents overgeneralization.
+   - Match vocabulary and altitude to the Lens: a term the lens does not assume gets plain words at first use, and content stays at the lens's altitude — for `general`, `pm`, or `student`, explain what the system does, what happens at runtime, and what happens on failure, keeping implementation detail to optional evidence pointers.
+   - Name the levers that govern each mechanism — constants, rules, thresholds — and the direction of their effect, so the reader can predict the outcome of a change.
+   - Include a boundary, failure, or counterexample when it prevents overgeneralization, and preempt the most tempting wrong assumption explicitly when the evidence shows one.
    - Use the shortest text that supports prediction at the selected Detail; offer the next layer of depth instead of delivering everything.
 8. Reserve `[inferred]` and `[conflict]` labels for claims whose evidence is genuinely uncertain or contradictory; routine observations need only their citation. Call out stale, inaccessible, or conflicting evidence.
 

@@ -26,6 +26,8 @@ Built-in lenses are starting points:
 
 The repository context defaults to `engineer`. General learning defaults to `student`. Prefer a more specific goal-supported Lens when the evidence warrants it.
 
+Each lens also implies a content altitude. `general`, `pm`, and `student` explanations stay at the purpose, functional, and operational levels: what the system does for whom, what happens when it runs, and what happens when it fails — implementation detail appears only as optional evidence pointers. `engineer`, `operator`, and `researcher` may descend into implementation; `architect` centers on boundaries, invariants, and tradeoffs. Descending below the lens's altitude unasked is a conformance failure, not extra thoroughness. Vocabulary follows the same rule: a term the lens does not assume is either replaced with plain words or defined in plain words at first use.
+
 Projects may define reusable lenses as `kind: lens` artifacts under `mental/lenses/`. Each lens should declare:
 
 - `assumes`: knowledge that the explanation may use without first teaching it;
@@ -101,7 +103,9 @@ Lens, Views, and Detail decide what an explanation contains. The subject decides
 - Never use View names or other framework vocabulary as section headers. Apply the selected Views as a completeness checklist while writing: purpose stated, relationships shown, cause explained, one concrete case walked through, claims traceable. Weave a missing piece in where the narrative needs it.
 - Order content shallow to deep. Each section refines what came before instead of depending on what comes after, so the reader can stop at any point with a correct partial model.
 - Ground every abstraction. A claim about behavior points to a path, test, command, or quoted source. One concrete scenario belongs inside the narrative, not appended as ceremony.
-- Include the boundary or failure that prevents the most likely overgeneralization.
+- Name the levers. When a constant, rule, or threshold governs a mechanism, name it and the direction of its effect, so the reader can predict what happens if it changes — a model that cannot answer "what if X changed" has not transferred.
+- Include the boundary or failure that prevents the most likely overgeneralization. When the evidence exposes a tempting-but-wrong assumption, say it and correct it explicitly ("you might expect X; actually Y, because …").
+- Assert plainly only what the cited evidence shows; give everything else its basis. False confidence in an explanation becomes false confidence in the reader.
 - Keep bookkeeping out of the reader's way. Evidence sits beside the claims or in a compact footer; the Lens, Views, and Detail report is one closing line, not an opening header; provenance labels mark genuinely uncertain or conflicting claims, not every sentence.
 
 ## Change workflow
