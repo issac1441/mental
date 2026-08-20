@@ -190,11 +190,65 @@ def build_mental_target(workspace: Path) -> Path:
 
 
 def target_path(case: dict, workspace: Path) -> Path:
+    base: Path
     if case["target"] == "orderflow":
-        return EVALS_DIR / "fixtures" / "orderflow"
-    if case["target"] == "mental":
-        return build_mental_target(workspace)
-    raise ValueError(f"unknown target {case['target']}")
+        base = EVALS_DIR / "fixtures" / "orderflow"
+    elif case["target"] == "doctor-workspace":
+        base = EVALS_DIR / "fixtures" / "doctor-workspace"
+    elif case["target"] == "mental":
+        base = build_mental_target(workspace)
+    else:
+        raise ValueError(f"unknown target {case['target']}")
+
+    setup = case.get("target_setup")
+    if not setup:
+        return base
+
+    import shutil
+
+    target = workspace / f"target-{case['name']}"
+    if target.exists():
+        return target
+    shutil.copytree(
+        base, target, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".git")
+    )
+    if setup.get("brief"):
+        shutil.copy2(REPO_ROOT / setup["brief"], target / "CHANGE_BRIEF.md")
+    if setup.get("git"):
+        git = ["git", "-c", "user.email=eval@local", "-c", "user.name=eval"]
+        subprocess.run(git + ["init", "-q"], cwd=target, check=True)
+        subprocess.run(git + ["add", "-A"], cwd=target, check=True)
+        subprocess.run(git + ["commit", "-qm", "base"], cwd=target, check=True)
+    if setup.get("overlay"):
+        overlay = REPO_ROOT / setup["overlay"]
+        for path in overlay.rglob("*"):
+            if path.is_file():
+                dest = target / path.relative_to(overlay)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, dest)
+    return target
+
+
+def case_skill_name(case: dict) -> str:
+    return case.get("skill", "understand")
+
+
+def case_allowed_tools(case: dict) -> str:
+    if case.get("allowed_tools"):
+        return case["allowed_tools"]
+    if case.get("target_setup", {}).get("git"):
+        return READ_ONLY_TOOLS + " Bash(git diff*) Bash(git status*) Bash(git log*) Bash(git show*)"
+    return READ_ONLY_TOOLS
+
+
+def case_context_note(case: dict) -> str:
+    if case.get("context_note") is not None:
+        return case["context_note"]
+    if case.get("target_setup", {}).get("git"):
+        return "repo 目前有未提交的 diff（可用 git diff 查看），核准的 change brief 在 CHANGE_BRIEF.md。目前 workspace 沒有 mental/ canonical model。"
+    if case["target"] == "doctor-workspace":
+        return ""
+    return "目前 workspace 沒有 mental/ canonical model。"
 
 
 def probes_block(case: dict) -> str:
@@ -299,15 +353,19 @@ def merge_gradings(gradings: list[dict]) -> dict:
             values = [g.get(key) for g in gradings if isinstance(g.get(key), (int, float))]
             return round(statistics.mean(values), 3) if values else None
 
-        merged["scores"] = {
-            k: round(
-                statistics.mean(
-                    [g.get("scores", {}).get(k, 0) for g in gradings if g.get("scores")]
-                ),
-                2,
+        scored = [g for g in gradings if g.get("scores")]
+        if scored:
+            merged["scores"] = {
+                k: round(
+                    statistics.mean([g["scores"].get(k, 0) for g in scored]), 2
+                )
+                for k in ("gist", "coherence", "overhead", "concreteness")
+            }
+        if any("false_positives" in g for g in gradings):
+            merged["false_positives"] = max(
+                int(g.get("false_positives", 0) or 0) for g in gradings
             )
-            for k in ("gist", "coherence", "overhead", "concreteness")
-        }
+            merged["extra_findings"] = gradings[0].get("extra_findings", [])
         merged["boundary_coverage"] = gradings[0].get("boundary_coverage", {})
         merged["false_certainty"] = {
             "sampled": max(
@@ -350,7 +408,7 @@ def merge_gradings(gradings: list[dict]) -> dict:
 def run_combo(
     case: dict,
     arm: str,
-    skill_path: Path | None,
+    skill_ref: tuple | None,
     workspace: Path,
     iteration_dir: Path,
     model: str,
@@ -358,6 +416,11 @@ def run_combo(
     graders: int,
     force: bool,
 ) -> str:
+    skill_path: Path | None = None
+    if skill_ref is not None:
+        skill_path = skill_ref[1] / "skills" / case_skill_name(case) / "SKILL.md"
+        if not skill_path.exists():
+            raise RuntimeError(f"skill file missing: {skill_path}")
     run_dir = iteration_dir / case["name"] / arm
     outputs = run_dir / "outputs"
     outputs.mkdir(parents=True, exist_ok=True)
@@ -418,13 +481,19 @@ def run_combo(
     else:
         log("explain: running")
         if skill_path is None:
-            prompt = render(load_prompt("explainer-baseline"), QUESTION=case["question"])
+            question = case["question"]
+            note = case_context_note(case)
+            if note:
+                question = f"{question}\n\n（{note}）"
+            prompt = render(load_prompt("explainer-baseline"), QUESTION=question)
             add_dirs = None
         else:
             prompt = render(
                 load_prompt("explainer-with-skill"),
+                SKILL_NAME=case_skill_name(case),
                 QUESTION=case["question"],
                 SKILL_PATH=str(skill_path),
+                CONTEXT_NOTE=case_context_note(case),
             )
             add_dirs = [skill_path.parents[2]]
         envelope = run_claude(
@@ -433,7 +502,7 @@ def run_combo(
             model=model,
             effort=effort,
             timeout=STAGE_TIMEOUTS["explain"],
-            allowed_tools=READ_ONLY_TOOLS,
+            allowed_tools=case_allowed_tools(case),
             add_dirs=add_dirs,
         )
         explanation = envelope.get("result", "")
@@ -441,6 +510,7 @@ def run_combo(
             raise RuntimeError("empty explanation")
         explanation_file.write_text(explanation, encoding="utf-8")
         duration_ms = envelope_duration_ms(envelope)
+        explain_envelope = envelope
         (run_dir / "timing.json").write_text(
             json.dumps(
                 {
@@ -454,6 +524,49 @@ def run_combo(
             encoding="utf-8",
         )
         log(f"explain: done ({len(explanation)} chars)")
+
+    # ---------------- detection protocol: grade the report directly --------
+    if case.get("protocol") == "detection":
+        grading_file = run_dir / "grading.json"
+        if grading_file.exists() and not force:
+            log("grade: cached")
+            return f"{case['name']}/{arm}"
+        inventory = "\n".join(
+            f"{i+1}. {b}" for i, b in enumerate(case.get("boundaries", []))
+        )
+        prompt = render(
+            load_prompt("grader-detection"),
+            INVENTORY=inventory,
+            REPORT=explanation,
+        )
+        gradings = []
+        for g_index in range(1, graders + 1):
+            g_file = run_dir / f"grading-{g_index}.json"
+            if g_file.exists() and not force:
+                gradings.append(json.loads(g_file.read_text(encoding="utf-8")))
+                continue
+            log(f"grade[{g_index}/{graders}]: running (detection)")
+            envelope = run_claude(
+                prompt,
+                cwd=target,
+                model=model,
+                effort=effort,
+                timeout=STAGE_TIMEOUTS["grade"],
+                allowed_tools=READ_ONLY_TOOLS,
+            )
+            grading = extract_json(envelope.get("result", ""), "{", "}")
+            g_file.write_text(
+                json.dumps(grading, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            gradings.append(grading)
+        merged = merge_gradings(gradings)
+        grading_file.write_text(
+            json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        log(
+            f"grade: done ({merged['summary']['passed']}/{merged['summary']['total']})"
+        )
+        return f"{case['name']}/{arm}"
 
     # ---------------- stage 2: learn (full + prefixes) ----------------------
     answers_file = outputs / "learner_answers.json"
@@ -572,16 +685,17 @@ def main() -> int:
         print("no cases matched", file=sys.stderr)
         return 1
 
-    arm_skills: dict[str, Path | None] = {}
+    arm_skills: dict[str, tuple | None] = {}
     for arm in args.arms.split(","):
         arm = arm.strip()
         if arm == "with_skill":
-            arm_skills[arm] = REPO_ROOT / "skills" / "understand" / "SKILL.md"
+            arm_skills[arm] = ("root", REPO_ROOT)
         elif arm == "old_skill":
             if not args.old_skill_path:
                 print("--old-skill-path required for old_skill arm", file=sys.stderr)
                 return 1
-            arm_skills[arm] = args.old_skill_path
+            # --old-skill-path points at <root>/skills/<name>/SKILL.md
+            arm_skills[arm] = ("root", args.old_skill_path.parents[2])
         elif arm == "without_skill":
             arm_skills[arm] = None
         else:
@@ -597,22 +711,25 @@ def main() -> int:
     for case in cases:
         case_dir = iteration_dir / case["name"]
         case_dir.mkdir(parents=True, exist_ok=True)
-        assertions = [
-            f"probe {p['id']} ({p.get('tier', 'retention')}"
-            + (", trap" if p.get("trap") else "")
-            + f"): {p['question']}"
-            for p in case["probes"]
-        ]
-        assertions += [
-            "gist / coherence / overhead / concreteness (各 >=4/5)",
-            "boundaries: 主動揭露 >=2/3 埋藏邊界",
-            "calibration: 抽查肯定斷言 0 錯誤",
-            "citations: 引用存在且支持主張",
-        ]
-        if case.get("altitude_max_implementation") is not None:
-            assertions.append(
-                f"altitude: implementation 段落 <= {case['altitude_max_implementation']:.0%}"
-            )
+        if case.get("protocol") == "detection":
+            assertions = [f"detect: {b}" for b in case.get("boundaries", [])]
+        else:
+            assertions = [
+                f"probe {p['id']} ({p.get('tier', 'retention')}"
+                + (", trap" if p.get("trap") else "")
+                + f"): {p['question']}"
+                for p in case["probes"]
+            ]
+            assertions += [
+                "gist / coherence / overhead / concreteness (各 >=4/5)",
+                "boundaries: 主動揭露 >=2/3 埋藏邊界",
+                "calibration: 抽查肯定斷言 0 錯誤",
+                "citations: 引用存在且支持主張",
+            ]
+            if case.get("altitude_max_implementation") is not None:
+                assertions.append(
+                    f"altitude: implementation 段落 <= {case['altitude_max_implementation']:.0%}"
+                )
         (case_dir / "eval_metadata.json").write_text(
             json.dumps(
                 {
@@ -627,7 +744,12 @@ def main() -> int:
             encoding="utf-8",
         )
 
-    combos = [(case, arm) for case in cases for arm in arm_skills]
+    combos = [
+        (case, arm)
+        for case in cases
+        for arm in arm_skills
+        if not (arm == FLOOR_ARM and not case.get("probes"))
+    ]
     failures = []
     with ThreadPoolExecutor(max_workers=args.max_workers) as pool:
         futures = {
