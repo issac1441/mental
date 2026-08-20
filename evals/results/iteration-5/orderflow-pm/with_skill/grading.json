@@ -1,0 +1,153 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 免運條件",
+      "passed": true,
+      "evidence": "讀者答『折扣前小計達$8,000免運』，與標準一致；pricing.py:57 用 pre-discount subtotal 判免運、門檻 config 8000_00。"
+    },
+    {
+      "text": "probe 2 (near): 出貨一直失敗的結局／會否無限重試",
+      "passed": true,
+      "evidence": "讀者答『不會無限重試，3次後退庫存+進dead-letter+回dead_lettered收據、沒出貨沒收費』，與 pipeline release/dead_letters、MAX_DISPATCH_ATTEMPTS=3 相符。"
+    },
+    {
+      "text": "probe 3 (near): 晚點處理價格為何可能不同",
+      "passed": true,
+      "evidence": "讀者答『價於訂庫存凍結，逾120秒重處理才按當下目錄價重算致變價』，符合 inventory TTL=120 + reprice。"
+    },
+    {
+      "text": "probe 4 (near, trap): 原價9,500/折後7,000是否付運費",
+      "passed": true,
+      "evidence": "讀者答『不需付運，看折扣前9,500≥8,000』，避開7,000<8,000陷阱，與標準一致。"
+    },
+    {
+      "text": "probe 5 (decision): 改看折後門檻受影響客群與體驗",
+      "passed": true,
+      "evidence": "讀者精確指出『折扣前達標、折後跌破門檻』的高消費促銷客會開始付運、體驗變差、他人不變，符合標準。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 是否支援分期付款",
+      "passed": true,
+      "evidence": "讀者答『說明中沒有提到』，ground truth 即『未涵蓋』，且程式碼全無付款概念，通過。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=4，第2–3句即給正確可獨立成立的『四關+3種收據+凍價+重試3次』模型並直擊PM兩問；惟第1句為英文流程caveat拖累滿分。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，沿訂單生命週期→價格變動→出貨失敗→風險→來源鋪陳，因果連貫，先總後細為刻意分層而非重複形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，僅開頭一句英文方法論caveat先於內容；術語(dispatched/idempotent/TTL)首現即解釋，尾段meta在內容之後不構成前置負擔。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，主張連結 config 常數、檔名、函式(reserve/_build/release)、測試名與 $6,615 可算例子。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3：免運看折扣前、120秒逾期重算變價、重試3次→dead-letter釋庫存且客戶不見系統錯誤；missed 無。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽『免運/總價$6,615』『重試3次+backoff 200/400ms』『reprice_required 全流程無人讀取』核對程式碼皆正確，wrong_flat=0。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽 pricing.py/inventory.py/config.py 皆存在且支持：L57 pre-discount 免運、reserve/_build/release、門檻8000_00與TTL=120與3次。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": false
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 4,
+    "coherence": 4.5,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "免運看折扣前原價（非折後實付）",
+      "價格/庫存只保留120秒，逾期按當下目錄價重算致總價可變",
+      "出貨重試上限3次→進dead-letter待處理清單並釋放庫存，客戶得dead_lettered收據而非系統錯誤"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.275,
+  "altitude": {
+    "implementation_share": 0.1
+  },
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 13,
+    "failed": 0,
+    "total": 13,
+    "pass_rate": 1.0
+  },
+  "graders": 2
+}

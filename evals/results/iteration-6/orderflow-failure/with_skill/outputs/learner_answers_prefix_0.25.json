@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "依錯誤的『種類／家族』分類，而不是看在哪個階段出錯。errors.py 把所有錯誤切成兩個家族：可重試的是 RetryableError 家族——VersionConflict、CarrierTimeout、CarrierUnavailable（短暫性，可退避重試）；不可重試、立即失敗的是 FatalError 家族——ValidationError、UnknownSku、InsufficientStock。是否重試完全取決於錯誤落在哪個家族。",
+    "confidence": 97
+  },
+  {
+    "id": 2,
+    "answer": "說明中沒有提到。可見文件只說 dispatch 有一套自己的重試，並列出三種收據結局（dispatched｜failed｜dead_lettered），但沒有寫出 dispatch 的最大嘗試次數，也沒有描述『全部失敗後系統做的三件事』——這部分落在被截斷的內容裡。",
+    "confidence": 87
+  },
+  {
+    "id": 3,
+    "answer": "說明中沒有提到。可見文件完全沒有給出 dispatch 的退避延遲公式或基本延遲數值，也沒有描述 jitter 如何決定（皆在被截斷的部分）。",
+    "confidence": 90
+  },
+  {
+    "id": 4,
+    "answer": "因為保留已過期，reserve() 會走第 2 條路徑（inventory.py:68-71）：用『當前目錄』重建一份新的保留、標記 reprice_required=True，並覆寫舊記錄；而不是像未過期時那樣直接回傳舊保留（那才是冪等）。也就是說過期後不再享有冪等。至於總價：因為是用當前目錄重建且被標記 reprice_required=True（需要重新定價），總價可能會變——會重新計價，若目錄價格有變動總價就不同；文件只到重建與標記這一步，實際定價階段未展示，故不保證一定改變但不再沿用舊價。",
+    "confidence": 80
+  },
+  {
+    "id": 5,
+    "answer": "不會重試。InsufficientStock 屬 FatalError 家族，不可重試、立即失敗。呼叫端拿到 status 為 failed 的收據（Receipt）——文件明確指出 failed 這張收據只由三類致命錯誤造成，庫存不足正是其中之一，且一律不重試。",
+    "confidence": 93
+  },
+  {
+    "id": 6,
+    "answer": "文件未描述 dispatch 重試迴圈與退避的實際機制（在被截斷處），以下是依『RetryableError→可退避重試』原則所做的推論：最大嘗試次數改成 1 代表只嘗試一次、不再重試，因此一遇到短暫性 carrier 錯誤（CarrierTimeout／CarrierUnavailable）就直接結束 dispatch、不會有第二次嘗試。既然沒有重試，退避等待也就不會發生（退避本來是發生在兩次重試之間），所以 backoff 不會再出現。行為上的改變：出貨失去容錯的重試機會。",
+    "confidence": 58
+  },
+  {
+    "id": 7,
+    "answer": "不對。failed 這張收據『只』由三類致命錯誤（ValidationError、UnknownSku、InsufficientStock）造成，而且是不重試就立即失敗；VersionConflict 屬於 RetryableError（可重試）家族，不是 FatalError，所以它就算重試耗盡也不可能產生 failed 收據。按文件的三種結局推論，可重試錯誤耗盡後的結果應是 dead_lettered（既非成功也非致命的第三種結局），而非 failed。（文件未明確描述庫存重試耗盡的確切終局，此處由三種結局排除法推得。）",
+    "confidence": 84
+  },
+  {
+    "id": 8,
+    "answer": "說明中沒有提到。可見文件完全沒有提到任何 carrier、offshore 地區、或依重量（例如 5000g）挑選 carrier 的規則，也沒有第 2 次嘗試前的退避等待時間——這些都不在可見內容中（在被截斷的部分）。",
+    "confidence": 92
+  }
+]

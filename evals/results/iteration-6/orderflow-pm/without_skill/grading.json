@@ -1,0 +1,153 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 何時免運?",
+      "passed": true,
+      "evidence": "讀者答『折扣前商品滿8000免運,折後低於8000仍免運』,與標準答案(pre-discount>=8000)完全一致。"
+    },
+    {
+      "text": "probe 2 (near): 出貨一直失敗最後會怎樣?會無限重試嗎?",
+      "passed": true,
+      "evidence": "讀者答『不會無限重試,最多3次後進人工處理、庫存退回、不出貨、收據顯示失敗原因無金額』,涵蓋dead_lettered/釋放庫存全部關鍵事實。"
+    },
+    {
+      "text": "probe 3 (near): 為何晚點處理價格可能不同?",
+      "passed": true,
+      "evidence": "讀者答『鎖價120秒,逾時後同單會用當下目錄價重算,金額可能變動』,與TTL+reprice標準答案一致。"
+    },
+    {
+      "text": "probe 4 (near, trap): 原價9500/折後7000要付運費嗎?",
+      "passed": true,
+      "evidence": "讀者答『不需付運費,看折扣前9500>=8000』,正確避開『7000<8000要付運費』的陷阱。"
+    },
+    {
+      "text": "probe 5 (decision): 改看折後金額誰受影響、變好變差?",
+      "passed": true,
+      "evidence": "讀者精準點出『折前達標但折後未達標』的高消費促銷客群將開始付運費、體驗變差,命中決策題核心。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 支援分期付款嗎?",
+      "passed": true,
+      "evidence": "讀者答『說明中沒有提到,無法判斷』,與ground truth『說明中沒有提到』一致,未編造。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=2,前三句純屬前言(我讀過程式碼/用PM角度講/幣別用元),只承諾要講出貨失敗與價格變動卻未給任何實質答案,無法獨立成立。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,依四關流程→出貨失敗→價格變動→重複出貨→定價規則的因果鏈組織,直接對應提問;僅A風險表與C段重複出貨略有重疊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,實質內容前僅一段簡短前言,無選項報告/方法論;死信佇列、鎖價、idempotent等術語首次出現即以白話解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,關鍵主張皆綁具體數字與可執行例子(3件重複扣成6件、4999打9折vs5000打7折、9500/7000),惟未明確引用檔案路徑。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3:免運看折扣前、鎖價120秒逾時重算、重試3次上限後進死信+釋放庫存+客戶得收據非崩潰,全部主動揭露。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽『免運看折前+稅只課折後』(pricing.py:49/55/57)、『最多3次~0.2/0.4秒約1秒內』(dispatch.py:44-49)、『120秒後重跑重複扣庫存』(inventory.py:68-71無release)三條,核對程式碼皆正確,wrong_flat=0。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "文件僅一處具體引用『測試檔裡的範例商品』,對應tests/test_pipeline.py的CATALOG(WIDGET 3000/ANVIL 900)確實存在且支撐其舉例金額。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": false
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 2,
+    "coherence": 4,
+    "overhead": 4,
+    "concreteness": 4
+  },
+  "boundary_coverage": {
+    "covered": [
+      "免運資格看折扣前原價(文件『免運看折扣前金額…打完折低於8000仍免運』)",
+      "價格/庫存僅保留120秒,逾時按當下目錄價重算致總價改變(B段鎖價機制)",
+      "出貨重試上限3次後進死信佇列+釋放庫存+客戶得dead_lettered收據而非系統錯誤(A段)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.27,
+  "altitude": {
+    "implementation_share": 0.05
+  },
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 12,
+    "failed": 1,
+    "total": 13,
+    "pass_rate": 0.923
+  },
+  "graders": 2
+}

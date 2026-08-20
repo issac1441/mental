@@ -38,7 +38,7 @@ class PluginContractTests(unittest.TestCase):
         claude = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         for manifest in (codex, claude):
             self.assertEqual(manifest["name"], "mental")
-            self.assertEqual(manifest["version"], "0.2.0")
+            self.assertEqual(manifest["version"], "0.3.0")
             self.assertEqual(manifest["skills"], "./skills/")
             self.assertEqual(manifest["license"], "0BSD")
             self.assertNotIn("mcpServers", manifest)

@@ -1,12 +1,18 @@
 {
   "name": "mental",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Build, explain, assess, and maintain evidence-linked mental models for repositories and learning material.",
   "author": {
     "name": "mental contributors"
   },
   "license": "0BSD",
-  "keywords": ["mental-models", "learning", "assessment", "architecture", "knowledge"],
+  "keywords": [
+    "mental-models",
+    "learning",
+    "assessment",
+    "architecture",
+    "knowledge"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Mental",
@@ -14,7 +20,10 @@
     "longDescription": "Agent-native workflows that turn supplied repositories and learning sources into reviewable mental models, adaptive lessons, bounded assessments, and evidence-aware change decisions.",
     "developerName": "mental contributors",
     "category": "Productivity",
-    "capabilities": ["Interactive", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
     "defaultPrompt": [
       "Explain this repository through its mental model.",
       "Build a draft mental model from these sources.",

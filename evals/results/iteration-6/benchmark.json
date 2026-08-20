@@ -1,0 +1,847 @@
+{
+  "metadata": {
+    "skill_name": "understand",
+    "skill_path": "skills/understand",
+    "executor_model": "claude-opus-4-8 (effort=max)",
+    "analyzer_model": "deterministic aggregate.py v2",
+    "timestamp": "2026-08-20T08:57:06+00:00",
+    "evals_run": [
+      "mental-orientation",
+      "orderflow-failure",
+      "orderflow-pm",
+      "orderflow-trace"
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 3,
+      "eval_name": "mental-orientation",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.933,
+        "passed": 14,
+        "failed": 1,
+        "total": 15,
+        "time_seconds": 270.4,
+        "tokens": 363801,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 使用者介面是什麼、一般使用者怎麼操作",
+          "passed": true,
+          "evidence": "讀者答:介面=九個 SKILL.md,/mental:*、$mental:*,plugin 非 CLI,scripts 為私有 helper — 與標準答案完全一致。"
+        },
+        {
+          "text": "probe 2 (retention): SKILL.md 與 references/ 的關係",
+          "passed": true,
+          "evidence": "讀者答:薄 SKILL.md、workflow 第一步讀 references,references/ 為共享方法庫使九 skill 一致 — 命中關係與理由。"
+        },
+        {
+          "text": "probe 3 (retention): 共享 mental model vs 個人學習狀態存放與為何分開",
+          "passed": true,
+          "evidence": "讀者答:共享→mental/(進 git),個人→.mental/(gitignore 隱私邊界),並正確指出位於目標 repo — 完整正確。"
+        },
+        {
+          "text": "probe 4 (retention): 兩支 Python 各做什麼、誰使用",
+          "passed": true,
+          "evidence": "讀者答:scaffold=建骨架(build 用)、validate=結構檢查(doctor/sync 用);兩函式與內部 helper 性質正確,僅漏『build 也呼叫 validate』(說明本身即漏此)。"
+        },
+        {
+          "text": "probe 5 (near): 新增第10個 skill 最少還要動哪、測試才過",
+          "passed": false,
+          "evidence": "標準要 agents/openai.yaml+SKILL_NAMES+behavior_cases.json 三者;讀者只給 SKILL_NAMES 與 behavior_cases.json,漏 openai.yaml(缺該檔會使 UI metadata 測試紅)— 最小集不完整。"
+        },
+        {
+          "text": "probe 6 (counterfactual): 誰抓出未經確認就改 canonical",
+          "passed": true,
+          "evidence": "讀者答:doctor 稽核 + build 的 promotion gate 為規則,並正確指出機械 validator 單憑 sources 規則不足 — 命中 skill 與規則;僅未點名 doctor『語意稽核未確認 canonical』該條(說明未主動揭露)。"
+        },
+        {
+          "text": "probe 7 (repair/trap): 測驗結果存 mental/exercises/ 供團隊共用?",
+          "passed": true,
+          "evidence": "讀者正確判為錯:結果應在 .mental/(私有)非 mental/(共享),駁斥位置與用途兩點 — 未落入陷阱。"
+        },
+        {
+          "text": "probe 8 (diagnosis): 為何 clone 後看不到前人學習進度",
+          "passed": true,
+          "evidence": "讀者答:.mental/ 被 gitignore(*+!.gitignore)故不進 git、不隨 clone,刻意公私分界 — 機制精確正確。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=4,前3句:S1『我已讀完…』為 meta,S2-3 給出『plugin、產品=九個 SKILL.md、為他人 repo 建心智模型』正確粗答;但『怎麼協作』遲至第4-5句、且被 meta 開場稍稀釋。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,結構=身分→破除誤會→七元件→呼叫流程(協作)→槓桿→邊界,依主題本身組織、因果連貫;重複(helper/隱私)屬輕度強化非形式化重塊。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4,僅一句 meta 開場即進實質,Lens/Views/Detail 框架延到結尾 Context 行;扣分:開場 meta 句與 [observed] 標籤首用未明講。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,幾乎每條主張都附檔案:行號(README.md:5、validate:200-206、test:44-46…),工具核對皆屬實。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "3/3 全揭露:.mental/ gitignore 隱私邊界(part6)、promotion gate 需人確認(flow step3)、scripts 為內部 helper 非 CLI(多處)。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽 (1).mental/.gitignore 須=*+!.gitignore (2)manifest 無 mcpServers/apps/hooks (3)scaffold 非破壞 kept: — 三條核對皆為真,wrong_flat=0。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "抽 README.md:5、scripts/validate_workspace.py:200-206、tests/test_plugin_contract.py:44-46 — 皆存在且精確支持;僅 build『internal helper』實在 L14 非 doc 標之 L18(微小行號偏差)。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "mental-orientation",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.933,
+        "passed": 14,
+        "failed": 1,
+        "total": 15,
+        "time_seconds": 192.8,
+        "tokens": 338235,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 使用者介面是什麼、怎麼操作",
+          "passed": true,
+          "evidence": "讀者答『介面=9 skills、非 CLI/service 的 plugin、在 Claude Code(/mental:)與 Codex($mental:)呼叫、host 依 manifest 載入後 agent 讀 SKILL.md 執行 Workflow』——涵蓋標準答案關鍵事實，僅未點名『scripts 是內部 helper』(非本題核心)。"
+        },
+        {
+          "text": "probe 2 (retention): SKILL.md 與 references/ 的關係",
+          "passed": true,
+          "evidence": "讀者答『references/ 是共享規則單一事實來源(DRY)，每支 Workflow 第一步讀 references/*、SKILL.md 不重複規則』——與 skills/*/SKILL.md step 1 一致，正確。"
+        },
+        {
+          "text": "probe 3 (retention): 共享內容 vs 個人學習狀態存放與分開原因",
+          "passed": true,
+          "evidence": "讀者答『mental/(進 git 共享) vs .mental/(gitignore 私有，含 profile.md/mastery.json/sessions/)，因隱私邊界永不混放』——完全符合 artifact-contract.md。"
+        },
+        {
+          "text": "probe 4 (retention): 兩支 Python 腳本各做什麼、誰用",
+          "passed": true,
+          "evidence": "讀者答『scaffold 非破壞性建骨架(build 用)、validate 驗證合約(build/doctor/sync 用)、內部 helper』——與 build step3/8、doctor step2、sync step6 完全一致。"
+        },
+        {
+          "text": "probe 5 (near): 新增第 10 個 skill 最少還要動哪些地方測試才過",
+          "passed": false,
+          "evidence": "標準答案要三處(agents/openai.yaml + SKILL_NAMES + behavior_cases.json)。讀者只答對 openai.yaml，漏掉 test_plugin_contract.py 的 SKILL_NAMES 與 behavior_cases.json 這兩個『測試才會過』的關鍵，且誤稱需與 manifest 一致(非測試要求)；讀者自評低信心(52)。此為說明未揭露測試合約內部所致。"
+        },
+        {
+          "text": "probe 6 (counterfactual): 誰抓出未經人確認的 canonical",
+          "passed": true,
+          "evidence": "讀者答對責任 skill=doctor 並正確陳述 promotion-gate 治理規則(先 draft、需人審、無 skill 能自升)；但把抓取機制誤歸給 validate_workspace.py(稱其涵蓋 promotion gate)——正是本題陷阱(validator 結構檢查無法判定，實為 doctor step3 語意稽核)。讀者自flag此不確定；因命中關鍵事實(doctor+gate)判通過但屬邊界。"
+        },
+        {
+          "text": "probe 7 (repair, trap): 測驗結果存 mental/exercises/ 共用是否正確",
+          "passed": true,
+          "evidence": "讀者答『不對，exercises/ 放共享題目(draft)、學習者結果只存私有 .mental/(sessions/)』——與 quiz step8『never publish the learner's answers there』完全吻合。"
+        },
+        {
+          "text": "probe 8 (diagnosis): 為何 clone 後看不到前人學習進度",
+          "passed": true,
+          "evidence": "讀者答『個人狀態在 .mental/，被 gitignore、不 commit/clone，只取進 git 的 mental/』——與 .mental/.gitignore(`*`+`!.gitignore`)一致，正確。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=4，『一句話總結』即給出正確自足的架構答案(agent-native plugin、9 skills+產物合約、兩支腳本、用途)；但前兩句為 meta 框架語(『我已經把整個 repo 摸清楚了』)，稍延後 gist 落地。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，嚴格依系統實際結構(六層→怎麼協作→三條紀律)組織，元件對應真實目錄，無互相重複的形式化區塊；invariant 的少量重述屬有意強化。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4，僅開頭兩句 meta 框架，隨即進入實質；無選項報告/方法論前導，術語(plugin、artifact contract、promotion gate、provenance 標記)首次出現即解釋。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，主張連結到確切檔案(plugin.json/marketplace.json/validate_workspace.py/references/*)、程式符號(ALLOWED_KINDS)、測試檔與可執行指令(python3 -m unittest)。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "covered 3/3：.mental gitignore 隱私邊界(層4『鐵律』+紀律3)、promotion gate 需人審(紀律1『沒有 skill 能自己把草稿變定案』)、scripts 為內部 helper 非 CLI(一句話總結『沒有給終端使用者的 CLI』+層5+踩雷要點)。missed: 無。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽①validate 檢查 frontmatter/id/kind/status/連結/gitignore/mastery.json 形狀且被 build/doctor/sync 呼叫、②scaffold 非破壞性從模板建骨架被 build 呼叫、③9/9 skill step1 讀 references——三條皆經程式碼核對為真，wrong_flat=0。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "抽 scripts/validate_workspace.py(支持『機器可檢查半』)、references/artifact-contract.md(支持 promotion gate/隱私邊界)、tests/test_plugin_contract.py(支持『守打包不變量』)——三者皆存在且支持該處主張。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "orderflow-failure",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.933,
+        "passed": 14,
+        "failed": 1,
+        "total": 15,
+        "time_seconds": 255.4,
+        "tokens": 198519,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 哪些錯誤會重試/不會+分類方式",
+          "passed": true,
+          "evidence": "讀者答 Retryable(VersionConflict/CarrierTimeout/CarrierUnavailable)重試、Fatal(Validation/UnknownSku/InsufficientStock)不重試、依錯誤種類分類，與標準一致。"
+        },
+        {
+          "text": "probe 2 (retention): dispatch 最多幾次+全敗後三件事",
+          "passed": true,
+          "evidence": "讀者答 MAX_DISPATCH_ATTEMPTS=3、耗盡後釋放保留/進死信佇列/回 dead_lettered 收據，三件事全對。"
+        },
+        {
+          "text": "probe 3 (near): 第3次嘗試前等多久+jitter",
+          "passed": true,
+          "evidence": "讀者答 400ms（200×2^1）+ crc32(order_id)%100 的 0-99ms 可預測 jitter，與 dispatch.py backoff_ms 及測試一致。"
+        },
+        {
+          "text": "probe 4 (near): 保留過期後重處理+總價會否變",
+          "passed": true,
+          "evidence": "讀者答以當前 catalog 重建、reprice_required、pipeline 一律 price() 故總價可能變，正確；另附之重複扣庫存推論亦與程式碼相符。"
+        },
+        {
+          "text": "probe 5 (retention): InsufficientStock 是否重試+呼叫端拿到什麼",
+          "passed": true,
+          "evidence": "讀者答不重試(FatalError)、拿 status=failed 收據、dispatch 不執行，與 test_insufficient_stock_fails_without_retry 一致。"
+        },
+        {
+          "text": "probe 6 (counterfactual): MAX 3→1 行為改變+backoff 還會嗎",
+          "passed": true,
+          "evidence": "讀者答第一次可重試錯誤即耗盡走死信、退避不再發生（僅 attempt>1 才 sleep），與 dispatch 迴圈一致。"
+        },
+        {
+          "text": "probe 7 (repair/trap): VersionConflict 重試3次失敗→failed 收據?",
+          "passed": true,
+          "evidence": "讀者判定錯誤，指出 VersionConflict 為 Retryable、耗盡後例外穿過 except FatalError 逃出 process() 而非拿 failed 收據，命中陷阱。"
+        },
+        {
+          "text": "probe 8 (counterfactual): offshore 5000g 用哪家 carrier+第2次前等多久",
+          "passed": false,
+          "evidence": "carrier 標準答案為 air（offshore 覆蓋重量），讀者答『說明沒提到』——文件確實省略 choose_carrier；延遲 200-299ms 正確，但 carrier 主軸(陷阱)未答。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=5，開頭三句即點出『命運由錯誤種類決定，非階段』『兩套獨立重試』『failed=三類致命錯誤且不重試』，直接回答問題。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，依 ingest→reserve→price→dispatch 流程與錯誤分類因果鏈組織，無互相重複的形式化區塊。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，首句即實質內容，元資訊(Sources/Context/$build)全置末尾；樂觀鎖/冪等/死信首次出現即解釋。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，幾乎每個主張都有 file:line 與測試佐證(dispatch.py:52、test_pipeline.py:51 等)，含具體退避數值。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "3/3 全覆蓋：①『第四條路』未攔截例外逃出 process()、②只有 Retryable 重試/Fatal 立即失敗、③dispatch 耗盡補償(釋放+DLQ+dead_lettered)皆主動揭露。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽 backoff 200/400ms+jitter、dispatch 耗盡三件事、_put_with_retry 3次無sleep 三條，核對程式碼全正確；wrong_flat=0。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "抽 dispatch.py:52(dispatch())、inventory.py:127(_put_with_retry)、tests/test_pipeline.py:51(死信釋放庫存)三處，皆存在且支持主張。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "orderflow-failure",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 12,
+        "failed": 3,
+        "total": 15,
+        "time_seconds": 174.4,
+        "tokens": 136439,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 哪些錯誤重試、哪些不重試及分類",
+          "passed": true,
+          "evidence": "讀者正確分出 FatalError(不重試) vs RetryableError(重試)，並區分儲存層(VersionConflict)與派送層(CarrierTimeout/Unavailable)兩層，與 errors.py taxonomy 一致"
+        },
+        {
+          "text": "probe 2 (retention): dispatch 最多幾次、耗盡後三件事",
+          "passed": true,
+          "evidence": "讀者答 MAX_DISPATCH_ATTEMPTS=3、釋放庫存+進DLQ+回收據，與 config.py/pipeline.py:61-67 相符"
+        },
+        {
+          "text": "probe 3 (near): 第3次嘗試前等多久+jitter怎麼決定",
+          "passed": false,
+          "evidence": "讀者只給結構 2×BASE，說 BASE 數值與 jitter 機制『說明沒提到』；ground truth 為 400ms+crc32 0-99ms 之實質事實，未涵蓋即不通過"
+        },
+        {
+          "text": "probe 4 (near): 保留過期後再處理、總價會不會變",
+          "passed": true,
+          "evidence": "讀者答重建+reprice_required=True→總價可變，並正確附帶重複扣庫存 bug，與 inventory.py reserve() 相符"
+        },
+        {
+          "text": "probe 5 (retention): 庫存不足會重試嗎、呼叫端拿到什麼",
+          "passed": true,
+          "evidence": "讀者答不重試(FatalError)、回 failed 收據、不 dispatch，與 errors.py/pipeline.py 及測試相符"
+        },
+        {
+          "text": "probe 6 (counterfactual): 最大嘗試 3→1 的行為改變、backoff 是否發生",
+          "passed": true,
+          "evidence": "讀者答第一次 retryable 即耗盡→dead_lettered、且無 backoff(僅 attempt>1 才 sleep)，與 dispatch.py 迴圈相符"
+        },
+        {
+          "text": "probe 7 (repair,trap): VersionConflict 耗盡會拿 failed 收據嗎",
+          "passed": true,
+          "evidence": "讀者識破陷阱：VersionConflict 是 RetryableError、pipeline 只接 FatalError→未攔截例外、無任何收據，完全正確"
+        },
+        {
+          "text": "probe 8 (counterfactual): offshore 5000g 用哪家 carrier、第2次前等多久",
+          "passed": false,
+          "evidence": "carrier=air 屬實質事實，讀者答『說明沒提到』(文件確實未寫 choose_carrier)→不通過；延遲僅給 1×BASE 無數值"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": false,
+          "evidence": "score=2，前三句為『我讀過 pipeline／先講意圖再講落差』純元資訊+章節標題，未直接回答失敗行為"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4，沿 pipeline 流程(保留→重試兩層→失敗分類→第三種隱藏失敗→兩bug)建因果鏈；僅 VersionConflict 逃逸點在表格與 bug2 重述一次"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4，僅兩句框架式開場，隨即進實質；冪等/VersionConflict/樂觀鎖等術語首次出現即解釋"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，幾乎每主張帶 file:line、含可跑的 10→9→8 數值例與具名測試，經核對全部準確"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "covered 3/3：VersionConflict 逃逸未攔截、Retryable-only 重試、dispatch 耗盡補償(release+DLQ+dead_lettered)皆明確主動揭露"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽『過期重建重複扣庫存』『VersionConflict 耗盡→未攔截例外』『冪等只保護庫存不保護出貨→重複出貨』，三條經 code 核對全對，wrong_flat=0"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "抽 inventory.py:54(reserve def)、pipeline.py:61-67(dead-letter路徑)、errors.py:32(VersionConflict(RetryableError))，皆存在且支持"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "orderflow-pm",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.923,
+        "passed": 12,
+        "failed": 1,
+        "total": 13,
+        "time_seconds": 315.4,
+        "tokens": 306296,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 何時免運費",
+          "passed": true,
+          "evidence": "讀者答『折扣前小計達 8,000 免運,否則 120』並強調看折扣前——完全命中標準答案。"
+        },
+        {
+          "text": "probe 2 (near): 出貨一直失敗的結局／是否無限重試",
+          "passed": true,
+          "evidence": "讀者答『不無限重試,3 次後轉待處理、釋放庫存、dead_lettered 收據不當機』——涵蓋所有關鍵事實。"
+        },
+        {
+          "text": "probe 3 (near): 為何晚點處理價格會變",
+          "passed": true,
+          "evidence": "讀者答『保留鎖價僅 2 分鐘,過期後按當下目錄價重算』——與標準答案一致。"
+        },
+        {
+          "text": "probe 4 (near, trap): 原價 9,500／折後 7,000 是否付運費",
+          "passed": true,
+          "evidence": "讀者答『免運,看折扣前 9,500≥8,000』——避開『7,000<8,000 要付運費』陷阱。"
+        },
+        {
+          "text": "probe 5 (decision): 改看折後金額誰受影響",
+          "passed": true,
+          "evidence": "讀者精準指出『折前達標但折後跌破』的高消費促銷客群變差、無人新獲免運——與標準答案吻合。"
+        },
+        {
+          "text": "probe 6 (scope, trap): 是否支援分期付款",
+          "passed": true,
+          "evidence": "讀者答『說明中沒有提到』,而 ground truth 正是未涵蓋(程式庫無金流概念)——通過。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": false,
+          "evidence": "score=3,文件首句是英文流程性 meta(『Two things I confirmed by searching…reprice_required…read only by tests』),前三句被元資訊+實作術語占滿,真正極佳的四關摘要被擋在 --- 之後。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4,依流程→出貨失敗→價格變動→兩者交會→旋鈕→邊界組織,並主動串起兩情境;僅關鍵事實在摘要/明細/config/邊界間有目的性重述。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4,正文無選項報告/方法論區塊、術語(dead-letter、拍照存底)首次出現即解釋;唯一負擔是開頭一行英文 meta,故未給滿分。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,幾乎每條主張帶 file:line、釘住行為的測試(test_pipeline.py:32)、及可算的數字例(3×WIDGET→6,615,與測試一致)。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "3/3 全部主動揭露:免運看折扣前(含反直覺提示與測試)、2 分鐘 TTL 過期重算、3 次上限後 dead-letter+釋放庫存不報錯。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽『失敗/待處理收據不帶金額與物流商』『TTL=120 秒』『reprice_required 僅被設定、只有測試讀取』——三條經程式與 grep 核對全部正確。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "pipeline.py:47(失敗收據路徑)、inventory.py:69(reprice 旗標設定處)、test_pipeline.py:32(免運看折扣前測試)——皆存在且支持。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "orderflow-pm",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.923,
+        "passed": 12,
+        "failed": 1,
+        "total": 13,
+        "time_seconds": 308.0,
+        "tokens": 428913,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 何時免運?",
+          "passed": true,
+          "evidence": "讀者答『折扣前商品滿8000免運,折後低於8000仍免運』,與標準答案(pre-discount>=8000)完全一致。"
+        },
+        {
+          "text": "probe 2 (near): 出貨一直失敗最後會怎樣?會無限重試嗎?",
+          "passed": true,
+          "evidence": "讀者答『不會無限重試,最多3次後進人工處理、庫存退回、不出貨、收據顯示失敗原因無金額』,涵蓋dead_lettered/釋放庫存全部關鍵事實。"
+        },
+        {
+          "text": "probe 3 (near): 為何晚點處理價格可能不同?",
+          "passed": true,
+          "evidence": "讀者答『鎖價120秒,逾時後同單會用當下目錄價重算,金額可能變動』,與TTL+reprice標準答案一致。"
+        },
+        {
+          "text": "probe 4 (near, trap): 原價9500/折後7000要付運費嗎?",
+          "passed": true,
+          "evidence": "讀者答『不需付運費,看折扣前9500>=8000』,正確避開『7000<8000要付運費』的陷阱。"
+        },
+        {
+          "text": "probe 5 (decision): 改看折後金額誰受影響、變好變差?",
+          "passed": true,
+          "evidence": "讀者精準點出『折前達標但折後未達標』的高消費促銷客群將開始付運費、體驗變差,命中決策題核心。"
+        },
+        {
+          "text": "probe 6 (scope, trap): 支援分期付款嗎?",
+          "passed": true,
+          "evidence": "讀者答『說明中沒有提到,無法判斷』,與ground truth『說明中沒有提到』一致,未編造。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": false,
+          "evidence": "score=2,前三句純屬前言(我讀過程式碼/用PM角度講/幣別用元),只承諾要講出貨失敗與價格變動卻未給任何實質答案,無法獨立成立。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4,依四關流程→出貨失敗→價格變動→重複出貨→定價規則的因果鏈組織,直接對應提問;僅A風險表與C段重複出貨略有重疊。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4,實質內容前僅一段簡短前言,無選項報告/方法論;死信佇列、鎖價、idempotent等術語首次出現即以白話解釋。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4,關鍵主張皆綁具體數字與可執行例子(3件重複扣成6件、4999打9折vs5000打7折、9500/7000),惟未明確引用檔案路徑。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "covered 3/3:免運看折扣前、鎖價120秒逾時重算、重試3次上限後進死信+釋放庫存+客戶得收據非崩潰,全部主動揭露。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽『免運看折前+稅只課折後』(pricing.py:49/55/57)、『最多3次~0.2/0.4秒約1秒內』(dispatch.py:44-49)、『120秒後重跑重複扣庫存』(inventory.py:68-71無release)三條,核對程式碼皆正確,wrong_flat=0。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "文件僅一處具體引用『測試檔裡的範例商品』,對應tests/test_pipeline.py的CATALOG(WIDGET 3000/ANVIL 900)確實存在且支撐其舉例金額。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "orderflow-trace",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 15,
+        "failed": 0,
+        "total": 15,
+        "time_seconds": 247.4,
+        "tokens": 161742,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 四步驟實際執行順序",
+          "passed": true,
+          "evidence": "讀者答 ingest→reserve→price→dispatch，與 pipeline.py:44-60 逐行一致"
+        },
+        {
+          "text": "probe 2 (near): 為何計價排在保留之後",
+          "passed": true,
+          "evidence": "讀者指出 price 無條件讀 reservation 的 unit_price 快照、非原始訂單，資料依賴正確 (pricing.py:48-49, inventory.py:54)"
+        },
+        {
+          "text": "probe 3 (near, trap): 折後 6300 是否付運費",
+          "passed": true,
+          "evidence": "讀者答免運（折扣前 9000≥8000），正確避開 6300<8000 陷阱 (pricing.py:57)"
+        },
+        {
+          "text": "probe 4 (retention): 稅基與運費是否課稅",
+          "passed": true,
+          "evidence": "讀者答 5% 課在折後小計、運費不課稅，與 pricing.py:55-60、config.py:13 一致"
+        },
+        {
+          "text": "probe 5 (retention): 出貨後回傳什麼與關鍵欄位",
+          "passed": true,
+          "evidence": "讀者答 Receipt(status=dispatched, carrier, total=6615.00)，對應 total_cents/carrier (pipeline.py:29-35,69-74)"
+        },
+        {
+          "text": "probe 6 (counterfactual): 運費 120→0 影響哪些訂單",
+          "passed": true,
+          "evidence": "讀者答僅折扣前<8000 訂單改變、門檻以上本就免運不變，正確組合 config+pre-discount 規則"
+        },
+        {
+          "text": "probe 7 (diagnosis): 隔天重算總價不同的原因鏈",
+          "passed": true,
+          "evidence": "讀者答 TTL(120s)過期→以當前型錄價重建→reprice→快照變→總價變，與 inventory.py:66-71 一致"
+        },
+        {
+          "text": "probe 8 (edges): 至少 5 條因果邊",
+          "passed": true,
+          "evidence": "讀者列 8 條全部有效、0 條杜撰，遠超 >=4 且 <=1 錯的門檻"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=5，開頭前兩句即給出『管線推過 ingest→reserve→price→dispatch、回傳三態 Receipt』的完整可獨立答案"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，嚴格沿執行路徑敘事(四階段→具體範例→結果表→旋鈕→邊界)，無互相重複的形式化區塊"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，首句即實質內容；reprice_required/Fatal/Retryable/backoff 等術語首見即解釋；元資訊全在文末"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，密集 file:line 引用＋數字化 o-1 範例綁定具名測試 test_happy_path"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "3/3 全揭露：免運看折扣前(§3規則4+範例)、計價用 reservation 快照且重建後可變(§2/§3/診斷)、折扣不疊加取最高優先度(§3規則2)"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽 backoff 公式(dispatch.py:44-49)、reserve 冪等不重扣(inventory.py:64-67)、非重試 send 逃逸且不 release(dispatch.py:64-68+pipeline.py:59-67)；三條皆屬實"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "pipeline.py:44=process、pricing.py:48=price、tests/test_pipeline.py:22=test_happy_path 三處皆存在且相符"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "orderflow-trace",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 15,
+        "failed": 0,
+        "total": 15,
+        "time_seconds": 117.5,
+        "tokens": 131597,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 四階段實際執行順序",
+          "passed": true,
+          "evidence": "讀者答 ingest→reserve→price→dispatch,與 pipeline.py Pipeline.process 逐行一致"
+        },
+        {
+          "text": "probe 2 (near): 為何計價排在庫存保留之後",
+          "passed": true,
+          "evidence": "答計價用 reservation 凍結的單價快照(ReservedLine.unit_price_cents)、非 raw order,故須先 reserve;命中關鍵事實"
+        },
+        {
+          "text": "probe 3 (near, trap): 9000→折30%→6300 是否付運費",
+          "passed": true,
+          "evidence": "答免運,依折扣前 9000≥8000 判定,避開 6300<8000 陷阱;符合 pricing.py 與 test_free_shipping_uses_pre_discount_subtotal"
+        },
+        {
+          "text": "probe 4 (retention): 稅基與運費是否課稅",
+          "passed": true,
+          "evidence": "答稅以折後小計計、運費不課稅;符合 pricing.py:55-60 及 config.TAX_RATE=0.05"
+        },
+        {
+          "text": "probe 5 (retention): 出貨後呼叫端拿到什麼",
+          "passed": true,
+          "evidence": "答 Receipt(status=dispatched, carrier, total_cents);符合 pipeline.py Receipt dataclass"
+        },
+        {
+          "text": "probe 6 (counterfactual): 固定運費 120→0 影響哪些訂單",
+          "passed": true,
+          "evidence": "答僅折扣前小計未達門檻者受影響、已免運者不變;正確組合 FLAT_SHIPPING 與折扣前門檻"
+        },
+        {
+          "text": "probe 7 (diagnosis): 隔天重算總價不同的原因鏈",
+          "passed": true,
+          "evidence": "答 TTL 120s 過期→用當前 catalog 重建→重新快照單價→型錄變動則總價變;完整命中 inventory.reserve"
+        },
+        {
+          "text": "probe 8 (edges): 列 ≥5 條 A→影響→B 因果",
+          "passed": true,
+          "evidence": "列 7 條(region/weight→carrier、折扣前小計→免運、快照→小計、TTL→重建、錯誤分類→重試、crc32→抖動)全部有效、0 杜撰"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=4,前三句點出『4 階段 sequential pipeline、核心 Pipeline.process』正確且獨立,但四階段名稱落在第三句 roadmap 之後、未進入前三句窗口"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,依實際 pipeline 順序敘事(總覽→逐段→貫穿概念→細節),無互相重複的形式化區塊"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,首句即實質內容,無方法論/選項前言;ReservedLine、reprice_required 等術語首見即解釋"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,全篇 file:line 引用+可驗證數值例($9000→$6615 對應測試)+對應測試名"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "3/3 全覆蓋:免運看折扣前(規則4)、快照計價非 raw+重建改價(總覽圖/Reserve/Price)、折扣不疊加(規則2)"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽 backoff 公式 / 免運看折扣前 / reprice_required 未被 pipeline 讀取,三條經程式碼核對皆正確,wrong_flat=0"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "pipeline.py:44 process、pricing.py:48 price、inventory.py:54 reserve 均存在且精確支持該處主張"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.947,
+        "stddev": 0.035,
+        "min": 0.923,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 272.15,
+        "stddev": 30.369,
+        "min": 247.4,
+        "max": 315.4
+      },
+      "tokens": {
+        "mean": 257589.5,
+        "stddev": 93682.572,
+        "min": 161742,
+        "max": 363801
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.914,
+        "stddev": 0.083,
+        "min": 0.8,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 198.175,
+        "stddev": 79.925,
+        "min": 117.5,
+        "max": 308.0
+      },
+      "tokens": {
+        "mean": 258796,
+        "stddev": 148774.067,
+        "min": 131597,
+        "max": 428913
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.033",
+      "time_seconds": "+74.0",
+      "tokens": "-1206"
+    }
+  },
+  "v2_metrics": {
+    "with_skill": {
+      "probe_accuracy": 0.933,
+      "tier_accuracy": {
+        "counterfactual": 0.75,
+        "decision": 1.0,
+        "diagnosis": 1.0,
+        "edges": 1.0,
+        "near": 0.875,
+        "repair": 1.0,
+        "retention": 1.0,
+        "scope": 1.0
+      },
+      "trap_accuracy": 1.0,
+      "brier": 0.061,
+      "prefix25_accuracy": 0.5,
+      "boundary_coverage": 1.0,
+      "false_certainty_total": 0,
+      "extraneous_ratio": 0.199,
+      "altitude_implementation_share": 0.05,
+      "lift_over_floor": null,
+      "grader_agreement": 1.0
+    },
+    "without_skill": {
+      "probe_accuracy": 0.9,
+      "tier_accuracy": {
+        "counterfactual": 0.75,
+        "decision": 1.0,
+        "diagnosis": 1.0,
+        "edges": 1.0,
+        "near": 0.75,
+        "repair": 1.0,
+        "retention": 1.0,
+        "scope": 1.0
+      },
+      "trap_accuracy": 1.0,
+      "brier": 0.063,
+      "prefix25_accuracy": 0.367,
+      "boundary_coverage": 1.0,
+      "false_certainty_total": 0,
+      "extraneous_ratio": 0.17,
+      "altitude_implementation_share": 0.05,
+      "lift_over_floor": null,
+      "grader_agreement": 1.0
+    }
+  },
+  "notes": [
+    "with_skill: probes 0.933, traps 1.0, prefix25 0.5, Brier 0.061, boundaries 1.0, false-certainty 0, extraneous 0.199, impl-share 0.05",
+    "without_skill: probes 0.9, traps 1.0, prefix25 0.367, Brier 0.063, boundaries 1.0, false-certainty 0, extraneous 0.17, impl-share 0.05"
+  ]
+}

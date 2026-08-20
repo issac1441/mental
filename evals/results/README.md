@@ -12,4 +12,6 @@
 
 - Iteration-1 用 v1 battery（5 probes/案、單 grader）；iteration-2 起為 v2 battery（分層 probes、trap、信心/Brier、25% 截斷、persona、邊界覆蓋、斷言抽驗、extraneous、grader ensemble×2、null floor）。跨 battery 的 pass rate 不可直接比較；v2 內各輪可比。
 - Iteration-3/4 只重跑 `with_skill`；`old_skill`/`without_skill`/`null_floor` 沿用 iteration-2 的產物與評分（相同輸入重評只增加評審噪音）。
+- **Iteration-5/6 為 repeats 輪**：`with_skill`（v3.1）與 `without_skill` 兩 arm 全案重新取樣（explain→learn→grade 全管線）。定版統計取 v3.1 = {it-4, it-5, it-6}、裸模型 = {it-2, it-5, it-6} 各 3 個獨立樣本。
+- **定版結果見 [final-v3.1/benchmark-final.md](final-v3.1/benchmark-final.md)**（`finalize.py` 產出）：逐案配對 delta —— probe +0.045（95% CI [0.01, 0.083]）、prefix25 +0.087（95% CI [0.003, 0.17]），七項 release criteria 全過，**v0.3.0 定版**。
 - 已知非鑑別題：orderflow-failure probe 8（carrier 選擇）——三個說明 arm 都自然省略該內容，懲罰的是問題範圍外的涵蓋度；改版收錄於下一輪 battery 調整。

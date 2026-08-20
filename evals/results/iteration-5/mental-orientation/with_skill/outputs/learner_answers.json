@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "使用者介面就是 skills/ 對外暴露的 9 個 skill。host 會把每個 SKILL.md 轉成指令:在 Claude Code 上是 /mental:<name>(例如 /mental:understand),在 Codex 上是 $mental:<name>(例如 $mental:understand、$build)。一般使用者就是在 host 裡呼叫這些 skill 指令來操作;它不是給使用者的 CLI,scripts/ 的兩支 Python 是被 skill 內部呼叫的私有輔助工具,不直接面向使用者。",
+    "confidence": 92
+  },
+  {
+    "id": 2,
+    "answer": "references/ 是所有 skill 共用的「憲法」/規則來源(methodology、artifact-contract、writing-profile,加上兩個 workflow)。每個 SKILL.md 的第 1 步都是先讀這幾份 references,再走自己那條工作流程。因此共同行為集中在 references、skill 本身很薄;改一份 reference(如 methodology.md)會同時改變全部 9 個 skill 的行為。SKILL.md 放該 skill 專屬的流程指令,references 放跨 skill 共享的規則。",
+    "confidence": 90
+  },
+  {
+    "id": 3,
+    "answer": "共享的心智模型內容放在目標 repo 的 mental/(共用、git 追蹤,含 index.md、model/map.md、concepts/、scenarios/ 等);個人的學習狀態放在 .mental/(個人、被 gitignore,含 profile.md、mastery.json)。分開是因為 mental/ 是要與團隊共享並納入版本控制的可驗證模型,而 .mental/ 是個人的學習進度/狀態,需保持私密、不進版本庫(validator 還會檢查 .mental/.gitignore 的隱私)。",
+    "confidence": 85
+  },
+  {
+    "id": 4,
+    "answer": "scaffold_workspace.py:由 build 呼叫,依 assets/templates/ 非破壞性地長出 mental/ 骨架(會做 {{TODAY}} 這類佔位符替換)。validate_workspace.py:由 doctor 與 sync 呼叫,檢查 frontmatter、ID 唯一性、壞連結、來源引用、.mental/.gitignore 隱私、mastery.json 形狀。兩支都是被 skill 呼叫的零相依私有輔助工具,不是給使用者的 CLI。",
+    "confidence": 92
+  },
+  {
+    "id": 5,
+    "answer": "依說明的「新增 skill」清單,除了 SKILL.md 外,與測試會過最直接相關的是:(1) 把新 skill 名字加進 tests/test_plugin_contract.py 的 SKILL_NAMES;(2) 同步兩份 manifest(.claude-plugin/plugin.json 與 .codex-plugin/plugin.json,必要時含 marketplace.json),讓兩邊 skill 集一致——因為契約測試會斷言兩份 manifest 的版本/skill 集一致。此外新增 skill 通常還要一併補上該 skill 的 agents/openai.yaml,但這一項說明未明講是否被測試檢查。",
+    "confidence": 80
+  },
+  {
+    "id": 6,
+    "answer": "應由 doctor 這個 skill 抓出來——它負責稽核結構/證據/隱私,對應說明中的核心不變量「草稿→canonical 的升級關卡:把推論升級成共識一定要人類拍板」;doctor 會呼叫 validate_workspace.py(把 artifact-contract.md 的規則變成可執行的 frontmatter 等檢查)。不過說明並未逐字指出 validator 具體會比對「canonical 是否經人類確認」這一條,故此答案是依 doctor 職責(稽核證據)與升級關卡不變量做的推論。",
+    "confidence": 68
+  },
+  {
+    "id": 7,
+    "answer": "不對。兩個錯:(1) 位置錯——學習者的測驗/精熟狀態屬於個人學習狀態,存在 .mental/(如 mastery.json),不是 mental/;說明從未提到 mental/exercises/ 這個目錄。(2) 共享性錯——.mental/ 是個人、被 gitignore 的,根本不會與團隊共用,和「讓團隊共用」正好相反。真正 git 追蹤、團隊共用的是 mental/(index/map/concepts/scenarios 等模型內容)。",
+    "confidence": 84
+  },
+  {
+    "id": 8,
+    "answer": "因為學習進度與測驗紀錄存在 .mental/,而 .mental/ 是被 gitignore 的個人狀態,不會進版本庫,所以 clone 時不會被帶下來;你 clone 到的只有 git 追蹤的 mental/(共享模型)。這個隱私分界甚至由 validate_workspace.py 的 .mental/.gitignore 檢查來把關。",
+    "confidence": 90
+  }
+]

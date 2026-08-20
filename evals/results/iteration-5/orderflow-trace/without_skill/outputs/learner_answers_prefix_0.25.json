@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "實際執行順序為：① 解析驗證輸入（parse_order）→ ② 庫存預留（inventory.reserve）→ ③ 計價（price）→ ④ 出貨（dispatch）。這與題目所列順序一致，由說明文件的流程圖與『四個階段』描述直接支持。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "因為『單價快照』是由『庫存預留』這一步持有／凍結，而計價（price）需要用到這份快照，所以計價必須排在預留之後。管線 docstring 明確指出階段順序是刻意設計、計價一定排在預留之後，理由正是單價快照由預留步驟持有。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "說明中沒有提到。說明文件只提到有『計價』階段，但完全沒有描述折扣與免運門檻的規則，也沒有說明門檻是拿折扣前（9,000）還是折扣後（6,300）的金額來比較，因此無法判斷這筆訂單是否要付運費。",
+    "confidence": 85
+  },
+  {
+    "id": 4,
+    "answer": "說明中沒有提到。說明文件完全沒有提及稅（tax）的計算基準，也沒有提到運費是否課稅。",
+    "confidence": 92
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端會拿到一張 Receipt（收據）物件（Pipeline.process 的回傳型別即為 Receipt）。成功出貨時為 Receipt(dispatched, carrier, total)，關鍵欄位為：狀態＝dispatched（已出貨）、carrier（承運商）、total（總金額）。",
+    "confidence": 92
+  },
+  {
+    "id": 6,
+    "answer": "說明中沒有提到。說明文件沒有描述固定運費（120 元）、免運門檻，也沒有說明運費如何進入總價、哪些訂單享免運，因此無法判斷把運費改成 0 元後哪些訂單的總價會受影響、哪些不會。",
+    "confidence": 82
+  },
+  {
+    "id": 7,
+    "answer": "最可能的原因鏈：庫存預留步驟會在『處理當下』凍結一份『單價快照』，而計價是依據這份快照計算。第一次處理與隔天重新處理是兩次獨立執行，各自在預留時抓取當下的單價；若底層單價在兩天之間有變動，兩次抓到的快照不同 → 計價結果不同 → 總價不同。（『單價快照由預留持有、計價依賴快照』為說明直接支持；『單價在兩天間變動』為合理推論。）",
+    "confidence": 68
+  },
+  {
+    "id": 8,
+    "answer": "（1）parse_order 驗證結果 → 影響 → 產生 Order 或 Receipt(failed)（ValidationError 時失敗）；（2）inventory.reserve 預留結果 → 影響 → 產生 Reservation 或 Receipt(failed)（UnknownSku／InsufficientStock 時失敗）；（3）預留凍結的『單價快照』 → 影響 → 計價 price() 的結果（Quote）；（4）階段順序（預留在計價之前）→ 影響 → 計價能否取得單價快照；（5）dispatch 出貨結果 → 影響 → Receipt 狀態（成功＝dispatched；重試耗盡 DispatchExhausted＝dead_lettered）；（6）DispatchExhausted → 影響 → 釋放庫存並進入死信。",
+    "confidence": 90
+  }
+]

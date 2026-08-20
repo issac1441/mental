@@ -1,0 +1,176 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 專案的使用者介面與操作方式",
+      "passed": true,
+      "evidence": "讀者答『九個 skill 是唯一對外介面、外掛非 CLI、agent 讀 SKILL.md 執行、腳本為內部 helper』，與 GT 一致(README.md L3-5)。"
+    },
+    {
+      "text": "probe 2 (retention): SKILL.md 與 references/ 的關係",
+      "passed": true,
+      "evidence": "讀者答『SKILL.md 開頭讀 references/ 共用規範以避免重複、測試檢查 ../../references 路徑存在』，與 GT 一致(各 SKILL step 1；test L84-91)。"
+    },
+    {
+      "text": "probe 3 (retention): 共享 vs 個人狀態存放與分開原因",
+      "passed": true,
+      "evidence": "讀者答『mental/ 共享進 git、.mental/ 私有 gitignore(* + !.gitignore)、硬性隱私邊界』，與 GT 完全一致(artifact-contract.md L3,39;scaffold L81)。"
+    },
+    {
+      "text": "probe 4 (retention): 兩支 Python 腳本作用與使用者",
+      "passed": true,
+      "evidence": "讀者正確分辨 scaffold(build 用、非破壞生骨架)與 validate(doctor/sync 用、結構驗證)、皆內部零依賴，與 GT 一致(scripts docstrings)。"
+    },
+    {
+      "text": "probe 5 (near): 新增第 10 個 skill 最少要動哪些地方",
+      "passed": false,
+      "evidence": "GT 需三處:openai.yaml + SKILL_NAMES + behavior_cases.json;讀者只答前兩者，漏 behavior_cases.json(test L93-99 亦做 exact-set 相等)，依其答案 test_behavior_cases 仍會 fail。"
+    },
+    {
+      "text": "probe 6 (counterfactual): 誰抓出偽造的 canonical",
+      "passed": false,
+      "evidence": "GT=doctor 的語意稽核(doctor SKILL.md L21『canonical inferences that were never confirmed』);讀者只指認 promotion gate 並稱『文件未明講哪支工具會自動抓』，未識別 doctor——因被評文件從未描述 doctor 的語意稽核。"
+    },
+    {
+      "text": "probe 7 (repair/trap): 測驗結果存 mental/exercises/ 供團隊共用?",
+      "passed": true,
+      "evidence": "讀者答『錯:結果寫私有 .mental/ 非共用 mental/，位置與共享性皆錯，且 exercises 非放結果』，與 GT trap 一致(quiz SKILL.md L34;practice L29)。"
+    },
+    {
+      "text": "probe 8 (diagnosis): 為何 clone 後看不到前人學習紀錄",
+      "passed": true,
+      "evidence": "讀者答『.mental/ 被 gitignore(* + !.gitignore)、不進 git 故未 clone 到』，與 GT 一致(fixture .mental/.gitignore)。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=4，『先講結論』段首二三句即給正確可獨立答案(外掛/九 skill+references/兩腳本);惟全文首句為 meta『我已把 repo 讀通…用其方法論風格』略延遲純 gist。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，結論→各部分是什麼→怎麼協作→測試契約→邊界，元件與因果鏈清楚，無互相重複的形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，接觸內容前僅一句 meta 開場;Lens×Views×Detail 框架報告延到結尾 Context 行;術語(plugin/prompt/LVD)首現即解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，主張連結具體檔案(plugin.json/scaffold_workspace.py/validate_workspace.py/test_plugin_contract.py)、具體測試不變式與 gitignore 規則。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "3/3 全揭露:.mental/ gitignore 隱私邊界、draft→canonical 人工閘門、scripts 為 skills 內部 helper(skills 定為『唯一對外介面』)。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": false,
+      "evidence": "抽 3 條:scaffold 跳過既有檔✓、validate 由 doctor/sync 用✓、『全 repo 禁止 zoom/L0-L4』✗——測試僅掃 README/references/skills(test_operational_contract_has_no_legacy_zoom)，且 zoom 與 L0–L4 實存於 docs/design-background.md 兩語版。1 條錯。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽 scripts/validate_workspace.py、skills/build/SKILL.md、tests/test_plugin_contract.py:三者皆存在且支持所引主張(惟 test 檔不支持『全 repo』zoom 範圍)。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": false
+    },
+    {
+      "id": 6,
+      "correct": false
+    },
+    {
+      "id": 7,
+      "correct": true
+    },
+    {
+      "id": 8,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": true
+      },
+      {
+        "id": 7,
+        "correct": true
+      },
+      {
+        "id": 8,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 4,
+    "coherence": 5,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      ".mental/ 被 gitignore 隱私邊界(文件明寫『私有、被 gitignore… * + !.gitignore… 硬性隱私邊界』)",
+      "draft→canonical promotion gate(文件明寫『agent 只能生 draft，升為 canonical 一定要人工過閘』『絕不把推論偷偷升級成同意』)",
+      "scripts 為 skills 內部 helper(文件把 skills 定為『唯一的對外介面』，scripts 描述為 build/doctor/sync 呼叫的可執行碼)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 1
+  },
+  "extraneous_ratio": 0.2,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 12,
+    "failed": 3,
+    "total": 15,
+    "pass_rate": 0.8
+  },
+  "graders": 2
+}
