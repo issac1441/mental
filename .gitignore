@@ -4,3 +4,5 @@ __pycache__/
 .pytest_cache/
 .coverage
 eval-results/
+evals/results/iteration-*/
+evals/results/final-*/

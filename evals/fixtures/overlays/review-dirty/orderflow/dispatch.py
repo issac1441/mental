@@ -38,7 +38,7 @@ def choose_carrier(order: Order, reservation: Reservation) -> str:
     """Offshore orders always fly; heavy domestic parcels go by freight."""
     if order.region == "offshore":
         return "air"
-    total_weight = sum(l.quantity * l.weight_g for l in reservation.lines)
+    total_weight = sum(line.quantity * line.weight_g for line in reservation.lines)
     return "post" if total_weight <= config.POST_MAX_WEIGHT_G else "freight"
 
 

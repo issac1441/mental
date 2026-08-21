@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "evaluated_line": "v0.3.0",
+  "release_study_iterations": [1, 2, 3, 4, 5, 6],
+  "later_exploratory_iterations": [7, 8, 9, 10, 11, 12],
+  "source": {
+    "commit": "c8d8f8c44fb0e9dc4d6f07b991333e08037d65d4",
+    "results_tree": "8ed687c736e94ab8afee584ff8e40d556f979d15",
+    "url": "https://github.com/issac1441/mental/tree/c8d8f8c44fb0e9dc4d6f07b991333e08037d65d4/evals/results"
+  },
+  "publication": {
+    "raw_results_on_default_branch": false,
+    "external_archive": null,
+    "summary_contains_local_paths": false
+  },
+  "limitations": [
+    "Historical runs predate per-run provenance.json records.",
+    "The historical aggregate embedded local working-directory paths; this summary omits them.",
+    "Iterations 3 and 4 reused unchanged comparison-arm artifacts from iteration 2.",
+    "Iterations 7 through 12 were exploratory and were not part of the v0.3.0 release gate.",
+    "Current tooling must not accept these historical artifacts as release-gate inputs."
+  ]
+}
