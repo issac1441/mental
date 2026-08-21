@@ -1,4 +1,4 @@
 interface:
-  display_name: "Mental Doctor"
+  display_name: "Mental Doctor (Advanced)"
   short_description: "Audit mental model structure and evidence"
-  default_prompt: "Use $doctor to audit this workspace's mental model artifacts."
+  default_prompt: "Use $mental:doctor to audit this workspace's mental model artifacts."

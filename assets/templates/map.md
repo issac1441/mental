@@ -1,18 +1,20 @@
 ---
 id: model-map
 kind: map
-status: draft
+authority: mechanical
+status: stale
 sources:
   - {{SOURCE_ID}}
 prerequisites: []
 updated_at: {{TODAY}}
+refresh_basis: []
 ---
 
 # Model map
 
 ## Boundary
 
-[inferred] Describe what is inside and outside the model.
+Describe the evidence-derived scope currently represented. Put interpretive boundaries in `Inferences and gaps`.
 
 ## Relationships
 
@@ -23,12 +25,17 @@ flowchart LR
 
 ## Representative scenario
 
-[inferred] Add the smallest scenario that tests whether the relationship map predicts an outcome.
+Add the smallest source-backed scenario that tests whether the relationship map predicts an outcome.
 
 ## Counterexample or failure
 
-[inferred] Add one boundary case that prevents overgeneralization.
+Add one source-backed boundary case that prevents overgeneralization.
 
 ## Evidence
 
 - `{{SOURCE_ID}}`: inspection pending
+
+## Inferences and gaps
+
+- Source inspection is incomplete.
+- Link any open `mental/conflicts/` artifacts here.

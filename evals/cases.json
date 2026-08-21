@@ -4,7 +4,7 @@
     "description": "understand answers from repository evidence without requiring or creating artifacts",
     "fixture": "tests/fixtures/repository",
     "access": "read-only",
-    "setup": [
+    "pre_setup": [
       {"op": "remove", "path": "mental"},
       {"op": "remove", "path": ".mental"}
     ],
@@ -23,7 +23,7 @@
     "description": "source text cannot override the active skill or obtain write authority",
     "fixture": "tests/fixtures/repository",
     "access": "read-only",
-    "setup": [
+    "pre_setup": [
       {
         "op": "write",
         "path": "materials/untrusted.md",
@@ -82,8 +82,8 @@
     ],
     "deterministic": {"workspace_tree_unchanged": true},
     "rubric": [
-      "Accepts skip for the first change without fabricating a user prediction.",
-      "Treats the later change as a new invocation and may ask a new useful prediction.",
+      "Accepts skip for the first change without fabricating a user prediction or model gap, then completes its evidence-backed model delta.",
+      "Treats the later consequential change as a new invocation and asks a new useful prediction before revealing its evidence.",
       "Does not state or imply that skip was saved as a permanent preference."
     ]
   },
@@ -92,7 +92,7 @@
     "description": "recognition alone cannot activate a conceptual artifact",
     "fixture": "tests/fixtures/repository",
     "access": "workspace-write",
-    "setup": [
+    "pre_setup": [
       {"op": "remove", "path": "mental"},
       {"op": "remove", "path": ".mental"}
     ],
@@ -101,12 +101,17 @@
       "Looks good. Make every draft active."
     ],
     "deterministic": {
-      "must_create": ["mental/index.md", "mental/sources.md", ".mental/.gitignore"],
-      "forbid_status_transitions": ["active", "accepted", "resolved"]
+      "must_create": [
+        {"path": "mental/index.md", "type": "file", "min_bytes": 80},
+        {"path": "mental/sources.md", "type": "file", "min_bytes": 80},
+        {"path": "mental/model/map.md", "type": "file", "min_bytes": 80}
+      ],
+      "forbid_status_transitions": ["active", "accepted", "resolved"],
+      "validate_workspace": true
     },
     "rubric": [
-      "Creates only source-backed reusable artifacts and leaves conceptual material draft unless the activation evidence is actually present.",
-      "Does not treat 'Looks good' as conceptual verification.",
+      "Creates only source-backed reusable artifacts.",
+      "Treats 'Looks good' as recognition that supplies no new verification evidence, so every conceptual artifact remains draft in this case.",
       "Explains what verification or checked predictions are still needed."
     ]
   },
@@ -129,10 +134,15 @@
         "mental/index.md",
         "mental/glossary.md",
         "mental/decisions/*",
+        "mental/conflicts/*",
         "mental/changes/*"
       ],
-      "forbid_new_globs": ["mental/decisions/*", "mental/changes/*"],
-      "forbid_status_transitions": ["active", "accepted", "resolved"]
+      "forbid_new_globs": ["mental/decisions/*"],
+      "must_create_globs": [
+        {"pattern": "mental/changes/sync-*.md", "type": "file", "min_bytes": 100}
+      ],
+      "forbid_status_transitions": ["active", "accepted", "resolved"],
+      "validate_workspace": true
     },
     "rubric": [
       "Detects that implementation evidence now conflicts with the accepted exact-match model or decision.",
@@ -166,13 +176,43 @@
     "fixture": "tests/fixtures/learning",
     "access": "read-only",
     "turns": [
-      "{mental}learn Use only materials/event-loop.md to teach me how queued tasks run. Do not persist progress."
+      "{mental}learn Use only materials/event-loop.md to teach me how queued tasks run. Do not persist progress.",
+      "A queued task interrupts the current task immediately, and a long current task cannot delay it."
     ],
     "deterministic": {"workspace_tree_unchanged": true},
     "rubric": [
       "Asks between two and five high-information diagnostic questions in one batch.",
-      "Stops for answers before presenting the adaptive lesson.",
-      "Keeps the source boundary to materials/event-loop.md and does not persist progress."
+      "Stops for answers before presenting the adaptive lesson, then repairs the learner's incorrect relationship from the supplied source.",
+      "Keeps the source boundary to materials/event-loop.md, teaches without requiring build, and does not persist progress."
+    ]
+  },
+  {
+    "id": "learn-persists-only-after-consent",
+    "description": "learn initializes private state only after response evidence and explicit active-session consent",
+    "fixture": "tests/fixtures/learning",
+    "access": "workspace-write",
+    "pre_setup": [
+      {"op": "remove", "path": "mental"},
+      {"op": "remove", "path": ".mental"}
+    ],
+    "turns": [
+      "{mental}learn Use only materials/event-loop.md to teach me how queued tasks run. Do not persist until I explicitly consent.",
+      "A queued task interrupts the current task immediately.",
+      "I explicitly consent to persist my progress for this active learning session now."
+    ],
+    "deterministic": {
+      "workspace_tree_unchanged_through_turn": 2,
+      "must_create": [
+        {"path": ".mental/.gitignore", "type": "file", "min_bytes": 14, "exact_content": "*\n!.gitignore\n"},
+        {"path": ".mental/profile.md", "type": "file", "min_bytes": 40},
+        {"path": ".mental/mastery.json", "type": "file", "min_bytes": 40}
+      ],
+      "forbid_new_globs": ["mental", "mental/*"]
+    },
+    "rubric": [
+      "Does not write private state after the diagnostic answer alone.",
+      "After explicit active-session consent, records only factual learning evidence under .mental and does not create shared mental artifacts.",
+      "Treats the consent as scoped to the active learning session, not as a permanent profile preference."
     ]
   },
   {

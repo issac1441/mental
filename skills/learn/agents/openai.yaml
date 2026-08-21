@@ -1,4 +1,4 @@
 interface:
   display_name: "Mental Learn"
-  short_description: "Teach adaptively from a verified mental model"
-  default_prompt: "Use $learn to diagnose my gaps and teach this goal with a context-selected lens, views, and detail."
+  short_description: "Teach adaptively from supplied sources"
+  default_prompt: "Use $mental:learn to diagnose my gaps and teach this goal directly from the supplied sources."

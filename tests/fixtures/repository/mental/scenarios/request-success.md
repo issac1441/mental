@@ -1,18 +1,25 @@
 ---
 id: request-success
 kind: scenario
-status: canonical
+authority: mechanical
+status: current
 sources:
   - source-repo
 prerequisites:
   - request-routing
 updated_at: 2026-08-15
+refresh_basis:
+  - source-repo@2026-08-15
 ---
 
 # Health request
 
-[observed] Input `/health` returns `(200, "ok")`.
+Input `/health` returns `(200, "ok")`.
 
 ## Failure boundary
 
-[observed] `/healthy` does not prefix-match and returns not found.
+`/healthy` does not prefix-match and returns not found.
+
+## Evidence
+
+- `source-repo`: `src/router.py`

@@ -1,27 +1,33 @@
 ---
 id: add-timeout
 kind: change
-status: draft
+authority: decision
+status: pending
 sources:
   - source-repo
 prerequisites:
   - request-contract
 updated_at: 2026-08-15
+prediction_status: skipped
+supersedes: []
+superseded_by: []
+status_history:
+  - 2026-08-15:pending
 ---
 
 # Add timeout
 
 ## Current Model
 
-[observed] Routing is synchronous.
+Routing is synchronous.
 
-## Prediction
+## Human Prediction and Model Gap
 
-[inferred] A timeout would introduce a new failure outcome.
+Skipped in this fixture. A timeout would introduce a new failure outcome.
 
 ## Proposed Model Delta
 
-[inferred] Add explicit timeout semantics to the request contract.
+Add explicit timeout semantics to the request contract.
 
 ## Decision Manifest
 
@@ -39,13 +45,13 @@ Pending.
 
 Pending.
 
-## Verification Evidence
+## Verification Harness
 
 None yet.
 
-## Surprises and Conflicts
+## Open Conflicts
 
-None observed.
+[Timeout owner](../conflicts/timeout-owner.md) remains open.
 
 ## Human Decision
 

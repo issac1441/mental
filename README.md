@@ -26,35 +26,35 @@ For Codex, install `mental` from a configured plugin marketplace as described in
 codex -C /path/to/the-repository-you-want-to-understand
 ```
 
-### 2. Build a draft model
-
-```text
-/mental:build Build a repository mental model for the current workspace.
-$mental:build Build a repository mental model for the current workspace.
-```
-
-`build` creates draft artifacts and shows a promotion gate. Review the boundaries, relationships, inferences, success and failure scenarios, conflicts, and known gaps. Promote only the artifacts you accept.
-
-### 3. Ask with automatic or manual context
+### 2. Ask immediately
 
 ```text
 /mental:understand How does a request move through this repository?
-/mental:understand Explain the retry decision. lens=pm views=anchor,scenario detail=brief
+$mental:understand How does a request move through this repository?
 ```
 
-`understand` first uses explicit controls, then the current goal, session history, private learning state, exposed host memory as a weak signal, and scope defaults. It reports the selected Lens, Views, Detail, and selection basis. It never saves inferred preferences unless asked.
+`understand` works directly from the current repository or supplied sources. It is read-only and does not require a `mental/` workspace.
 
-Available controls:
+It infers the current Job and Lens from the request and relevant session history. You can override them:
 
-- `lens=general|engineer|architect|pm|operator|student|researcher|<custom-lens-id>`
-- `views=anchor,map,mechanism,scenario,evidence` as a multi-selection
-- `detail=brief|standard|deep`
+```text
+/mental:understand Explain the retry decision. job=decide lens=pm
+```
 
-Projects may define shared custom Lens artifacts under `mental/lenses/`.
+Built-in Jobs are `orient`, `decide`, `predict`, `verify`, and `repair`. Built-in Lenses are `general`, `engineer`, `architect`, `pm`, `operator`, `student`, and `researcher`; projects may add shared Lens artifacts under `mental/lenses/`. Most users do not need to set either control.
 
-The Input contract inside each skill is canonical. Host interfaces may show the skill description or default prompt, but enumerated argument autocomplete is not guaranteed across Claude Code and Codex.
+For advanced steering, `views=anchor,map,mechanism,scenario,evidence` selects semantic slices. Response density follows natural language such as “briefly” or “go deep.” Each skill's Input contract is canonical; argument autocomplete is not guaranteed across hosts.
 
-### 4. Make and understand a change
+### 3. Optionally save a reusable model
+
+```text
+/mental:build Save the reusable request-routing model from this repository.
+$mental:build Save the reusable request-routing model from this repository.
+```
+
+`build` is optional. Use it when the model should survive the current conversation. Mechanical artifacts can be refreshed from registered evidence. Conceptual artifacts remain drafts until their verification basis and checked predictions support activation. Human decisions remain separate records.
+
+### 4. Decide and review a change
 
 ```text
 /mental:change Add request timeouts without changing failure semantics.
@@ -68,45 +68,26 @@ Use the `$mental:*` form in Codex. `change` is conversational and read-only unle
 ### 5. Learn from supplied material
 
 ```text
-/mental:build Build a learning model from docs/protocol.md.
-/mental:learn I want to explain and debug this protocol.
+/mental:learn Use docs/protocol.md to teach me how to explain and debug this protocol.
 /mental:practice Help me repair my weakest relationship in this model.
 /mental:quiz docs/protocol.md items=12 format=open
 ```
 
-Shared material lives in `mental/`. Personal goals, answers, progress, and session records live in gitignored `.mental/`.
-
-## Core method
-
-`mental` uses **Lens × Views × Detail**:
-
-- **Lens** combines audience and perspective. It is the role whose typical knowledge, vocabulary, concerns, and decisions should shape the answer—for example `engineer`, `architect`, `pm`, or `student`.
-- **Views** are composable semantic slices: `anchor`, `map`, `mechanism`, `scenario`, and `evidence`.
-- **Detail** controls density: `brief`, `standard`, or `deep`.
-
-A Lens is a session-scoped explanation strategy, not a permanent identity or ability judgment. Manual input always wins. Repository work defaults to `engineer`; general learning defaults to `student`.
-
-The remaining governance rules are:
-
-- distinguish `[observed]`, `[inferred]`, `[agreed]`, and `[conflict]` claims;
-- create drafts before canonical artifacts;
-- treat sources, code, tests, and runtime evidence as material truth and canonical artifacts as human-agreed conceptual truth;
-- never silently reconcile those truths when they disagree;
-- keep shared models in `mental/` and personal state in `.mental/`.
+`learn` can teach directly from supplied material; `build` is not required first. Personal goals, answers, progress, and session records are written only after response evidence and explicit consent for the active session. They stay in gitignored `.mental/`.
 
 ## Skills
 
 | Skill | Purpose | Writes by default |
 | --- | --- | --- |
-| `understand` | Explain with session-selected or manual Lens, Views, and Detail | No |
-| `build` | Build draft models and reusable custom lenses from supplied sources | Drafts only |
-| `sync` | Propose source-to-model deltas | Draft delta only |
+| `understand` | Explain immediately with an inferred or selected Job and Lens | No |
+| `build` | Save reusable mechanical, conceptual, decision, Lens, or conflict artifacts | Shared artifacts only |
+| `sync` | Refresh reproducible mechanics and record unresolved model deltas | Mechanical refresh or draft delta |
 | `doctor` | Audit structure, lenses, evidence, drift, and privacy | No |
 | `change` | Explain intent, options, a plan, or TODOs before implementation | No; draft brief only when asked |
 | `review` | Explain the actual change, then audit it against the agreed model | No |
-| `learn` | Diagnose 2–5 high-information gaps, then teach adaptively | Private state only after learner evidence |
-| `practice` | Adapt one task at a time to repair a weak relationship | Private state only after learner evidence |
-| `quiz` | Deliver a complete 10–20 item bounded assessment | No; private results only when requested |
+| `learn` | Diagnose 2–5 high-information gaps, then teach adaptively | Private state only after evidence and consent |
+| `practice` | Adapt one task at a time to repair a weak relationship | Private state only after evidence and consent |
+| `quiz` | Deliver a complete 10–20 item bounded assessment | Private results only with consent |
 
 ### Practice versus quiz
 
@@ -116,29 +97,31 @@ Use `practice` when the next prompt should depend on the last answer: task → f
 
 | Situation | Skill |
 | --- | --- |
-| You entered an unfamiliar repository | `build` |
+| You entered an unfamiliar repository | `understand` |
 | The current explanation or session became confusing | `understand` |
 | A plan presents option A versus B | `change` |
 | A long TODO list hides decisions or effects | `change` |
 | The agent finished implementing a diff | `review` |
 | You want to verify that you understand the change | `quiz current-change` |
-| You are starting a new source-bound topic | `build`, then `learn` |
+| You are starting a new source-bound topic | `learn` |
+| A useful explanation should persist across sessions | `build` |
 | One concept or relationship remains weak | `practice` |
-| Sources or code drifted from the canonical model | `sync` |
+| Sources or code drifted from the active model or accepted decision | `sync` |
 | Artifacts, custom lenses, or privacy boundaries may be invalid | `doctor` |
 
 ## Representative journeys
 
-**Vibe coding:** `build → understand → change → human decision → Plan Mode → implementation → review → quiz → sync`
+**Vibe coding:** `understand → optional build → change → human decision → Plan Mode → implementation → review → quiz → sync`
 
 **Product decision:** `understand lens=pm → change compare A/B → human decision → Plan Mode → review`
 
-**Learning:** `build supplied sources → learn → practice → quiz`
+**Learning:** `learn from supplied sources → practice → quiz → optional build for reusable material`
 
 ```mermaid
 flowchart LR
-    build["Build model"] --> understand["Understand context"]
+    understand["Understand context"] --> build["Optionally save model"]
     understand --> change["Change mental model"]
+    build --> change
     change --> decision{"Human decision"}
     decision -->|accepted| plan["Host Plan Mode"]
     plan -->|option is unclear| change
@@ -162,7 +145,8 @@ mental/
 ├── concepts/
 ├── scenarios/
 ├── contracts/       # repository mode, on demand
-├── decisions/       # repository mode, on demand
+├── decisions/       # append-preserving human decisions
+├── conflicts/       # open or resolved evidence/model conflicts
 ├── changes/         # recorded deltas, on demand
 ├── learning/path.md # learning mode, on demand
 ├── misconceptions/
@@ -175,7 +159,7 @@ mental/
 └── sessions/
 ```
 
-Every shared Markdown artifact has stable English frontmatter keys and IDs. See [the artifact contract](references/artifact-contract.md).
+Every shared Markdown artifact has stable English frontmatter keys and IDs. Mechanical artifacts use `current` or `stale`; conceptual artifacts use `draft`, `active`, or `stale`; decisions use `pending`, `accepted`, `rejected`, or `superseded`. See [the artifact contract](references/artifact-contract.md).
 
 ## Install and validate
 
@@ -217,6 +201,7 @@ The repository has no runtime dependencies:
 ```sh
 python3 -m unittest discover -s tests -v
 python3 scripts/scaffold_workspace.py /tmp/mental-demo --mode hybrid --language en
+python3 scripts/ensure_private_state.py /tmp/mental-demo --language en
 python3 scripts/validate_workspace.py /tmp/mental-demo
 ```
 

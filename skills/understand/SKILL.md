@@ -1,46 +1,29 @@
 ---
 name: understand
-description: Explain a repository, document set, or supplied topic through an evidence-linked mental model. Use for orientation, architecture walkthroughs, concept explanations, runtime tracing, or any question that should adapt to the current session, a selected role, requested views, and desired detail without changing files.
+description: Explain a repository, document set, current session, or supplied topic immediately through the smallest evidence-linked mental model. Use as mental's first entry point for orientation, mechanisms, architecture, runtime tracing, decisions, or confusion; it works before any mental artifacts exist and remains strictly read-only.
 ---
 
 # Understand
 
-Explain through a mental model while remaining strictly read-only. The goal is transfer: after reading, the person can predict what the system does and why. Lens, Views, and Detail decide what the answer contains; the subject itself decides how the answer reads. Optimize for the reader, never for displaying the framework.
+Give useful understanding now. Do not require artifact setup first.
 
 ## Input contract
 
-Use natural language, optionally followed by:
+`<question-or-scope> [job=<orient|decide|predict|verify|repair>] [lens=<built-in-or-custom-id>]`
 
-`lens=<built-in-or-artifact-id> views=<anchor,map,mechanism,scenario,evidence> detail=<brief|standard|deep>`
-
-Views are a comma-separated multi-selection. Manual values override inference. Built-in lenses are `general`, `engineer`, `architect`, `pm`, `operator`, `student`, and `researcher`; a project may add `mental/lenses/*.md`.
+Infer Job and Lens from the request and session. Accept `views=<anchor,map,mechanism,scenario,evidence>` only as an advanced override; do not require it or advertise it as prerequisite knowledge.
 
 ## Workflow
 
-1. Resolve references relative to this `SKILL.md`. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, and `../../references/writing-profile.md`.
-2. Read the current request and relevant current session history, including active plans, TODOs, earlier corrections, and demonstrated goals. Read host memory only if the host exposes it; treat it as a weak signal, never as authoritative user state.
-3. Locate the workspace root. Read `mental/index.md`, `mental/model/map.md`, relevant custom lens artifacts, the smallest relevant canonical artifacts, and their cited sources. Read `.mental/profile.md` and `.mental/mastery.json` only when they are relevant to the request.
-4. If no canonical model exists, answer from supplied sources or the current repository. Read enough of the real code or source to explain causally — a correct answer grounded in the actual files beats a cautious summary of file names. Mention once that no canonical model exists and suggest `$build`; do not create files.
-5. Select Lens, Views, and Detail using this precedence: manual override → explicit current goal → current session evidence → private profile or mastery → exposed host memory as a weak signal → scope default. Repository questions default to `engineer`; general learning questions default to `student`.
-6. Do not infer ability from grammar, speed, identity, confidence, or protected traits. Never persist an inferred Lens, View, Detail, or preference unless the user explicitly asks.
-7. Compose the explanation for transfer, following the explanation shape in `methodology.md`:
-   - Open with the direct answer: the very first sentence of the response states a fact about the subject, and the first two to four sentences answer the question correctly on their own. No warm-up of any kind — not process narration ("I've read/traced…"), not readiness declarations ("I now have a complete picture"), not tooling or permission notes. A reader who stops after the opening should leave with a true, if coarse, model; process caveats that matter (for example, traced but not executed) belong in the `Sources and gaps` footer.
-   - Organize the body by the subject's own structure — follow the request through the system for a trace, group by component for architecture, follow the causal chain for a "why". Never use View names or framework vocabulary as section headers; the selected Views are a private completeness checklist, not an outline.
-   - Order content shallow to deep so each section refines the previous one and the reader can stop at any point with a correct partial model.
-   - Ground every abstraction: tie claims to exact paths such as `src/router.py:42`, tests, commands, or quoted source, and weave one concrete scenario into the narrative instead of appending it as ceremony.
-   - Match vocabulary and altitude to the Lens: a term the lens does not assume gets plain words at first use, and content stays at the lens's altitude — for `general`, `pm`, or `student`, explain what the system does, what happens at runtime, and what happens on failure, keeping implementation detail to optional evidence pointers.
-   - Name the levers that govern each mechanism — constants, rules, thresholds — and the direction of their effect, so the reader can predict the outcome of a change.
-   - Include a boundary, failure, or counterexample when it prevents overgeneralization, and preempt the most tempting wrong assumption explicitly when the evidence shows one.
-   - Use the shortest text that supports prediction at the selected Detail; offer the next layer of depth instead of delivering everything.
-8. Reserve `[inferred]` and `[conflict]` labels for claims whose evidence is genuinely uncertain or contradictory; routine observations need only their citation. Call out stale, inaccessible, or conflicting evidence.
+1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
+2. Read the current request and relevant session history, including plans, TODOs, corrections, answers, and decisions. Use exposed host memory only as a weak signal.
+3. Inspect the smallest relevant supplied source or current repository evidence. When present, also read current mechanical artifacts, active conceptual artifacts, open conflicts, and relevant private profile or mastery state.
+4. If no mental workspace exists, answer directly from supplied evidence. Do not stop to request `$build` and do not create files.
+5. Select Job and Lens with the methodology precedence. Choose internal Views and response density automatically. Disclose them only when user-selected, non-default, uncertain, or actionable.
+6. Lead with the changed prediction or answer. Build only the anchor, relationships, mechanism, scenario, evidence, or boundary needed by the Job.
+7. Separate evidence from interpretation in plain language. Link exact source paths, sections, URLs, tests, or runtime observations. Surface open conflicts instead of reconciling them silently.
+8. When the same model will likely matter again, offer `$build` as an optional way to persist the useful parts. Do not turn persistence into a prerequisite or write without consent.
 
 ## Response contract
 
-Return, in the user's language:
-
-- the direct answer first, then a body organized by the subject's own structure;
-- the material boundary or failure, woven in or as a short closing note;
-- a compact `Sources and gaps` footer listing the exact paths, sections, URLs, tests, or runtime evidence behind the answer, plus open uncertainties;
-- one final `Context` line naming the Lens, selected Views, Detail, and the selection basis in one clause, so the reader can steer the next answer — for example `Context: engineer lens · map,mechanism,scenario · standard — from the current debugging goal; adjust with lens= views= detail=`. When the lens does not assume this tool's vocabulary (`general`, `pm`, `student`), write that line in plain words instead of control syntax — for example 「本次以產品視角、著重功能與情境、標準深度說明；想更深或改視角，直接說即可」 — and keep tool suggestions such as `$build` out of the reader's way unless asked.
-
-Expand when requested or when a prediction reveals a missing relationship. Never edit shared artifacts, private state, source files, or Git state.
+Return the answer in the user's language, followed by evidence and gaps when material. Include one boundary, failure, or counterexample when it prevents overgeneralization. Never edit shared artifacts, private state, source files, or Git state.

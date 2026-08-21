@@ -29,6 +29,7 @@ class ConversationEvalTests(unittest.TestCase):
                 "sync-preserves-conceptual-and-decision-authority",
                 "review-dsr-is-na-without-denominator",
                 "learn-batches-diagnostic-before-teaching",
+                "learn-persists-only-after-consent",
                 "practice-repairs-one-relationship",
                 "quiz-generates-fixed-assessment",
                 "doctor-separates-structure-and-readiness",
@@ -125,6 +126,114 @@ updated_at: 2026-08-16
             ).stdout
             self.assertIn("Documentation-only fixture change", diff)
 
+    def test_prepare_workspace_applies_pre_setup_before_git_baseline(self) -> None:
+        case = next(
+            case
+            for case in evals.load_cases(ROOT / "evals" / "cases.json")
+            if case["id"] == "understand-without-workspace"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory) / "workspace"
+            evals.prepare_workspace(case, workspace)
+            self.assertFalse((workspace / "mental").exists())
+            self.assertFalse((workspace / ".mental").exists())
+            status = subprocess.run(
+                ["git", "status", "--short"],
+                cwd=workspace,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+            self.assertEqual(status, "")
+
+    def test_invalid_case_json_and_schema_raise_eval_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            invalid_json = root / "invalid.json"
+            invalid_json.write_text("{", encoding="utf-8")
+            with self.assertRaises(evals.EvalError):
+                evals.load_cases(invalid_json)
+
+            invalid_schema = root / "schema.json"
+            invalid_schema.write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "broken",
+                            "description": "broken case",
+                            "fixture": "tests/fixtures/repository",
+                            "turns": ["{mental}understand route"],
+                            "rubric": [],
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaises(evals.EvalError):
+                evals.load_cases(invalid_schema)
+
+    def test_must_create_requires_a_real_nonempty_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            before = evals.snapshot(workspace)
+            (workspace / "artifact.md").mkdir()
+            after = evals.snapshot(workspace)
+            case = {
+                "deterministic": {
+                    "must_create": [
+                        {"path": "artifact.md", "type": "file", "min_bytes": 1}
+                    ]
+                }
+            }
+            checks = evals.deterministic_checks(case, workspace, before, after)
+            self.assertFalse(checks[0]["pass"])
+
+            (workspace / "artifact.md").rmdir()
+            (workspace / "artifact.md").write_text("evidence\n", encoding="utf-8")
+            after = evals.snapshot(workspace)
+            checks = evals.deterministic_checks(case, workspace, before, after)
+            self.assertTrue(checks[0]["pass"])
+
+    def test_turn_checkpoint_proves_private_write_waited_for_consent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            before = evals.snapshot(workspace)
+            checkpoint = evals.snapshot(workspace)
+            private = workspace / ".mental"
+            private.mkdir()
+            (private / ".gitignore").write_text("*\n!.gitignore\n", encoding="utf-8")
+            after = evals.snapshot(workspace)
+            case = {
+                "deterministic": {
+                    "workspace_tree_unchanged_through_turn": 2,
+                    "must_create": [
+                        {
+                            "path": ".mental/.gitignore",
+                            "type": "file",
+                            "min_bytes": 14,
+                            "exact_content": "*\n!.gitignore\n",
+                        }
+                    ],
+                }
+            }
+            checks = evals.deterministic_checks(
+                case,
+                workspace,
+                before,
+                after,
+                turn_snapshots=[checkpoint, checkpoint, after],
+            )
+            self.assertTrue(all(check["pass"] for check in checks))
+
+            checks = evals.deterministic_checks(
+                case,
+                workspace,
+                before,
+                after,
+                turn_snapshots=[checkpoint, after, after],
+            )
+            self.assertFalse(checks[0]["pass"])
+
     def test_judge_schema_requires_behavioral_score(self) -> None:
         schema = json.loads(
             (ROOT / "evals" / "judge-schema.json").read_text(encoding="utf-8")
@@ -153,6 +262,16 @@ updated_at: 2026-08-16
         )
         self.assertFalse(evals.rubric_passed({"pass": True, "score": 2}, 1))
         self.assertFalse(evals.rubric_passed({"pass": False, "score": 4}, 1))
+        ordered = {
+            "pass": True,
+            "score": 4,
+            "criteria": [
+                {"criterion": "first", "pass": True},
+                {"criterion": "second", "pass": True},
+            ],
+        }
+        self.assertTrue(evals.rubric_passed(ordered, ["first", "second"]))
+        self.assertFalse(evals.rubric_passed(ordered, ["second", "first"]))
 
     def test_capture_only_is_unjudged_and_non_passing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

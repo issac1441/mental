@@ -1,33 +1,33 @@
 [
   {
-    "name": "understand is context-adaptive and read-only",
+    "name": "understand delivers value before persistence",
     "skill": "understand",
-    "required_phrases": ["current session history", "host memory", "Manual values override inference", "strictly read-only"]
+    "required_phrases": ["relevant session history", "host memory", "If no mental workspace exists", "strictly read-only"]
   },
   {
-    "name": "build gates canonical promotion",
+    "name": "build persists typed authorities only after value",
     "skill": "build",
-    "required_phrases": ["status: draft", "promotion gate", "explicitly accepted"]
+    "required_phrases": ["authority: mechanical", "authority: conceptual", "verification basis", "first-class `kind: conflict`"]
   },
   {
-    "name": "sync preserves conflict",
+    "name": "sync refreshes mechanics and preserves conceptual conflict",
     "skill": "sync",
-    "required_phrases": ["Keep canonical artifacts untouched", "conflicts and surprises", "Human Decision: pending"]
+    "required_phrases": ["authority: mechanical", "active conceptual artifacts byte-for-byte unchanged", "first-class open conflict", "Preserve decision history"]
   },
   {
-    "name": "change interprets intent decisions and plans",
+    "name": "change is human-predictive and decision-gated",
     "skill": "change",
-    "required_phrases": ["`intent`", "`decision`", "`plan-interpretation`", "Remain read-only by default", "Human Decision: pending"]
+    "required_phrases": ["`intent`", "`decision`", "`plan-interpretation`", "Never invent a human prediction", "Human Decision: pending"]
   },
   {
-    "name": "review explains actual delta before auditing",
+    "name": "review explains actual delta and bounded trust",
     "skill": "review",
-    "required_phrases": ["Actual Change Mental Model", "Before → After", "Decision Surprises", "one failure path"]
+    "required_phrases": ["Actual Change Mental Model", "Before → After", "Decision Surprises", "Model × Harness", "Decision Surprise Rate"]
   },
   {
-    "name": "learn diagnoses before teaching",
+    "name": "learn diagnoses before teaching without requiring artifacts",
     "skill": "learn",
-    "required_phrases": ["2–5 high-information diagnostic prompts", "stop for answers", ".mental/mastery.json"]
+    "required_phrases": ["If no mental workspace exists", "2–5 high-information diagnostic prompts", "stop for answers", "explicit persistence consent"]
   },
   {
     "name": "practice adapts after every response",
@@ -37,11 +37,11 @@
   {
     "name": "quiz is a bounded complete assessment",
     "skill": "quiz",
-    "required_phrases": ["items=12", "feedback=end|after-each", "Generate the complete exam first", "objective score such as `9/12`"]
+    "required_phrases": ["items=12", "feedback=end|after-each", "Generate the complete exam before collecting answers", "objective score such as `9/12`"]
   },
   {
-    "name": "doctor distinguishes structure from meaning",
+    "name": "doctor distinguishes structure, meaning, and authority",
     "skill": "doctor",
-    "required_phrases": ["structural script cannot decide", "Do not edit by default", "semantically correct"]
+    "required_phrases": ["structural validator cannot decide", "active conceptual artifacts", "first-class open conflict artifacts", "Do not edit by default"]
   }
 ]
