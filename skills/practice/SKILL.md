@@ -16,9 +16,9 @@ Scope may be the current change, current session, an artifact or source, or a na
 ## Workflow
 
 1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
-2. Read relevant sources, current mechanical or active conceptual artifacts, the current session, and private mastery state when relevant.
-3. Use the session Lens and `repair` Job. Choose the task form automatically; prefer open prediction, recall, teach-back, transfer, debugging, comparison, or counterexample.
-4. Ask one focused task and wait. Keep the solution hidden until the learner attempts it or asks.
+2. Read relevant sources, current mechanical or active conceptual artifacts, the current session, and private mastery state when relevant. Treat a supplied or registered source and its explicit known gaps as the practice boundary. Do not introduce or name domain mechanisms, APIs, or terminology absent from that boundary, even as excluded examples, unless the user explicitly permits external general knowledge. If no source or matching artifact exists and the scope is ambiguous, ask for the source or state the bounded assumption before testing it.
+3. Use the session Lens and `repair` Job. Choose the task form automatically; prefer open prediction, recall, teach-back, transfer, debugging, comparison, or counterexample. Do not print routine Lens, Job, or View selection metadata.
+4. Ask one focused task and wait. Before the attempt, give only minimal scope framing and the task. Do not summarize the source or state a relationship that answers or narrows the task. Keep the solution hidden until the learner attempts it or asks.
 5. Name the smallest correct part and first broken relationship in the response.
 6. Give the minimum correction, hint, or worked fragment needed to repair that relationship.
 7. Ask a structurally equivalent new scenario. Require independent explanation, transfer, and a boundary or counterexample before marking `verified`.

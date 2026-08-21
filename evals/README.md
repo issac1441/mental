@@ -50,8 +50,10 @@ python3 evals/run_eval.py \
 v2 battery（[metrics-v2.md](metrics-v2.md) 的 standard 配置）：分層 probe（retention/near/counterfactual/diagnosis/repair/edges/scope/decision，含 trap 標記）、learner 信心收集（Brier）、前 25% 截斷閱讀（由淺入深曲線）、`nontech-pm` persona case（S1 可及性＋F5 內容高度）、埋藏邊界覆蓋勾稽、肯定斷言抽驗（false certainty）、逐段 extraneous 記帳、grader ensemble（`--graders 2`，保守 AND 合併並記錄一致率）、`null_floor` 控制組（無說明作答的先備知識地板，主指標改看 lift over floor；`--no-floor` 可關）。
 
 - 需要已登入的 `claude` CLI。所有子代理固定 `--model claude-opus-4-8 --effort max`（可用 `--model/--effort` 覆蓋，但除非你要測的變因就是模型，否則不要改）。
-- 可續跑：已存在的 stage 輸出會被跳過（`--force` 重跑）。
+- 可續跑：只有 `model`、`effort`、grader 數量、plugin 版本與內容、case、fixture、prompt、runner 都與 `provenance.json` 完全相符時，已存在的 stage 輸出才會被重用。缺少或不相符會 fail-closed；`--force` 會先清除該 case/arm 的舊產物再重跑。
 - 輸出為 skill-creator 相容格式（`grading.json`、`timing.json`、`outputs/`），可直接餵給其 `aggregate_benchmark` 與 `generate_review.py`。
+
+每次 invocation 另記在 `iteration-N/invocations/`。`aggregate.py` 預設拒絕缺少或混合 provenance 的結果；`--allow-mixed-provenance` 只供歷史探索，會明確標成 mixed。`finalize.py` 對 paired arms 要求相同 repeat 數與完全相同 case 集，並用 paired CI 下界判斷 noninferiority／superiority。使用 mixed override 時永遠不具 release 資格。
 
 ## 其他協定
 
@@ -64,10 +66,14 @@ python3 evals/run_dialogue_eval.py --workspace /tmp/mental-eval --iteration 12 -
 
 ## Roadmap
 
-指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、output style 與 ELI5 可及性、Lens fitness 與內容高度、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。尚未實作的協定：`build`（需 write-enabled 沙盒）、`quiz` 閱卷半段（假答卷評分）。
+指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、output style 與 ELI5 可及性、Lens fitness 與內容高度、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。`scripts/run_conversation_evals.py` 現在以真實 host 對話覆蓋 write-enabled `build` lifecycle 與 `quiz` 出題／閱卷；learning-transfer benchmark 尚未把這兩種協定納入 paired arms。
 
 ## Interpreting
 
 - `without_skill` 是要打敗的線：使用者回饋裸 Opus 的說明比舊版 skill 好懂約 20%。
 - 若 `with_skill` 在 transfer 與 rubric 上 ≥ `without_skill`，且 citations 更好，skill 才算提供淨價值。
 - 單次運行每案樣本小（n=1/arm/case），把結果當方向訊號；重要決策前用多 iteration 或多 case 累積。
+
+## Publishing results
+
+Raw transcripts、learner answers、grader outputs、allowlisted `workspace_evidence` 與 cache 留在 gitignored workspace，不進 default branch。Conversation eval 只擷取 case 明列的文字檔，並記錄實際載入 plugin copy 的 content hash；只提交移除本機路徑與 session 識別資訊後的 aggregate summary、來源 commit/tree hash、以及限制說明。現行範例見 [`results/v0.3.0/`](results/v0.3.0/)；歷史 raw captures 只保留在其既有 immutable Git commit 供稽核，不再當作目前 release gate 的輸入。

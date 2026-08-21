@@ -18,8 +18,8 @@ Assess whether the learner can reconstruct, predict, transfer, and bound the sel
 ## Workflow
 
 1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
-2. Resolve omitted scope as current change → current session → ask. Use supplied sources, current mechanical artifacts, and active conceptual artifacts; clearly identify draft material when the user includes it.
-3. Use the session Lens and `verify` Job. Do not persist the selection or label ability.
+2. Resolve omitted scope as current change → current session → ask. Use supplied sources, current mechanical artifacts, and active conceptual artifacts; clearly identify draft material when the user includes it. A supplied or registered source and its explicit known gaps define the assessment boundary. Do not declare the topic source-free or introduce or name outside mechanisms, APIs, or terminology, even as excluded examples or distractors, when matching source-bound evidence exists. Use external general knowledge only when the user explicitly permits it.
+3. Use the session Lens and `verify` Job. Do not persist the selection, print routine selection metadata, or label ability.
 4. Build a coverage map first: anchor, relationships or mechanism, prediction, transfer, failure or counterexample, and consequential decisions or evidence gaps when relevant.
 5. Generate the complete exam before collecting answers. Number every item and do not include answers, hints, or answer-revealing commentary.
 6. With `feedback=end`, wait for the full submission and grade all answers. With `feedback=after-each`, keep the complete coverage fixed while presenting one numbered item at a time; suggest `$practice` for adaptive repair.

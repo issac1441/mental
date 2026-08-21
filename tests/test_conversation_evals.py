@@ -22,6 +22,7 @@ class ConversationEvalTests(unittest.TestCase):
             {
                 "understand-without-workspace",
                 "source-instructions-are-data",
+                "understand-infers-session-lens",
                 "change-pauses-for-prediction",
                 "change-direct-answer",
                 "change-skip-is-local",
@@ -36,7 +37,9 @@ class ConversationEvalTests(unittest.TestCase):
             },
         )
         self.assertTrue(all(case["rubric"] for case in cases))
-        self.assertTrue(all("{mental}" in case["turns"][0] for case in cases))
+        self.assertTrue(
+            all(any("{mental}" in turn for turn in case["turns"]) for case in cases)
+        )
         self.assertTrue(
             all(case["access"] in {"read-only", "workspace-write"} for case in cases)
         )
@@ -51,6 +54,55 @@ class ConversationEvalTests(unittest.TestCase):
         )
         self.assertIn("understand-without-workspace", result.stdout)
         self.assertIn("review-dsr-is-na-without-denominator", result.stdout)
+
+    def test_read_only_claude_allows_only_observation_git_commands(self) -> None:
+        arguments = evals.claude_permission_args("read-only")
+        allowed = arguments[arguments.index("--allowedTools") + 1]
+        self.assertIn("Bash(git diff *)", allowed)
+        self.assertIn("Bash(git diff)", allowed)
+        self.assertIn("Bash(git show *)", allowed)
+        self.assertIn("Bash(python3 *validate_workspace.py *)", allowed)
+        self.assertNotIn("Bash(git *)", allowed)
+        self.assertIn("Write,Edit,NotebookEdit", arguments)
+
+    def test_workspace_evidence_captures_only_allowlisted_regular_text(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            private = workspace / ".mental"
+            private.mkdir()
+            (private / "profile.md").write_text("observed answer\n", encoding="utf-8")
+            (private / "secret.md").write_text("not allowlisted\n", encoding="utf-8")
+            (private / "pointer.md").symlink_to("profile.md")
+
+            evidence = evals.collect_workspace_evidence(
+                workspace, [".mental/profile.md", ".mental/pointer.md"]
+            )
+
+            self.assertEqual(evidence, {".mental/profile.md": "observed answer\n"})
+
+    def test_content_tree_hash_changes_with_evaluated_plugin_content(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "skills").mkdir()
+            skill = root / "skills" / "SKILL.md"
+            skill.write_text("first\n", encoding="utf-8")
+            before = evals.content_tree_sha256(root)
+            skill.write_text("second\n", encoding="utf-8")
+            after = evals.content_tree_sha256(root)
+            self.assertNotEqual(before, after)
+
+    def test_prediction_only_response_rejects_process_narration(self) -> None:
+        self.assertTrue(
+            evals.is_prediction_only_response(
+                "What should /healthy return after this change?\n\nReply or say skip."
+            )
+        )
+        self.assertFalse(
+            evals.is_prediction_only_response(
+                "One prediction first, then I will show the evidence.\n\n"
+                "What should /healthy return after this change?\n\nSay skip."
+            )
+        )
 
     def test_deterministic_checks_detect_writes_and_activation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -237,6 +289,11 @@ updated_at: 2026-08-16
     def test_judge_schema_requires_behavioral_score(self) -> None:
         schema = json.loads(
             (ROOT / "evals" / "judge-schema.json").read_text(encoding="utf-8")
+        )
+        self.assertNotIn(
+            "$schema",
+            schema,
+            "Claude's --json-schema accepts the schema object, not a draft declaration",
         )
         self.assertEqual(
             set(schema["required"]), {"pass", "score", "reason", "criteria"}

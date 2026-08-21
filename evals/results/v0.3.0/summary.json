@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "evaluated_line": "v0.3.0",
+  "generated_at": "2026-08-20T08:56:25+00:00",
+  "repeats_per_arm": 3,
+  "metrics": {
+    "with_skill": {
+      "pass_rate": {"mean": 0.954, "sd": 0.026},
+      "probe_accuracy": {"mean": 0.944, "sd": 0.020},
+      "lift_over_floor": {"mean": 0.406, "sd": 0.018},
+      "trap_accuracy": {"mean": 1.000, "sd": 0.000},
+      "prefix25_accuracy": {"mean": 0.567, "sd": 0.058},
+      "brier": {"mean": 0.044, "sd": 0.015},
+      "boundary_coverage": {"mean": 1.000, "sd": 0.000},
+      "false_certainty_total": {"mean": 0.000, "sd": 0.000},
+      "extraneous_ratio": {"mean": 0.189, "sd": 0.013},
+      "altitude_implementation_share": {"mean": 0.082, "sd": 0.028}
+    },
+    "without_skill": {
+      "pass_rate": {"mean": 0.884, "sd": 0.028},
+      "probe_accuracy": {"mean": 0.900, "sd": 0.033},
+      "lift_over_floor": {"mean": 0.361, "sd": 0.037},
+      "trap_accuracy": {"mean": 1.000, "sd": 0.000},
+      "prefix25_accuracy": {"mean": 0.478, "sd": 0.102},
+      "brier": {"mean": 0.063, "sd": 0.014},
+      "boundary_coverage": {"mean": 0.972, "sd": 0.048},
+      "false_certainty_total": {"mean": 0.667, "sd": 0.577},
+      "extraneous_ratio": {"mean": 0.158, "sd": 0.021},
+      "altitude_implementation_share": {"mean": 0.067, "sd": 0.029}
+    }
+  },
+  "paired_deltas": {
+    "probe_accuracy": {"mean": 0.045, "ci95": [0.010, 0.083], "n_pairs": 12},
+    "prefix25_accuracy": {"mean": 0.087, "ci95": [0.003, 0.170], "n_pairs": 12}
+  },
+  "historical_statistical_gate": "pass",
+  "current_provenance_gate": "blocked"
+}

@@ -16,7 +16,7 @@ Target defaults to the current diff and may be a staged diff, commit, branch, re
 ## Workflow
 
 1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/repository-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
-2. Resolve the target without mutation. Read relevant current mechanical artifacts, active conceptual artifacts, accepted decisions, open conflicts, change briefs, diff, tests, and runtime evidence.
+2. Resolve the target without mutation. For a working-tree or staged target, run the relevant read-only `git status` and `git diff` command before reconstructing the change; use `git show` for a commit or ref. Do not infer a Before state from the current file alone. Read relevant current mechanical artifacts, active conceptual artifacts, accepted decisions, open conflicts, change briefs, diff, tests, and runtime evidence. If the target evidence is unavailable, report the review as blocked or partial instead of claiming an actual diff.
 3. Infer Lens and Job from the request and session unless the user supplied them. Use `verify` as the default Job and do not print routine selection metadata.
 4. Reconstruct the `Actual Change Mental Model`: `Before → After`, runtime consequences, changed boundaries, ownership, contracts, invariants, failures, and operator predictions.
 5. Compare proposed and actual decisions. Mark consequential choices first discovered after approval as `Decision Surprises`; do not hide them as implementation details.

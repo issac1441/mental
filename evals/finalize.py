@@ -24,14 +24,19 @@ import argparse
 import json
 import random
 import statistics
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 import aggregate
 
 
-def arm_rows_in(iteration_dir: Path, arm: str) -> list[dict]:
-    return [r for r in aggregate.collect(iteration_dir) if r["arm"] == arm]
+def arm_rows_in(
+    iteration_dir: Path, arm: str, allow_mixed_provenance: bool = False
+) -> list[dict]:
+    rows = aggregate.collect(iteration_dir)
+    aggregate.validate_comparable_provenance(rows, allow_mixed_provenance)
+    return [row for row in rows if row["arm"] == arm]
 
 
 def per_case_probe_acc(rows: list[dict]) -> dict[str, float]:
@@ -74,6 +79,8 @@ def mean_sd(values: list[float | None]) -> dict | None:
 
 
 def bootstrap_ci(deltas: list[float], iterations: int = 10_000, seed: int = 20260820) -> dict:
+    if not deltas:
+        raise ValueError("cannot bootstrap an empty paired sample")
     rng = random.Random(seed)
     means = []
     for _ in range(iterations):
@@ -90,12 +97,152 @@ def bootstrap_ci(deltas: list[float], iterations: int = 10_000, seed: int = 2026
     }
 
 
+def paired_metric_deltas(
+    arm_a: list[dict[str, float]],
+    arm_b: list[dict[str, float]],
+    label: str,
+) -> list[float]:
+    if len(arm_a) != len(arm_b):
+        raise ValueError(
+            f"paired arms need equal repeat counts for {label}: "
+            f"{len(arm_a)} != {len(arm_b)}"
+        )
+    deltas = []
+    for index, (values_a, values_b) in enumerate(zip(arm_a, arm_b, strict=True), start=1):
+        cases_a, cases_b = set(values_a), set(values_b)
+        if cases_a != cases_b:
+            missing_a = sorted(cases_b - cases_a)
+            missing_b = sorted(cases_a - cases_b)
+            raise ValueError(
+                f"paired repeat {index} has different {label} case sets; "
+                f"missing from first={missing_a}, missing from second={missing_b}"
+            )
+        deltas.extend(values_a[case] - values_b[case] for case in sorted(cases_a))
+    return deltas
+
+
+def release_criteria(
+    arms_summary: dict,
+    refs_summary: dict,
+    paired: dict | None,
+    noninferiority_margin: float,
+) -> list[dict]:
+    if not paired or "with_skill" not in arms_summary or "without_skill" not in arms_summary:
+        return []
+    if paired.get("arms") != ["with_skill", "without_skill"]:
+        return [
+            {
+                "criterion": "paired comparison is with_skill minus without_skill",
+                "ok": False,
+                "detail": f"paired arms were {paired.get('arms')}",
+            }
+        ]
+    w = arms_summary["with_skill"]["metrics"]
+    wo = arms_summary["without_skill"]["metrics"]
+    criteria = []
+
+    def add(name: str, ok: bool, detail: str) -> None:
+        criteria.append({"criterion": name, "ok": bool(ok), "detail": detail})
+
+    delta = paired.get("probe_accuracy_delta")
+    transfer_ok = bool(delta) and delta["ci95"][0] >= noninferiority_margin
+    add(
+        f"transfer noninferiority (lower CI >= {noninferiority_margin:+.3f})",
+        transfer_ok,
+        (
+            f"probe delta {delta['mean']:+.3f}, 95% CI {delta['ci95']}"
+            if delta
+            else "probe delta unavailable"
+        ),
+    )
+
+    prefix = paired.get("prefix25_delta")
+    prefix_ok = bool(prefix) and prefix["ci95"][0] > 0
+    add(
+        "anytime validity better than bare (lower paired CI > 0)",
+        prefix_ok,
+        (
+            f"prefix25 delta {prefix['mean']:+.3f}, 95% CI {prefix['ci95']}"
+            if prefix
+            else "prefix25 delta unavailable"
+        ),
+    )
+
+    w_brier, wo_brier = w.get("brier"), wo.get("brier")
+    brier_ok = bool(w_brier and wo_brier) and (
+        w_brier["mean"] <= wo_brier["mean"] + 0.01
+    )
+    add(
+        "reader calibration present and not worse (Brier)",
+        brier_ok,
+        (
+            f"Brier {w_brier['mean']} vs {wo_brier['mean']}"
+            if w_brier and wo_brier
+            else "Brier unavailable"
+        ),
+    )
+
+    false_certainty = w.get("false_certainty_total")
+    false_certainty_values = (
+        false_certainty.get("values", []) if false_certainty else []
+    )
+    false_certainty_ok = bool(false_certainty_values) and all(
+        value == 0 for value in false_certainty_values
+    )
+    add(
+        "calibration sample present with zero fabricated flat assertions",
+        false_certainty_ok,
+        (
+            f"false-certainty per repeat: {false_certainty_values}"
+            if false_certainty
+            else "false-certainty sampling unavailable"
+        ),
+    )
+
+    altitude = w.get("altitude_implementation_share")
+    add(
+        "pm-case altitude measured and within cap (<=0.10 mean)",
+        bool(altitude) and altitude["mean"] <= 0.10,
+        f"implementation share {altitude['mean'] if altitude else 'unavailable'}",
+    )
+
+    coverage = w.get("boundary_coverage")
+    add(
+        "boundary coverage measured and stays complete",
+        bool(coverage) and coverage["mean"] >= 0.9,
+        f"boundary coverage {coverage['mean'] if coverage else 'unavailable'}",
+    )
+
+    old = refs_summary.get("old_skill")
+    if old is not None:
+        old_extraneous = old.get("extraneous_ratio")
+        current_extraneous = w.get("extraneous_ratio")
+        add(
+            "leaner than the pre-tune skill (extraneous)",
+            bool(current_extraneous)
+            and isinstance(old_extraneous, (int, float))
+            and current_extraneous["mean"] < old_extraneous,
+            (
+                f"extraneous {current_extraneous['mean']} vs old {old_extraneous}"
+                if current_extraneous and isinstance(old_extraneous, (int, float))
+                else "extraneous ratio unavailable"
+            ),
+        )
+    return criteria
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--arm", action="append", default=[], metavar="NAME=DIR[,DIR...]")
     parser.add_argument("--ref", action="append", default=[], metavar="NAME=DIR")
     parser.add_argument("--paired", default=None, metavar="ARMA:ARMB")
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--noninferiority-margin", type=float, default=-0.02)
+    parser.add_argument(
+        "--allow-mixed-provenance",
+        action="store_true",
+        help="permit legacy or mixed inputs; output is not suitable for release gating",
+    )
     args = parser.parse_args()
 
     arm_dirs: dict[str, list[Path]] = {}
@@ -109,7 +256,13 @@ def main() -> int:
 
     floor_acc: dict[str, float] = {}
     if "null_floor" in ref_dirs:
-        floor_acc = per_case_probe_acc(arm_rows_in(ref_dirs["null_floor"], "null_floor"))
+        floor_acc = per_case_probe_acc(
+            arm_rows_in(
+                ref_dirs["null_floor"],
+                "null_floor",
+                args.allow_mixed_provenance,
+            )
+        )
 
     headline = [
         "pass_rate", "probe_accuracy", "lift_over_floor", "trap_accuracy",
@@ -121,100 +274,83 @@ def main() -> int:
     arms_summary: dict = {}
     per_repeat_case_acc: dict[str, list[dict]] = {}
     per_repeat_case_prefix: dict[str, list[dict]] = {}
+    all_input_rows = []
     for arm, dirs in arm_dirs.items():
         repeats = []
         per_repeat_case_acc[arm] = []
         per_repeat_case_prefix[arm] = []
         for d in dirs:
-            rows = arm_rows_in(d, arm)
+            rows = arm_rows_in(d, arm, args.allow_mixed_provenance)
             if not rows:
                 raise SystemExit(f"no rows for arm {arm} in {d}")
+            all_input_rows.extend(rows)
             repeats.append(repeat_metrics(rows, floor_acc))
             per_repeat_case_acc[arm].append(per_case_probe_acc(rows))
             per_repeat_case_prefix[arm].append(per_case_prefix_acc(rows))
         arms_summary[arm] = {
-            "repeat_dirs": [str(d) for d in dirs],
+            "repeat_ids": [d.name for d in dirs],
             "metrics": {m: mean_sd([r.get(m) for r in repeats]) for m in headline},
         }
 
     refs_summary: dict = {}
     for name, d in ref_dirs.items():
-        rows = arm_rows_in(d, name)
+        rows = arm_rows_in(d, name, args.allow_mixed_provenance)
+        all_input_rows.extend(rows)
         refs_summary[name] = repeat_metrics(rows, floor_acc) if rows else None
+
+    try:
+        input_provenance = aggregate.validate_comparable_provenance(
+            all_input_rows, args.allow_mixed_provenance
+        )
+    except ValueError as err:
+        parser.error(str(err))
 
     paired = None
     if args.paired:
         arm_a, arm_b = args.paired.split(":")
-        probe_deltas, prefix_deltas = [], []
-        n_repeats = min(len(arm_dirs[arm_a]), len(arm_dirs[arm_b]))
-        for i in range(n_repeats):
-            acc_a, acc_b = per_repeat_case_acc[arm_a][i], per_repeat_case_acc[arm_b][i]
-            for case in sorted(set(acc_a) & set(acc_b)):
-                probe_deltas.append(acc_a[case] - acc_b[case])
-            pre_a, pre_b = per_repeat_case_prefix[arm_a][i], per_repeat_case_prefix[arm_b][i]
-            for case in sorted(set(pre_a) & set(pre_b)):
-                prefix_deltas.append(pre_a[case] - pre_b[case])
+        if arm_a not in arm_dirs or arm_b not in arm_dirs:
+            parser.error("--paired arms must both be declared with --arm")
+        try:
+            probe_deltas = paired_metric_deltas(
+                per_repeat_case_acc[arm_a],
+                per_repeat_case_acc[arm_b],
+                "probe",
+            )
+            prefix_deltas = paired_metric_deltas(
+                per_repeat_case_prefix[arm_a],
+                per_repeat_case_prefix[arm_b],
+                "prefix",
+            )
+        except ValueError as err:
+            parser.error(str(err))
         paired = {
             "arms": [arm_a, arm_b],
             "probe_accuracy_delta": bootstrap_ci(probe_deltas) if probe_deltas else None,
             "prefix25_delta": bootstrap_ci(prefix_deltas) if prefix_deltas else None,
         }
 
-    # Release criteria for finalizing the tuned skill.
-    criteria = []
-    if paired and "with_skill" in arm_dirs and "without_skill" in arm_dirs:
-        w = {m: arms_summary["with_skill"]["metrics"].get(m) for m in headline}
-        wo = {m: arms_summary["without_skill"]["metrics"].get(m) for m in headline}
-
-        def add(name: str, ok: bool, detail: str):
-            criteria.append({"criterion": name, "ok": bool(ok), "detail": detail})
-
-        delta = paired["probe_accuracy_delta"]
-        add(
-            "transfer not worse than bare (paired CI overlaps or exceeds 0)",
-            delta["ci95"][1] >= 0,
-            f"probe delta {delta['mean']:+.3f}, 95% CI {delta['ci95']}",
+    criteria = release_criteria(
+        arms_summary,
+        refs_summary,
+        paired,
+        args.noninferiority_margin,
+    )
+    if args.allow_mixed_provenance and criteria:
+        criteria.insert(
+            0,
+            {
+                "criterion": "all inputs have comparable provenance",
+                "ok": False,
+                "detail": "--allow-mixed-provenance disables release eligibility",
+            },
         )
-        pre = paired["prefix25_delta"]
-        add(
-            "anytime validity better than bare (prefix25 delta > 0)",
-            pre["mean"] > 0,
-            f"prefix25 delta {pre['mean']:+.3f}, 95% CI {pre['ci95']}",
-        )
-        add(
-            "reader calibration not worse (Brier)",
-            w["brier"]["mean"] <= wo["brier"]["mean"] + 0.01,
-            f"Brier {w['brier']['mean']} vs {wo['brier']['mean']}",
-        )
-        add(
-            "zero fabricated flat assertions across repeats",
-            w["false_certainty_total"]["mean"] == 0,
-            f"false-certainty per repeat: {w['false_certainty_total']['values']}",
-        )
-        alt = w["altitude_implementation_share"]
-        add(
-            "pm-case altitude within cap (<=0.10 mean)",
-            alt is None or alt["mean"] <= 0.10,
-            f"implementation share {alt['mean'] if alt else 'n/a'}",
-        )
-        add(
-            "boundary coverage stays complete",
-            w["boundary_coverage"]["mean"] >= 0.9,
-            f"boundary coverage {w['boundary_coverage']['mean']}",
-        )
-        old = refs_summary.get("old_skill")
-        if old:
-            add(
-                "leaner than the pre-tune skill (extraneous)",
-                w["extraneous_ratio"]["mean"] < (old.get("extraneous_ratio") or 1),
-                f"extraneous {w['extraneous_ratio']['mean']} vs old {old.get('extraneous_ratio')}",
-            )
     release = all(c["ok"] for c in criteria) if criteria else None
 
     report = {
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "arms": arms_summary,
         "references_n1": refs_summary,
+        "input_provenance": input_provenance,
         "paired": paired,
         "release_criteria": criteria,
         "release_ok": release,
@@ -257,8 +393,8 @@ def main() -> int:
     (args.out / "benchmark-final.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {args.out}/benchmark-final.json and .md")
     print(f"release_ok = {release}")
-    return 0
+    return 2 if release is False else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
