@@ -47,7 +47,7 @@ class Quote:
 
 
 def price(reservation: Reservation) -> Quote:
-    subtotal = sum(l.quantity * l.unit_price_cents for l in reservation.lines)
+    subtotal = sum(line.quantity * line.unit_price_cents for line in reservation.lines)
 
     rule = _select_discount(subtotal)
     discount = subtotal * rule.percent // 100 if rule else 0
