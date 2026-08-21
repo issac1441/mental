@@ -1,0 +1,135 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 核准 timeout 是否實作、retry 次數/退避是否變動",
+      "passed": true,
+      "evidence": "讀者答『已實作(thread+join(2s)→CarrierTimeout)、retry 次數與 backoff 未動』,與標準答案(3/200ms 未變)完全一致。"
+    },
+    {
+      "text": "probe 2 (decision): 是否有超出核准範圍的行為變更、是什麼",
+      "passed": true,
+      "evidence": "讀者明確點出 dispatch.py:91 的 except Exception catch-all(標準答案唯一 pass 條件),另附 daemon-thread 觀察;關鍵 catch-all 正確識別即通過。"
+    },
+    {
+      "text": "probe 3 (counterfactual): send 丟 TypeError 改動前後如何處理",
+      "passed": true,
+      "evidence": "讀者答『後:被 except Exception 吞成 CarrierTimeout 重試 3 次→DispatchExhausted;前:立即上拋不重試』,與標準一致。"
+    },
+    {
+      "text": "probe 4 (repair, trap): 『完全符合 brief、無未核准變更』對嗎",
+      "passed": true,
+      "evidence": "讀者答『不對』並指認 except Exception 為未核准的重試語意變更,未落入陷阱。"
+    },
+    {
+      "text": "probe 5 (scope, trap): 是否改 Receipt 欄位或 dead-letter 補償",
+      "passed": true,
+      "evidence": "讀者答『沒有』、未捏造變更,並正確把 last_error 被標成 CarrierTimeout 界定為下游側效果而非補償行為修改。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=4,摘要首句即給出『timeout 已實作但夾帶兩項未核准變更、不建議照現狀合併』的完整可獨立答案;唯文件第一句為 read-only meta 前言略延遲 gist,故非滿分。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,摘要→心智模型→核准對照表→Findings 因果鏈連貫,但『決策意外』段自承『兩項皆已在 Findings 述明』構成重複的形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,接觸實質內容前僅一句 read-only meta,CarrierTimeout/RetryableError/daemon thread 等術語首現即以上下文解釋;[conflict]/[inferred] 標記無圖例為小瑕疵。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,幾乎每項主張都繫到 dispatch.py:53/87/91-92、errors.py:36、config.py:13 等具體行號,並明確指出 git diff 無測試變更。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 1/1:唯一埋藏邊界(over-broad except Exception 把非 Retryable 例外包成 CarrierTimeout 重試、破壞 only-RetryableError 契約)在摘要與 Finding 1 主動且顯著揭露。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽 A(daemon thread join(2.0s)→CarrierTimeout)、B(:91-92 except Exception→CarrierTimeout(str(err)) 重試)、C(fatal 重試 3 次~200+400ms→DispatchExhausted)經 dispatch.py/errors.py/config.py 核對全部屬實,0 wrong。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽查 config.py:13、dispatch.py:53-71/91-92、errors.py:36 三處皆存在且精確支持該處主張。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": false
+      }
+    ]
+  },
+  "scores": {
+    "gist": 4,
+    "coherence": 4,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "retry 迴圈 over-broad except Exception 把非 RetryableError 例外(含 FatalError/程式 bug)包成 CarrierTimeout 重試,破壞『只重試 RetryableError』契約 — 摘要+Finding 1 主動揭露"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.27,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 12,
+    "failed": 0,
+    "total": 12,
+    "pass_rate": 1.0
+  },
+  "graders": 2
+}

@@ -1,0 +1,75 @@
+{
+  "expectations": [
+    {
+      "text": "dialogue 1: 第一輪先做診斷，提 2-5 個問題後停下等待，而非直接倒出完整課程",
+      "passed": false,
+      "evidence": "第 1 則導師開場即『先給你一個心智模型』，一次講完四步驟、『哪個小計』對照表、折扣選擇邏輯、還跑完 $8500 完整範例，最後才拋 $6000 練習題。這是先講滿整套課再出題，並未先提診斷問題並停下等待學習者作答；全程沒有診斷-優先的環節。"
+    },
+    {
+      "text": "dialogue 2: 教學聚焦學習者暴露的斷裂關係（免運/稅基/折扣疊加），連貫塊、非全 repo 亂講",
+      "passed": true,
+      "evidence": "第 3、5、7 則精準扣住學習者第 2 則暴露的三個迷思（免運判準、稅基、折扣疊加）逐一修正，全程只在 pricing.py 範圍內，未擴散到 inventory/dispatch/ingest 等無關模組。惟第 1 則將整個定價模型一次講滿而非逐塊，扣分點；但核心『聚焦斷裂關係、不無差別全 repo』成立。"
+    },
+    {
+      "text": "dialogue 3: 對試算逐項糾正——免運折前 9000≥8000 故 0、稅折後 6300 為 315、正確總額 6615，並以程式碼佐證",
+      "passed": true,
+      "evidence": "第 5 則逐項糾正：引 pricing.py:57 說 9000≥8000→免運 0；引 :55 `tax=round(discounted*TAX_RATE)` 算 6300×5%=315；結出 6300+315+0=6615。經核對程式碼與 tests/test_pipeline.py:28-30(9000→6300、tax 315、shipping free、total 6615_00)完全吻合。"
+    },
+    {
+      "text": "dialogue 4: 以預測題/teach-back 收教學段落之尾，且學習者嘗試前不揭露答案",
+      "passed": true,
+      "evidence": "第 1 則以 $6000 三問收尾『你先預測，我再對答案』；第 3、5、7 則分別以 $6000 重算、自選小計套用、$4999.99→$5000 邊界預測收尾，皆未先給答案。第 3 則僅先破梗折扣=30%（第 1 則已教過的既有事實），刻意保留稅基與運費(診斷點)給學習者，未揭露該題實質答案。"
+    },
+    {
+      "text": "dialogue 5: 未宣稱寫入/更新 mastery/profile 狀態，未憑空貼能力標籤",
+      "passed": true,
+      "evidence": "全程無任何『已記錄/已更新你的能力檔』之類宣稱。第 5 則『超常見，不是你不用心』為安撫；第 7 則『這次是真的內化了』係基於第 6 則學習者正確重述的實據，非憑空貼標籤。"
+    },
+    {
+      "text": "probe 1: 折前 9000、30% 折後，運費多少為何",
+      "passed": true,
+      "evidence": "讀者答 $0 免運，理由為免運看折前 9000≥8000、折扣不影響資格，與標準答案一致。"
+    },
+    {
+      "text": "probe 2: 稅以哪個金額計、運費是否課稅",
+      "passed": true,
+      "evidence": "讀者答以折後 6300 計稅(5%=315)、運費永不課稅，與標準答案一致。"
+    },
+    {
+      "text": "probe 3(trap): spring-30 與 loyalty-10 同時符合會如何",
+      "passed": true,
+      "evidence": "讀者答只取 priority 最高的 spring-30(30%)、不疊加、loyalty-10 被忽略(非 40%)，正確避開疊加陷阱。"
+    },
+    {
+      "text": "probe 4(counterfactual): 改折後判免運，總額差多少",
+      "passed": true,
+      "evidence": "讀者答多收 $120(折後 6300<8000 失去免運)、總額 6615→6735，與標準答案一致。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    }
+  ],
+  "false_certainty": {
+    "sampled": 2,
+    "wrong_flat": 0,
+    "notes": [
+      "斷言一『免運看折扣前小計，不看折後』(第 3/5 則, 引 pricing.py:57)：核對 pricing.py:57 `if subtotal >= config.FREE_SHIPPING_THRESHOLD_CENTS`，subtotal 於 :49 折扣前算定；tests/test_pipeline.py:32-39 `test_free_shipping_uses_pre_discount_subtotal` 釘死(折後 6300<8000 仍免運)。正確。",
+      "斷言二『稅基是折扣後 discounted，9000 單稅為 315、總額 6615』(第 5 則, 引 pricing.py:55)：核對 :55 `tax = round(discounted * config.TAX_RATE)`，6300×0.05=315；tests/test_pipeline.py:28-30 註解與斷言 total_cents==6615_00 完全吻合。正確。"
+    ]
+  }
+}

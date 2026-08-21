@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "必須先『重新 reserve(重新預留庫存)』。因為訂單進 DLQ 時,失敗路徑已呼叫 inventory.release()(inventory.py:77-91),把庫存加回 catalog 再 store.delete(key),reservation 早已被釋放並刪除;說明也明講 force_redispatch 本質是『重新 reserve + 重新定價 + 重新 dispatch』,且第 2 點指出 reservation 已不存在。因此沒有先重新預留,就沒有可供出貨的 reservation。",
+    "confidence": 88
+  },
+  {
+    "id": 2,
+    "answer": "依說明描述的機制,force_redispatch 會『重新定價』,所以產生的是『新價格』,而非沿用原收據價;而且 DLQ 記錄只留 {order_id, reason},根本沒保存原收據的價格,無法自動還原原價。之所以需要人類決定:程式碼裡沒有任何規則規定該用原價還是重新定價後的新價,重新定價可能與客戶原收據不同,要按原收據價還是按當前新價向客戶收費屬於商業/計費政策,說明未定義。(『需人類決定』為合理推論,故信心中等。)",
+    "confidence": 60
+  },
+  {
+    "id": 3,
+    "answer": "因為 send 的簽章沒有 idempotency key(pipeline.py:41),而每次 force_redispatch 都是各自獨立地重新 reserve + 重新定價 + 重新 dispatch,連按兩次就會觸發兩次獨立出貨,很可能造成重複實體出貨(double shipping),並重複佔用/扣兩次庫存(兩次 reservation)。說明中沒有描述任何去重/idempotency 機制可阻止第二次。(此為把『無 idempotency key』直接延伸到按兩次的推論。)",
+    "confidence": 72
+  },
+  {
+    "id": 4,
+    "answer": "至少包括:(a) idempotency / at-most-once 出貨——如何避免重複出貨:send 目前無 idempotency key,加上 CarrierTimeout 可能其實已出貨、狀態曖昧,是否/如何把 key 帶進 send 尚未決定;(b) 定價政策——重送要用原收據價還是重新定價的新價,尚未決定;(c) 重新 reserve 時若現在庫存不足要怎麼處理(reservation 已被刪除,需重建);(d) 面對 carrier 可能已出貨的曖昧狀態,是否應先查 carrier 狀態再重送。前兩項為說明明確可推出的隱含未決事項。",
+    "confidence": 80
+  },
+  {
+    "id": 5,
+    "answer": "可重用既有正常出貨管線的各階段:inventory 的 reserve(與已明示的 release,inventory.py:77-91)、既有的定價步驟(重新定價所依賴的 pricing)、send dispatch callable(pipeline.py:41)、Receipt 的建立,以及 dead_letters(DLQ 清單,用來讀取 {order_id, reason} 並追蹤)。因為說明把 force_redispatch 定義為『重新 reserve + 重新定價 + 重新 dispatch』,等於重用正常 pipeline 的 reserve→price→dispatch 流程。(release、send、Receipt、dead_letters 為說明明示;reserve 與 pricing 步驟為由描述強烈隱含。)",
+    "confidence": 68
+  },
+  {
+    "id": 6,
+    "answer": "不對。理由:(1) 說明第 1 點明講,要讓此功能『安全』幾乎必須把 idempotency key 一路帶進 send,也就是得修改現有程式碼;因此『完全不動現有碼』與做出正確/安全的 force 本身就衝突。(2)『沒改動現有函式的文字』不等於『沒改變執行語意』:force 仍操作共用可變狀態(inventory/catalog/store、dead_letters、經 send 的 carrier),重新 reserve 會消耗共用庫存、重送會產生實體出貨等真實副作用,這些會影響現有失敗路徑所依賴或產生的狀態(例如庫存被吃掉,使本來不會失敗的訂單改為失敗)。語意由副作用與共用狀態決定,不是由『動了哪幾行』決定。故『新函式即自動保證不改變失敗語意』不成立。",
+    "confidence": 74
+  }
+]

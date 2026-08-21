@@ -1,0 +1,72 @@
+{
+  "id": 1,
+  "name": "orderflow-trace",
+  "target": "orderflow",
+  "question": "一筆訂單從進來到出貨，這個 codebase 是怎麼處理的？幫我理解整個流程。",
+  "question_type": "mechanism-trace",
+  "prefixes": [0.25],
+  "boundaries": [
+    "免運門檻檢查的是折扣前小計，折扣不影響運費資格",
+    "計價讀的是 reservation 捕捉的單價快照，不是原始訂單或當前型錄；保留重建後總價可能改變",
+    "折扣不疊加：只套用符合門檻中優先度最高的一條"
+  ],
+  "jargon_list": ["idempotent", "TTL", "optimistic concurrency", "dead-letter", "snapshot"],
+  "probes": [
+    {
+      "id": 1,
+      "tier": "retention",
+      "trap": false,
+      "question": "處理一筆訂單時，「驗證輸入、保留庫存、計算價格、出貨」這四件事的實際執行順序是什麼？",
+      "ground_truth": "ingest/parse (validate) -> inventory reserve -> pricing -> dispatch. Pricing runs AFTER reservation. Source: orderflow/pipeline.py Pipeline.process."
+    },
+    {
+      "id": 2,
+      "tier": "near",
+      "trap": false,
+      "question": "為什麼計價要排在庫存保留之後，而不是先算好價格再保留庫存？",
+      "ground_truth": "Because the reservation captures the unit-price snapshot the order is billed at (ReservedLine.unit_price_cents). Pricing reads the reservation, not the raw order; a rebuilt (expired) reservation re-captures current prices, so pricing must follow reservation. Source: orderflow/inventory.py, orderflow/pricing.py docstring, pipeline.py comment."
+    },
+    {
+      "id": 3,
+      "tier": "near",
+      "trap": true,
+      "question": "某訂單商品小計是 9,000 元，套用了 30% 折扣後變 6,300 元。免運門檻是 8,000 元。這筆訂單要付運費嗎？為什麼？",
+      "ground_truth": "No shipping fee (free shipping). Eligibility checks the PRE-discount goods subtotal (9000 >= 8000); the discount does not change shipping eligibility. The trap answer is 'pays shipping because 6300 < 8000'. Source: orderflow/pricing.py price(); tests/test_pipeline.py test_free_shipping_uses_pre_discount_subtotal."
+    },
+    {
+      "id": 4,
+      "tier": "retention",
+      "trap": false,
+      "question": "稅是以哪個金額為基準計算的？運費要課稅嗎？",
+      "ground_truth": "Tax = TAX_RATE (5%) on the DISCOUNTED goods subtotal. Shipping is never taxed. Source: orderflow/pricing.py."
+    },
+    {
+      "id": 5,
+      "tier": "retention",
+      "trap": false,
+      "question": "訂單成功出貨後，呼叫端會拿到什麼？裡面有哪些關鍵欄位？",
+      "ground_truth": "A Receipt object with status=\"dispatched\", carrier, total_cents (and order_id). Source: orderflow/pipeline.py Receipt dataclass."
+    },
+    {
+      "id": 6,
+      "tier": "counterfactual",
+      "trap": false,
+      "question": "如果把設定裡的固定運費從 120 元改成 0 元，哪些訂單的總價會受影響、哪些不會？",
+      "ground_truth": "Only orders whose PRE-discount subtotal is below the 8,000 threshold change (their shipping 120 -> 0). Orders at/above the threshold already ship free, so their totals are unchanged. Requires composing FLAT_SHIPPING_CENTS with the pre-discount threshold rule. Source: orderflow/config.py, orderflow/pricing.py."
+    },
+    {
+      "id": 7,
+      "tier": "diagnosis",
+      "trap": false,
+      "question": "客服回報：同一筆訂單第一次處理和隔天重新處理，算出來的總價不一樣。最可能的原因鏈是什麼？",
+      "ground_truth": "Reservation expired (TTL 120s) -> re-processing rebuilds it from the current catalog with reprice_required=True -> pricing re-captures current unit prices -> total changes if catalog prices changed. Source: orderflow/inventory.py reserve(), config.RESERVATION_TTL_SECONDS, pipeline.py."
+    },
+    {
+      "id": 8,
+      "tier": "edges",
+      "trap": false,
+      "question": "請列出這個系統中至少 5 條「A 直接影響 B」的因果關係（格式：A → 影響 → B）。",
+      "ground_truth": "Valid edges include: catalog price -> captured into -> reservation snapshot; reservation snapshot -> determines -> goods subtotal; pre-discount subtotal -> determines -> shipping eligibility; discounted subtotal -> determines -> tax; region/weight -> determines -> carrier choice; RetryableError -> triggers -> backoff retry; retry exhaustion -> triggers -> dead-letter + reservation release; reservation expiry -> triggers -> rebuild + reprice. Pass if >=4 listed edges are valid and at most 1 is invented/wrong."
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): 出貨前庫存必須先 re-reserve 才能出貨",
+      "passed": true,
+      "evidence": "答出必須重新保留/扣減庫存（re-reserve）再出貨，核心動作正確；雖未點出該保留是先前被 dead-letter 釋放才要重建，但已涵蓋關鍵動作。"
+    },
+    {
+      "text": "probe 2 (counterfactual): 預設會用新價（快照以現價重建）＋為何需人決定",
+      "passed": false,
+      "evidence": "『為何需人決定』答得很好（營收/會計/公平屬政策判斷），但對『哪個價格』只說『無法確定』，未答出系統預設會用新價，關鍵系統事實未涵蓋。"
+    },
+    {
+      "text": "probe 3 (diagnosis): 連按兩次會重複出貨（dispatch 無去重層）",
+      "passed": true,
+      "evidence": "正確指出會觸發兩次出貨、需冪等/去重擋第二次；核心診斷正確（次要地誤以為庫存也會重複扣，但已用『若無冪等』保留語氣）。"
+    },
+    {
+      "text": "probe 4 (decision): 列出至少兩個尚未決定的隱含事項",
+      "passed": true,
+      "evidence": "列出價格基準、冪等/重複點擊、庫存不足行為等多項，至少兩項與標準答案相符，超過門檻。"
+    },
+    {
+      "text": "probe 5 (retention): 指出可直接重用的既有元件",
+      "passed": true,
+      "evidence": "雖以『無法確定』開頭並自評為猜測，仍實際點名 dispatch 流程、庫存保留/釋放、計價模組，命中標準四項元件中的三項。"
+    },
+    {
+      "text": "probe 6 (repair, trap): 新函式不自動保證失敗語意不變",
+      "passed": true,
+      "evidence": "正確判為錯誤：共用下游/共享狀態會間接影響既有行為、且會引入新失敗模式，真正保證需靠隔離與測試驗證，非自動。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": false
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.833
+  },
+  "graders": 1
+}

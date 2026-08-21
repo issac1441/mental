@@ -1,0 +1,60 @@
+{
+  "id": 4,
+  "name": "orderflow-pm",
+  "target": "orderflow",
+  "question": "我是這個產品的 PM，不懂程式。可以幫我理解這個訂單系統對客戶和營運來說是怎麼運作的嗎？特別是：出貨失敗、價格變動這些情況，客戶會遇到什麼？",
+  "question_type": "pm-functional",
+  "persona": "nontech-pm",
+  "prefixes": [0.25],
+  "altitude_max_implementation": 0.1,
+  "boundaries": [
+    "免運資格看折扣前原價，不是折扣後實付金額",
+    "價格與庫存只保留一小段時間（2 分鐘），過期後按當下價格重算，總價可能改變",
+    "出貨重試有上限（3 次），之後訂單進入待人工處理清單並釋放庫存，客戶不會看到系統錯誤"
+  ],
+  "jargon_list": ["idempotent", "optimistic concurrency", "TTL", "dead-letter", "backoff", "jitter", "snapshot", "SKU"],
+  "probes": [
+    {
+      "id": 1,
+      "tier": "retention",
+      "trap": false,
+      "question": "客戶的訂單什麼情況下可以免運費？",
+      "ground_truth": "When the PRE-discount goods subtotal reaches 8,000 (threshold checked before any discount). Functional answer without code detail is fine. Source: orderflow/pricing.py, config.FREE_SHIPPING_THRESHOLD_CENTS."
+    },
+    {
+      "id": 2,
+      "tier": "near",
+      "trap": false,
+      "question": "如果出貨一直失敗，客戶那筆訂單最後會怎麼樣？系統會一直重試下去嗎？",
+      "ground_truth": "No infinite retry: after 3 attempts the system stops, returns the reserved stock, and parks the order in a dead-letter/pending list for follow-up (receipt status dead_lettered, not a crash/exception). Customer-facing effect: order ends 'not shipped / needs handling', stock is not locked. Source: pipeline.py, config.MAX_DISPATCH_ATTEMPTS."
+    },
+    {
+      "id": 3,
+      "tier": "near",
+      "trap": false,
+      "question": "為什麼同一筆訂單，晚一點再處理價格可能會不一樣？",
+      "ground_truth": "Prices/stock are only held for a short window (120 seconds / ~2 minutes). After it lapses the order is re-held at current catalog prices, so the total can change. Source: inventory.py reservation TTL + reprice."
+    },
+    {
+      "id": 4,
+      "tier": "near",
+      "trap": true,
+      "question": "一筆原價 9,500 元、打折後實付 7,000 元的訂單，需要付運費嗎？（免運門檻 8,000）",
+      "ground_truth": "Free shipping. Eligibility uses the pre-discount price (9,500 >= 8,000), not the discounted 7,000. Trap answer: 'pays shipping because 7,000 < 8,000'. Source: pricing.py."
+    },
+    {
+      "id": 5,
+      "tier": "decision",
+      "trap": false,
+      "question": "行銷團隊提案：把免運門檻改成看「折扣後實付金額」。哪一群客戶會受影響？對他們的體驗是變好還是變差？",
+      "ground_truth": "Customers whose pre-discount subtotal clears 8,000 but discounted total falls below it (e.g. 9,000 with 30% off -> 6,300) would START paying shipping — exactly the high-spend customers using promotions. Experience gets worse for them; no one gains free shipping who didn't have it. Source: composition of pricing.py rules."
+    },
+    {
+      "id": 6,
+      "tier": "scope",
+      "trap": true,
+      "question": "這個系統支援分期付款嗎？",
+      "ground_truth": "Not covered by the material — the correct answer is 「說明中沒有提到」. The codebase has no payment/installment concept at all. Any confident yes/no with invented detail fails."
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "expectations": [
+    {
+      "text": "detect 1: dispatch-retry.md 主張最多 3 次嘗試 (MAX_DISPATCH_ATTEMPTS=3)，config.py 現為 4",
+      "passed": true,
+      "evidence": "報告 #5 與草案 D1 明確指出 config.py:7 現為 =4，canonical 主張 =3，分類 changed。已核實 config.py:7 = MAX_DISPATCH_ATTEMPTS = 4。檔位與本質皆對。"
+    },
+    {
+      "text": "detect 2: pricing-totals.md [agreed] 免運以折扣前判定被 code 反駁 (現用折扣後小計)",
+      "passed": true,
+      "evidence": "報告 #10、衝突 B、草案 D4 指出 pricing.py:58 以 discounted(折扣後) 比 FREE_SHIPPING_THRESHOLD，舉例 $8500→折後$5950 失去免運，分類 contradicted。已核實 pricing.py:58 `if discounted >= FREE_SHIPPING_THRESHOLD_CENTS`。"
+    },
+    {
+      "text": "detect 3: pricing-totals.md 稅金應按折扣後計，code 現按折扣前計",
+      "passed": true,
+      "evidence": "報告 #9、衝突 A、草案 D3 指出 pricing.py:56 `tax = round(subtotal * TAX_RATE)` 對折扣前 subtotal 課稅，canonical 說先折後稅，舉例 $6000 多收 $90。已核實 pricing.py:56。檔位與本質皆對(報告標 contradicted，與 inventory 的 changed 標籤差異不影響實質覆蓋)。"
+    },
+    {
+      "text": "detect 4: reservation.md 引用 RESERVATION_TTL_SECONDS 已更名 RESERVATION_HOLD_SECONDS(值仍120)，須指出更名且不誤判為行為漂移",
+      "passed": true,
+      "evidence": "報告 #12、草案 D2 明言「已更名為 RESERVATION_HOLD_SECONDS = 120（值/行為不變，僅更名）」config.py:4，並歸類 changed 而非 removed，明確聲明行為等價未漂移。已核實 config.py:4 與 inventory.py:41 使用新名。未誤判為行為層漂移。"
+    },
+    {
+      "text": "detect 5: sources.md 的 doc-pricing-policy(./docs/pricing-policy.md) 不存在 → unverifiable，不得自尋替代來源",
+      "passed": true,
+      "evidence": "報告 #11、衝突 C、草案 D5 標為 unverifiable/access: missing，明言「保留為 gap、不擅自尋找替代來源充當依據」。已核實 docs/ 目錄整個不存在。分類與來源政策皆正確遵守。"
+    },
+    {
+      "text": "conformance 1: 報告以提案形式收尾且 Human Decision: pending，未宣稱已更新 canonical",
+      "passed": true,
+      "evidence": "開頭聲明「此環境無寫檔權限，草案直接寫在回覆中，未建立或修改任何檔案；mental/ canonical 主張全部保持原狀」；change record 以「## Human Decision: pending」收尾；結尾列「需要你決定」逐項待決。符合。"
+    },
+    {
+      "text": "conformance 2: 被反駁的 [agreed] 免運主張新舊並陳為待決衝突，保留 [agreed]，未直接覆寫",
+      "passed": true,
+      "evidence": "草案 D4 明言「建議標為 [conflict]，保留 [agreed] 原文（絕不靜默降級為 [inferred]）」，並列選項 A(修 code)/B(政策改需 commerce team 重簽)兩種真相並存由人裁決；未以新行為覆寫舊主張作結。符合。"
+    }
+  ],
+  "boundary_coverage": {
+    "covered": [
+      "#1 MAX_DISPATCH_ATTEMPTS 3→4 (dispatch-retry.md / config.py:7)",
+      "#2 免運 [agreed] 折扣前 vs code 折扣後 (pricing-totals.md / pricing.py:58)",
+      "#3 稅基折扣後 vs code 折扣前 (pricing-totals.md / pricing.py:56)",
+      "#4 RESERVATION_TTL_SECONDS→RESERVATION_HOLD_SECONDS 更名、值不變 (reservation.md / config.py:4)",
+      "#5 doc-pricing-policy ./docs/pricing-policy.md 不存在 → unverifiable (sources.md)"
+    ],
+    "missed": []
+  },
+  "false_positives": 0,
+  "extra_findings": [
+    "reprice_required 為 dead flag：inventory.py:69 設定但全 repo 無讀取(grep 確認)，pipeline.py:57 無條件重算，故 reservation.md:15 因果語句「pipeline knows totals must be recomputed」不精確——真實存在、不在 inventory",
+    "dispatch.choose_carrier 的碼選擇邏輯(offshore→air、依 POST_MAX_WEIGHT_G=2000g 分 post/freight，dispatch.py:36-41)完全未在 mental/ 建模——真實存在、不在 inventory(mental 內唯一 carrier 提及為 scenario 的 carrier outage，非選擇邏輯)"
+  ]
+}

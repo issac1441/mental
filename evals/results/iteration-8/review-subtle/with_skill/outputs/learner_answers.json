@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "answer": "有實作。核准的 2 秒 carrier send 逾時已到位：config.py 新增常數 CARRIER_SEND_TIMEOUT_SECONDS = 2.0，dispatch 用 _send_with_timeout 在 daemon thread 執行並 join(2.0s)，逾時 raise CarrierTimeout，因 CarrierTimeout 本就是 RetryableError，會走既有重試路徑（核准 vs 實際表格中此項為 ✅/✅）。retry 次數、backoff、jitter 屬 out of scope，未被動過（表格標示為 ✅ 未動）。",
+    "confidence": 97
+  },
+  {
+    "id": 2,
+    "answer": "有，兩項未核准的行為變更。(1) 新增 except Exception（dispatch.py:91-92），把所有非 RetryableError 例外（含 FatalError 及 send 內部的 ValueError/KeyError 程式 bug）轉成 CarrierTimeout(str(err)) 再重試，違反「只重試 RetryableError、FatalError 立即上拋」契約，且正好命中 brief 明列的 out-of-scope（改變哪些 error type 可重試）；且此 clause 非逾時功能所必需。(2) 逾時用不可取消的 daemon thread 實作，逾時後底層 send 仍在背景執行、可能在重試後才真的交運，對有副作用/非 idempotent 的 send 造成同一訂單重複派送，並每次洩漏一條背景 thread；brief 未指定此機制。",
+    "confidence": 96
+  },
+  {
+    "id": 3,
+    "answer": "改動後：TypeError 不是 RetryableError，會被 dispatch.py:91 的 except Exception 接住，依規則轉成 CarrierTimeout(str(err)) 後重試 3 次（每次還多睡約 200ms+400ms backoff），最後包成 DispatchExhausted，其 last_error 是 CarrierTimeout 字串，原始 TypeError 型別與原因遺失、被偽裝成逾時而難以診斷（與說明明列的 ValueError/KeyError 程式 bug 同類）。改動前：TypeError 屬「任何其他例外」，dispatch 只 catch RetryableError，因此它會在 attempt 1 就立即往外拋，不會被重試。",
+    "confidence": 88
+  },
+  {
+    "id": 4,
+    "answer": "不對。說明明確指出這個 diff 夾帶兩項未核准且會改變失敗語意的行為（Finding 1：except Exception 擴大重試範圍、命中 out-of-scope；Finding 2：未指定且會造成重複派送的不可取消 daemon thread），與核准內容有實質出入，作者不建議照現狀合併。故「完全符合 brief、沒有任何未核准變更」是錯的。",
+    "confidence": 99
+  },
+  {
+    "id": 5,
+    "answer": "沒有改 Receipt 欄位或 dead-letter 的補償行為。表格明列 receipts / dead-letter / pricing / inventory 屬 out of scope 且「未動」，且 git diff 只動了 config.py 與 dispatch.py。附帶說明：fatal error 現在會在 dead-letter 的 last_error 被標成 CarrierTimeout，但這是程式改動的下游副作用，非對 dead-letter 補償行為或 Receipt 欄位本身的修改。",
+    "confidence": 92
+  }
+]

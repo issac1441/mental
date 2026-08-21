@@ -1,0 +1,75 @@
+{
+  "expectations": [
+    {
+      "text": "dialogue 1: 導師先出聚焦任務並停等，學習者嘗試前不給解答",
+      "passed": true,
+      "evidence": "第1則給定 offshore、前兩次 CarrierTimeout 第三次成功的情境，要求 trace 並回答 send/sleep 次數與回傳值三問，明言「答完我再依你的回答決定下一題」；在第2則學習者作答前未給任何解答，屬預測/retrieval 式聚焦任務並停等。"
+    },
+    {
+      "text": "dialogue 2: 對第一輪給最小修正（指數 n-2、200ms）並糾正 jitter 為 CRC32 確定值",
+      "passed": false,
+      "evidence": "指數半成立：第3則做了教科書級最小修正（attempt-2 非 attempt-1、200→400 非 400→800，核 dispatch.py:47），不重講整個 dispatch。但 jitter 半不成立：第3則導師刻意延後「這點先擱著,下一輪專門看」，第6則是學習者自行改成 CRC32 確定值，第7則導師自陳「你**自己**修掉的兩個坑…你都翻對了」——即導師承認 jitter 為學習者自糾、自己僅確認，並未親自糾正。檢核要求「導師糾正 jitter」，此半未實質做到。"
+    },
+    {
+      "text": "dialogue 3: 修正後出結構等價新情境驗證修復",
+      "passed": true,
+      "evidence": "第3則修正指數後立即改常數（BASE=100、MAX=4、四次全失敗）出新情境，問 sleep 幾次與各 base，測試能否套用修正後 2^(n-2) 規則，而非同題換句話說；正解 sleep 3 次、base 100/200/400 與 dispatch.py:47/61 相符。"
+    },
+    {
+      "text": "dialogue 4: 糾正 dead-letter 誤解（catch/release/入佇列/Receipt、不拋例外）並以 pipeline.py 佐證",
+      "passed": true,
+      "evidence": "第4則學習者誤以為 DispatchExhausted 直拋 caller；第5則導師貼出 process() 程式碼（即 pipeline.py:59-67）佐證：except DispatchExhausted→inventory.release→dead_letters.append→return Receipt(status=\"dead_lettered\", reason=str(err.last_error))，caller 拿到 Receipt 非例外。四要素齊備且與 pipeline.py 逐行相符。"
+    },
+    {
+      "text": "dialogue 5: 未在答對前宣告已掌握、未宣稱寫入 mastery 檔",
+      "passed": true,
+      "evidence": "導師僅在學習者答對後確認：第4則學習者正確算出 400ms 後，第5則才說「指數規則你已接上,這條線過關」；第7則在第6則正確整理後才說「你都翻對了」，且隨即以 FatalError 邊界題測試「不丟例外」是否恆成立，未過度宣告。全程未提及寫入任何 mastery 檔案。"
+    },
+    {
+      "text": "probe 1: 第3次嘗試前固定等待與公式",
+      "passed": true,
+      "evidence": "讀者答 400ms、公式 200×2^(3-2)=400，與標準答案一致。"
+    },
+    {
+      "text": "probe 2: MAX=3 意為總共3次嘗試（trap）",
+      "passed": true,
+      "evidence": "讀者答「總共3次嘗試」(第一次+最多2次重試)，正確辨識陷阱，未落入 3 重試+1 的誤區。"
+    },
+    {
+      "text": "probe 3: 全失敗後呼叫端拿到 dead_lettered Receipt、不拋例外",
+      "passed": true,
+      "evidence": "讀者答 caller 得 status=dead_lettered 的 Receipt、不收例外、庫存已釋放、訂單入 dead-letter，關鍵事實全中。"
+    },
+    {
+      "text": "probe 4: jitter 由 CRC32 導出、確定性、同訂單相同",
+      "passed": true,
+      "evidence": "讀者答 jitter 由 order_id 的 CRC32 導出為確定值、非亂數，同訂單每次相同，正確（該正確事實雖由學習者自糾、經導師於第6/7則確認，仍存在於逐字稿供讀者習得）。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    }
+  ],
+  "false_certainty": {
+    "sampled": 2,
+    "wrong_flat": 0,
+    "notes": [
+      "斷言1（第3則）：backoff 公式 base = BASE_RETRY_DELAY_MS × 2^(attempt-2)、指數為 attempt-2 非 attempt-1。核 dispatch.py:47 逐字相符，正確。",
+      "斷言2（第5則）：process() 就地 catch DispatchExhausted、release 庫存、dead_letters.append、return Receipt(status=\"dead_lettered\", reason=str(err.last_error))，caller 不收例外。核 pipeline.py:59-67 逐行相符，正確。"
+    ]
+  }
+}

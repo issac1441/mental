@@ -1,0 +1,59 @@
+{
+  "id": 6,
+  "name": "change-intent",
+  "target": "orderflow",
+  "skill": "change",
+  "question": "我想加一個 force_redispatch(order_id)：對已經 dead-letter 的訂單手動重新出貨，且不改變現有的失敗語意。幫我分析這個 change 需要考慮什麼。",
+  "question_type": "change-intent",
+  "prefixes": [0.25],
+  "boundaries": [
+    "死信時保留已被釋放，force 必須重新 reserve——快照重建代表重出貨的總價可能不等於原收據",
+    "dispatch/send 層沒有任何去重，force 重複呼叫會重複出貨（冪等性是新決策）",
+    "「不改變現有失敗語意」無法自動保證——force 路徑自身的失敗語意（重新保留失敗、再次耗盡重試）是必須新定義的決策"
+  ],
+  "jargon_list": ["dead-letter", "idempotent", "snapshot", "TTL", "backoff"],
+  "probes": [
+    {
+      "id": 1,
+      "tier": "near",
+      "trap": false,
+      "question": "force_redispatch 出貨前，庫存方面必須先做哪一步？為什麼？",
+      "ground_truth": "Re-reserve the order's stock: dead-lettering released the reservation (pipeline releases on DispatchExhausted), so nothing is held anymore. Source: pipeline.py dead-letter handling, inventory.release()."
+    },
+    {
+      "id": 2,
+      "tier": "counterfactual",
+      "trap": false,
+      "question": "重新出貨時的價格會是原收據的價格還是新價格？為什麼這是一個需要人類決定的事？",
+      "ground_truth": "By default the NEW price: re-reserving rebuilds the reservation snapshot at current catalog prices, and pricing reads the snapshot. Honoring the original receipt price would need explicit design — that choice (new vs original price) is a pending human decision."
+    },
+    {
+      "id": 3,
+      "tier": "diagnosis",
+      "trap": false,
+      "question": "如果操作人員連按兩次 force_redispatch，會發生什麼？",
+      "ground_truth": "Double shipment risk: dispatch/send has no dedup layer (reservation idempotency only prevents double stock-booking, not double sending). Idempotency for force is a new decision. Source: dispatch.py has no send-side dedup."
+    },
+    {
+      "id": 4,
+      "tier": "decision",
+      "trap": false,
+      "question": "列出至少兩個這個 intent 隱含、但還沒被決定的事項。",
+      "ground_truth": "Any two of: price basis (original receipt vs re-captured), idempotency/dedup of force calls, when/whether the DLQ entry is removed, failure semantics of the force path itself (re-reserve fails / retries exhaust again), stock-insufficient behavior at force time."
+    },
+    {
+      "id": 5,
+      "tier": "retention",
+      "trap": false,
+      "question": "哪些既有元件可以直接重用來實作這個功能？",
+      "ground_truth": "Inventory.reserve (idempotent per order), pricing.price (from reservation snapshot), dispatch.dispatch (carrier selection + bounded retries); dead_letters list for locating the order."
+    },
+    {
+      "id": 6,
+      "tier": "repair",
+      "trap": true,
+      "question": "有人說：「只要不動現有程式碼、把 force 寫成新函式，就自動保證『不改變現有失敗語意』。」對嗎？",
+      "ground_truth": "WRONG. The force path introduces NEW failure semantics that must be defined (re-reserve failure, second exhaustion, partial states), and touching shared state (DLQ, reservations) can change observable behavior; 'no semantic change' is a property to design and verify, not automatic."
+    }
+  ]
+}

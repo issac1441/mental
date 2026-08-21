@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "必須先重新 reserve（重建 reservation、重新凍結庫存）。因為在 dead-letter 當下 reservation 已被釋放——庫存還回 catalog、reservation record 被 store.delete 刪掉（pipeline.py:62-66、inventory.py:77-91），系統手上沒有任何凍結好的庫存可以直接重寄。所以 force_redispatch 只能從頭走 reserve→price→dispatch，出貨（dispatch）前必須先重新 reserve，才有庫存可出。",
+    "confidence": 90
+  },
+  {
+    "id": 2,
+    "answer": "會是新價格（重新報價的結果），可能與原單不同。因為 reservation 連同它凍結的原始單價在 dead-letter 時已被釋放，redispatch 只能從頭重 reserve，重建時會設 reprice_required=True 重新定價、總價可能變；而 pipeline.process 從不讀 reprice_required、無條件呼叫 price()，所以改價是靜默發生、沒有任何訊號（原本 dead_lettered 收據的 total_cents 本來就是 None）。之所以需要人決定，是因為『重寄的單可不可以有跟原單不同的總價』屬於業務／失敗語意上的可接受性判斷（決策3），程式本身無法決定，且靜默改價不會有任何提醒。",
+    "confidence": 85
+  },
+  {
+    "id": 3,
+    "answer": "以現況會造成重複出貨。send 沒有冪等鍵（dispatch.py:55），且成功後要不要從 dead_letters 移除 entry／要不要去重都還沒拍板（決策4、5）。若不移除 entry，第二次按就會再跑一次 reserve→price→dispatch、把同一張單再寄一次（若再失敗還會重試最多3次）。說明明確寫道『我無法保證這個功能不會重複出貨——以現況它會』。最終行為取決於尚未決定的去重／移除 entry 設計。",
+    "confidence": 82
+  },
+  {
+    "id": 4,
+    "answer": "說明列為 pending 的未決事項（至少兩個，實際更多）：(1)『不改失敗語意』要取窄義（僅 dispatch 階段）還是廣義（整條 lifecycle）；(2) 重建來源選 (a) dead-letter 當下多存 Order／reservation 快照／raw payload，還是 (b) 由呼叫者重新提供 raw order（等於 reprocess）；(3) 是否允許 redispatch 改價、是否允許因 InsufficientStock 讓單由 dead_lettered 轉 failed；(4) 如何防重複出貨（去重／只重寄 CarrierUnavailable／出貨端加冪等鍵）；(5) 成功後是否從 dead_letters 移除 entry、force_redispatch 的回傳型別（是否回 Receipt、status 如何對應成功／再失敗／再 dead-letter）、以及呼叫者權限（是否 operator-only，目前無 auth/role 概念）；(6) queue 掃描時找不到 entry 或同一 order_id 有多筆該怎麼處理。",
+    "confidence": 95
+  },
+  {
+    "id": 5,
+    "answer": "可直接重用的既有元件：(1) dispatch()——說明明確指出可『原封不動重用』，其失敗分類／重試／backoff 與 MAX_DISPATCH_ATTEMPTS 邏輯一字不改；(2) 既有的 reserve→price→dispatch 處理流程本身（force_redispatch 就是再走一次同樣三步）；(3) inventory 的 _put_with_retry（inventory.py:127-137），已處理重 reserve 時的 optimistic concurrency／VersionConflict。",
+    "confidence": 80
+  },
+  {
+    "id": 6,
+    "answer": "不對，不能『自動保證』。這只在窄義下成立——dispatch 階段的分類／重試／backoff 確實可原封不動保留；但在整條 pipeline 的 lifecycle 層面必然被打破：dead_lettered 不再是終態，會多出 dead_lettered→dispatched 與 dead_lettered→failed 兩條新轉移，而且會出現原本不存在的失敗原因（重 reserve 撞 InsufficientStock，使單從 dead_lettered 變 failed，是個非 retryable 的新失敗）。因此可觀察的失敗結果集合有變。這正是決策1（窄義 vs 廣義）的重點，該說法把兩者混為一談，所以作為『自動保證不改失敗語意』是錯的。",
+    "confidence": 90
+  }
+]

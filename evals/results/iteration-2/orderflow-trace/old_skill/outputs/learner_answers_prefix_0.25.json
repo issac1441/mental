@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "實際順序是:ingest(驗證輸入)→ reserve(保留庫存)→ price(計算價格)→ dispatch(出貨)。說明明確指出這是四個刻意排定的階段,由單一入口 Pipeline.process(raw) 依序驅動。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "因為 price 階段是依 reservation 所凍結的『單價快照』來計算總價,而這個要收的單價快照是由 reservation 持有的,不是即時目錄。所以必須先 reserve 把單價(連同庫存)凍結,price 才有正確且一致的快照可算;若反過來先算價再保留,實際收的價可能與凍結的快照不一致。",
+    "confidence": 96
+  },
+  {
+    "id": 3,
+    "answer": "說明中沒有提到。文件在進入 price 階段的細節之前就被截斷,完全沒有描述折扣、免運門檻或運費規則,也沒說免運判斷是以折扣前(9,000)還是折扣後(6,300)金額為準,因此無法判定這筆是否要付運費。",
+    "confidence": 90
+  },
+  {
+    "id": 4,
+    "answer": "說明中沒有提到。文件完全沒有描述稅(稅基是用哪個金額、稅率)或運費是否課稅;price 段的計價細節在截斷處之前並未出現。",
+    "confidence": 90
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端會拿到一個 Receipt(收據)物件;成功出貨時其 status 欄位為「dispatched」。文件明確提到的關鍵欄位是 status,值為「dispatched」/「failed」/「dead_lettered」三者之一。至於 Receipt 內其他欄位,因說明在 dispatch 段被截斷而未列出,屬於說明中沒有提到。",
+    "confidence": 66
+  },
+  {
+    "id": 6,
+    "answer": "說明中沒有提到。文件沒有描述『固定運費』這個設定、運費如何計入總價,也沒有免運門檻等規則(price 段被截斷),因此無法判斷改成 0 元後哪些訂單總價會受影響、哪些不會。",
+    "confidence": 87
+  },
+  {
+    "id": 7,
+    "answer": "最可能的原因鏈:price 是依 reserve 當下凍結的『單價快照』計算,而該快照的來源是即時目錄。兩天各自處理是兩次獨立的 reservation;若目錄中該 SKU 的單價在這段期間被調整,第二次 reserve 會凍結到不同的單價快照,price 便算出不同的總價。即:目錄單價變動 → 各次 reserve 凍結到不同快照 → 兩次總價不同。",
+    "confidence": 78
+  },
+  {
+    "id": 8,
+    "answer": "1. ingest 驗證失敗(ValidationError,屬 FatalError)→ process 回傳 status 為「failed」的收據(且因未動庫存而無副作用需回收)。 2. reserve 凍結的單價快照 → price 階段算出的總價。 3. 目錄查不到 SKU → 丟出 UnknownSku(FatalError)。 4. 庫存不足 → 丟出 InsufficientStock(FatalError)。 5. dispatch 出貨重試用盡 → dead_lettered(退回庫存並進死信佇列)。 6. reserve 成功(全檢通過後提交)→ 庫存與單價兩者被凍結(狀態改變)。 7. 階段上 reserve 排在 price 之前 → price 才能取得 reservation 持有的凍結快照來計價。",
+    "confidence": 85
+  }
+]

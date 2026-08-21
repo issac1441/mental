@@ -1,4 +1,4 @@
 interface:
-  display_name: "Mental Build (Advanced)"
-  short_description: "Persist models after they prove useful"
-  default_prompt: "Use $build to persist the reusable parts of this source-bound mental model."
+  display_name: "Mental Build"
+  short_description: "Build evidence-linked mental model artifacts"
+  default_prompt: "Use $build to draft a mental model from the sources I provide."

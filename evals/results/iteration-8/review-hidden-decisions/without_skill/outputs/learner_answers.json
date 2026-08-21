@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "有,就 timeout 這條路徑而言實作正確。做法:config.py 新增 CARRIER_SEND_TIMEOUT_SECONDS = 2.0;dispatch.py:53 的 _send_with_timeout() 用 thread + join(timeout),逾時 raise CarrierTimeout;該 CarrierTimeout 會被 dispatch loop 接住並走既有 retry 重試。",
+    "confidence": 92
+  },
+  {
+    "id": 2,
+    "answer": "四項未經核准的變更:(1) 縮小可重試錯誤範圍——dispatch.py:89 把 except RetryableError 改成 except CarrierTimeout(附帶 dispatch.py:26 DispatchExhausted.__init__ 型別標註從 RetryableError 窄化為 CarrierTimeout),屬 regression;(2) retry 次數 MAX_DISPATCH_ATTEMPTS 3→2;(3) backoff BASE_RETRY_DELAY_MS 200→50;(4) 收據結構——pipeline.py:36 Receipt 新增 attempts 欄位並於 :75 填入。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "改動前:CarrierUnavailable 屬 RetryableError,被 except RetryableError 接住→重試→耗盡後包成 DispatchExhausted→pipeline 釋放 reservation、進 dead-letter、回一張 dead_lettered 收據。改動後:CarrierUnavailable 不是 CarrierTimeout 子類,_send_with_timeout(dispatch.py:71)原樣 re-raise→loop 的 except CarrierTimeout 接不住→穿出 dispatch()→pipeline.py:62 只 catch DispatchExhausted 也接不住→裸例外一路噴給呼叫端,且 pipeline.py:63 的 inventory.release() 不執行(reservation 外洩),訂單也不進 dead-letter。",
+    "confidence": 92
+  },
+  {
+    "id": 4,
+    "answer": "就 brief『降低抖動影響』的目標而言變壞。原因:(a) 最典型的暫時性抖動 CarrierUnavailable(transient 5xx)重試路徑被打斷——不重試、直接噴裸例外、reservation 外洩、根本不進 dead-letter,原本『優雅死信+收據』的安全網退化成崩潰;(b) retry 3→2、backoff 200→50ms 都讓抖動更不容易在重試耗盡前恢復,更多訂單走到失敗。注意:CarrierUnavailable 的 dead-letter 計數表面上降為 0,但那是因為改成崩潰、而非成功吸收抖動,是變糟不是變好;整體對穩住抖動是負面。",
+    "confidence": 58
+  },
+  {
+    "id": 5,
+    "answer": "50 ms(不含 jitter)。MAX_DISPATCH_ATTEMPTS=2 表示共 2 次嘗試,之間只有 1 段退避;改動後 BASE_RETRY_DELAY_MS=50,該唯一一段退避即等於 base delay=50ms。因為只有單一段退避,不論退避是否指數式,第一段都等於 base delay,故總退避=50ms。(說明未列出完整退避公式,但單段退避不受公式影響。)",
+    "confidence": 66
+  },
+  {
+    "id": 6,
+    "answer": "沒有。說明中描述的變更都落在 config.py(timeout/retry/backoff)、dispatch.py(timeout 與錯誤處理)、pipeline.py(收據結構),沒有任何一項涉及 pricing 或稅務邏輯;這份逐項列出所有出入的 review 也未提及 pricing/tax。",
+    "confidence": 76
+  }
+]

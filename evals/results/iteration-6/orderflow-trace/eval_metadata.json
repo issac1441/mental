@@ -1,0 +1,19 @@
+{
+  "eval_id": 1,
+  "eval_name": "orderflow-trace",
+  "prompt": "一筆訂單從進來到出貨，這個 codebase 是怎麼處理的？幫我理解整個流程。",
+  "assertions": [
+    "probe 1 (retention): 處理一筆訂單時，「驗證輸入、保留庫存、計算價格、出貨」這四件事的實際執行順序是什麼？",
+    "probe 2 (near): 為什麼計價要排在庫存保留之後，而不是先算好價格再保留庫存？",
+    "probe 3 (near, trap): 某訂單商品小計是 9,000 元，套用了 30% 折扣後變 6,300 元。免運門檻是 8,000 元。這筆訂單要付運費嗎？為什麼？",
+    "probe 4 (retention): 稅是以哪個金額為基準計算的？運費要課稅嗎？",
+    "probe 5 (retention): 訂單成功出貨後，呼叫端會拿到什麼？裡面有哪些關鍵欄位？",
+    "probe 6 (counterfactual): 如果把設定裡的固定運費從 120 元改成 0 元，哪些訂單的總價會受影響、哪些不會？",
+    "probe 7 (diagnosis): 客服回報：同一筆訂單第一次處理和隔天重新處理，算出來的總價不一樣。最可能的原因鏈是什麼？",
+    "probe 8 (edges): 請列出這個系統中至少 5 條「A 直接影響 B」的因果關係（格式：A → 影響 → B）。",
+    "gist / coherence / overhead / concreteness (各 >=4/5)",
+    "boundaries: 主動揭露 >=2/3 埋藏邊界",
+    "calibration: 抽查肯定斷言 0 錯誤",
+    "citations: 引用存在且支持主張"
+  ]
+}

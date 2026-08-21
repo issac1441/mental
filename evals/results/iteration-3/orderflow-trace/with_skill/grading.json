@@ -1,0 +1,176 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 四段實際執行順序 (validate→reserve→price→dispatch)",
+      "passed": true,
+      "evidence": "讀者答 ingest→reserve→price→dispatch 由 Pipeline.process 串起，與 pipeline.py:44-60 一致，明確指出計價在保留之後。"
+    },
+    {
+      "text": "probe 2 (near): 為何計價排在庫存保留之後",
+      "passed": true,
+      "evidence": "讀者答計價只吃 reserve 凍結的單價快照、不看原始訂單，命中 ReservedLine.unit_price_cents 關鍵因果，正確。"
+    },
+    {
+      "text": "probe 3 (near, trap): 9000→折30%→6300、門檻8000，是否付運費",
+      "passed": true,
+      "evidence": "讀者答免運、基準為折扣前 9000≥8000，正確避開『6300<8000 要付運費』的陷阱。"
+    },
+    {
+      "text": "probe 4 (retention): 稅基與運費是否課稅",
+      "passed": true,
+      "evidence": "讀者答稅=折扣後小計×5%、運費不課稅，與 pricing.py:55 及 config.TAX_RATE 一致。"
+    },
+    {
+      "text": "probe 5 (retention): 出貨成功回傳物與關鍵欄位",
+      "passed": true,
+      "evidence": "讀者答 Receipt(order_id, status=dispatched, carrier, total_cents)，四個關鍵欄位齊全，符合 pipeline.py Receipt dataclass。"
+    },
+    {
+      "text": "probe 6 (counterfactual): 運費 120→0 影響哪些訂單",
+      "passed": true,
+      "evidence": "讀者答僅折扣前小計<8000 需付統一運費者受影響(120→0)、達門檻者本免運不變；正確組合 FLAT_SHIPPING_CENTS 與折扣前門檻。"
+    },
+    {
+      "text": "probe 7 (diagnosis): 隔天重算總價不同的原因鏈",
+      "passed": true,
+      "evidence": "讀者答 TTL(120s)過期→用當前 catalog 重建→重擷單價快照(reprice_required)→計價依快照→catalog 變則總價變，鏈完整正確。"
+    },
+    {
+      "text": "probe 8 (edges): 至少 5 條 A→影響→B",
+      "passed": true,
+      "evidence": "讀者列 8 條(order_id→抖動/冪等、region→carrier、重量→post/freight、折扣前→免運、折扣後→稅、priority→選折扣、快照→總價、上限→dead-letter)，經核對皆有效、0 杜撰。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=4，第3-4句即給出『四段式管線、入口 Pipeline.process、dict 進 Receipt 出、ingest→reserve→price→dispatch』完整答案；惟前兩句為 meta 框架句，須讀到第3句才觸及答案。 [graders disagreed]"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，全篇順實際執行路徑(ingest→reserve→price→dispatch→config→誤解區)組織，o-1 訂單貫穿四段，無互相重複的形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，僅開頭一句『已驗證完畢』meta；方法論/lens 報告置於文末不佔前段負擔；FatalError、VersionedStore、reprice_required 等術語首見即解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，密集 file:line 引用、具名 6 個測試、且以 o-1 實例帶實際數字(9000_00→6300_00→稅315_00→總6615_00)對上 test_pipeline.py:30 斷言。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3：免運看折扣前(§3規則4+誤解區專段)、計價讀訂位快照非原始/型錄(§3標題+intro)、折扣不疊加取priority最高非percent(§3規則2)。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽 tax=round(折扣後×0.05)不課運費(pricing.py:55)✓、backoff=BASE×2^(n-2)+crc32%100(dispatch.py:47-49)✓、未過期回舊訂位不重扣(inventory.py:64-67)✓；0 wrong_flat。〔inferred〕/〔conflict〕僅對『意圖』hedge，行為陳述皆經核對屬實，非過度 hedge。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "pipeline.py:44=def process(raw)✓、pricing.py:57=if subtotal>=FREE_SHIPPING_THRESHOLD_CENTS✓、inventory.py:68-71=過期重建+reprice_required=True✓；具名測試 test_free_shipping_uses_pre_discount_subtotal 等 6 個均存在。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    },
+    {
+      "id": 7,
+      "correct": true
+    },
+    {
+      "id": 8,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": false
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": false
+      },
+      {
+        "id": 7,
+        "correct": true
+      },
+      {
+        "id": 8,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 3.5,
+    "coherence": 5,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "免運門檻檢查折扣前小計、折扣不影響運費資格（§3規則4 + 誤解區有專段守 test_free_shipping_uses_pre_discount_subtotal）",
+      "計價讀 reservation 捕捉的單價快照、非原始訂單或當前型錄、重建後總價可能改變（§3標題+intro+誤解區 reprice 段）",
+      "折扣不疊加、只套用門檻達標中 priority 最高一條（§3規則2，明指非 percent 最高）"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.13,
+  "grader_agreement": 0.933,
+  "summary": {
+    "passed": 14,
+    "failed": 1,
+    "total": 15,
+    "pass_rate": 0.933
+  },
+  "graders": 2
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "answer": "400ms（不含 jitter）。公式是 base = BASE_RETRY_DELAY_MS × 2^(attempt − 2)，代入第 3 次嘗試：200 × 2^(3−2) = 200 × 2^1 = 400ms。此值在第 3、4、5 則被明確給出並確認。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "指「總共 3 次嘗試」（即第一次嘗試 + 最多 2 次重試）。依據：第 6 則學習者說「總共最多 3 次嘗試」經導師在第 7 則確認為準；且第 3 則 MAX=4 的情境明確是「四次全丟」共 4 次嘗試、sleep 3 次，可推知 MAX 值 = 總嘗試次數。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "呼叫端會拿到一個 status=\"dead_lettered\" 的 Receipt 值（reason 為最後一次錯誤 last_error 的字串），不會收到任何例外。過程中 process() 會就地接住 DispatchExhausted，釋放（release）先前保留的庫存，並把該筆加入 dead-letter queue。",
+    "confidence": 98
+  },
+  {
+    "id": 4,
+    "answer": "jitter 是由 order_id 的 CRC32 導出的固定（確定性）值，不是隨機亂數（第 6、7 則明確更正並確認）。因為它完全由 order_id 決定且為固定值，同一筆訂單（相同 order_id）跑兩次，jitter 會一樣。",
+    "confidence": 90
+  }
+]

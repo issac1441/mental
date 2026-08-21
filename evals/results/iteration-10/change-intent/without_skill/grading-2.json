@@ -1,0 +1,149 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): 出貨前庫存必須先做哪一步、為什麼",
+      "passed": true,
+      "evidence": "讀者答『重新 reserve』，理由是 DLQ 時 release() 已退庫存並 store.delete(key)——與標準答案一致"
+    },
+    {
+      "text": "probe 2 (counterfactual): 重出貨用原價還是新價、為何需人類決定",
+      "passed": true,
+      "evidence": "讀者答預設新價（當下 catalog 重抓），且列為未決策；並補充 Quote 未保存、reprice_required 不會亮——核對程式碼皆正確，涵蓋關鍵事實"
+    },
+    {
+      "text": "probe 3 (diagnosis): 連按兩次 force 會發生什麼",
+      "passed": true,
+      "evidence": "讀者答二次實體出貨（send 無 idempotency key、需 guard），命中標準答案的重複出貨風險"
+    },
+    {
+      "text": "probe 4 (decision): 列出至少兩個隱含未決事項",
+      "passed": true,
+      "evidence": "讀者列 7 項（定價、冪等、重送再耗盡、庫存不足、狀態相容、VersionConflict 收斂、稽核），遠超過兩項且與標準重疊"
+    },
+    {
+      "text": "probe 5 (retention): 哪些既有元件可直接重用",
+      "passed": true,
+      "evidence": "讀者列 reserve、dispatch(+choose_carrier)、dead_letters、Receipt、self.send，涵蓋核心可重用元件；唯獨未點名 pricing.price（略不完整但語意正確）"
+    },
+    {
+      "text": "probe 6 (repair,trap): 新函式是否自動保證不改變失敗語意",
+      "passed": true,
+      "evidence": "讀者答『不對，必要非充分』，指出重新 reserve 引進新失敗模式（VersionConflict 往外拋）且須驗證既有測試——命中 trap"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=4，首句『我已讀完』為輕微鋪陳，但粗體關鍵發現（reservation 已釋放刪除→force=重新 reserve+定價+dispatch）於第 3–4 句即建立正確可獨立的重構框架"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，依關注點組織（安全→保住既有語意→定價庫存→API→並行維運→測試→建議），由開頭重構驅動、含交叉引用，無重複形式化區塊"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，直接進入實質，無方法論/選項報告前言；reservation、idempotency key、reprice_required 等術語首次出現即解釋"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，幾乎每條主張都標 file:line（pipeline.py:59-67、inventory.py:77-91、dispatch.py:38、errors.py:36…）並點名兩個既有測試、附程式碼區塊"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3：邊界1（第8點重出貨總價可能≠原收據）、邊界2（第1、4點 send 無去重、force 冪等為新決策）、邊界3（第6、7點 force 自身失敗語意須新定義）"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽①release() 退庫存後 delete(key)、②reprice_required 僅過期重建為 True、③reserve 三次後 raise VersionConflict 而 process 只接 FatalError——三條全核對正確，wrong_flat=0"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "pipeline.py:59-67(dead-letter 路徑)、inventory.py:77-91(release)、dispatch.py:38(offshore→air) 皆存在且支持該處主張"
+    }
+  ],
+  "scores": {
+    "gist": 4,
+    "coherence": 5,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "boundary_coverage": {
+    "covered": [
+      "死信釋放保留、force 須重新 reserve、快照重建使重出貨總價可能≠原收據（第8點明講）",
+      "dispatch/send 無去重、force 重複呼叫會重複出貨、冪等為新決策（第1、4點）",
+      "force 路徑自身失敗語意（重新保留失敗、再次耗盡）須新定義、不能自動保證（第6、7點）"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0,
+    "overhedged": 0,
+    "notes": "抽 3 條肯定斷言全部核對正確：release() 退庫存再 delete(key)、reprice_required 僅過期重建設 True／全新 reservation 為 False、_put_with_retry 三次後 raise VersionConflict 且 process() 僅接 FatalError（RetryableError 會往外拋）。唯一瑕疵：文件稱 send 簽章為 Callable[[str, Order], None]@pipeline.py:41，實際該行為 Callable[[str, object], None]（[str, Order] 在 dispatch.py:55），屬型別註記小誤，核心行為斷言（無 idempotency key）正確，故不計 wrong_flat。無可驗證事實被過度 hedging。",
+    "sampled_claims": [
+      "release() 退庫存後 store.delete(key)（inventory.py:77-91）",
+      "reprice_required 僅過期重建為 True，全新 reservation 為 False（inventory.py:68-69）",
+      "reserve 三次後 raise VersionConflict、process 只接 FatalError（inventory.py:133 / pipeline.py:52-54）"
+    ]
+  },
+  "extraneous_ratio": 0.08
+}

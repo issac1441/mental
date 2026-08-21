@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "有，核准的 timeout 被正確實作。作法：config.py:13 新增常數 CARRIER_SEND_TIMEOUT_SECONDS = 2.0；dispatch.py:53-71 新增 _send_with_timeout，把 send 丟進一條 daemon thread 並 worker.join(2.0)，若逾時仍存活就 raise CarrierTimeout（dispatch.py:66-69），否則原樣重拋 send 自己拋的例外（dispatch.py:70-71）；dispatch.py:87 主流程改呼叫 _send_with_timeout 取代直接 send。逾時會進 retry 迴圈，耗盡後 DispatchExhausted，由 pipeline.py:62-68 release + dead-letter。文件明確寫『核准要做的那一件事,做對了』。",
+    "confidence": 92
+  },
+  {
+    "id": 2,
+    "answer": "文件指出至少兩項核准範圍外改動，外加動到第三個檔案 pipeline.py。可見內容能確認的：(1) 把 retry 捕捉的例外集合縮小成只 except CarrierTimeout（dispatch.py:89），牴觸『只 retry RetryableError 子類』的模組/errors 契約（dispatch.py:5-6、errors.py:3-4），屬 timeout 以外的語意變更；(2) 修改了第三個檔案 pipeline.py（超出核准範圍，實際改法在截斷處未詳述）。文件另把兩項後果分別歸給不同改動：一項讓一個現有測試變紅、另一項在 CarrierUnavailable 時洩漏庫存預留。因文件被截斷且原文說『至少兩項』，此清單可能不完整。",
+    "confidence": 60
+  },
+  {
+    "id": 3,
+    "answer": "改動後：send 若拋 CarrierUnavailable，_send_with_timeout 會原樣重拋（dispatch.py:70-71），但 retry 迴圈只 except CarrierTimeout（dispatch.py:89），所以 CarrierUnavailable 不會被接住，直接向上逸出（uncaught），因而繞過 DispatchExhausted→pipeline release+dead-letter 的正常路徑，造成庫存預留被洩漏（沒被釋放）。改動前：依契約 CarrierUnavailable 屬 RetryableError 會被 retry，暫時性 5xx 多半重試後成功，持續失敗才走 exhausted→release+dead-letter。差別：從『會被重試且預留最終被妥善處理』變成『不重試、立即逸出並洩漏預留』。（CarrierUnavailable 屬 RetryableError/改動前會被重試為依契約推論，文件正好在此處截斷。）",
+    "confidence": 70
+  },
+  {
+    "id": 4,
+    "answer": "就 brief『降低抖動影響』的目標而言是變壞。原因：diff 把 retry 縮成只捕捉 CarrierTimeout，等於移除了對暫時性 CarrierUnavailable(5xx) 的重試，而這正是抖動的主要型態之一；原本這類暫時失敗會被重試而多半恢復，改動後不再重試。需注意細節：文件顯示 CarrierUnavailable 現在是『逸出並洩漏預留』而非乾淨地進 dead-letter，所以嚴格看『死信率』對這類錯誤未必單純上升，而是被更糟的結果（uncaught+預留洩漏）取代；核准的 timeout 只對『慢回應型』抖動有幫助，卻被此退化抵銷。整體結論：未達成 brief 目標、對暫時性抖動的處理變差。惟文件在關鍵處截斷、未直接量化死信率，故信心中等。",
+    "confidence": 50
+  },
+  {
+    "id": 5,
+    "answer": "說明中沒有提到。文件只提到單次 send 的 2 秒 timeout（CARRIER_SEND_TIMEOUT_SECONDS=2.0、worker.join(2.0)）與存在一個 retry 迴圈，但完全沒給出重試次數、退避基數或倍率等資訊，無法計算總退避等待。",
+    "confidence": 95
+  },
+  {
+    "id": 6,
+    "answer": "依文件內容沒有。文件描述的改動都集中在 carrier send timeout、dispatch 的 retry 處理，以及 pipeline 的 release/dead-letter（檔案為 config.py、dispatch.py、pipeline.py），完全沒有提到 pricing 或稅務邏輯；審查者以『範圍蔓延』角度列舉改動時也未提及任何 pricing/tax。惟本文件是審查摘要且被截斷，非逐行完整 diff，故非 100% 確定。",
+    "confidence": 74
+  }
+]

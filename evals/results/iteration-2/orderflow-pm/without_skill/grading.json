@@ -1,0 +1,153 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 訂單何時免運費",
+      "passed": true,
+      "evidence": "讀者答『折扣前商品小計≥8,000即免運、看折扣前不看實付』,與標準答案(pre-discount subtotal≥threshold)完全一致。"
+    },
+    {
+      "text": "probe 2 (near): 出貨一直失敗訂單最後結果",
+      "passed": true,
+      "evidence": "答不會無限重試、3次後退庫存+進待處理清單+回dead_lettered收據(非當機),涵蓋標準答案全部關鍵事實。"
+    },
+    {
+      "text": "probe 3 (near): 晚處理為何價格可能不同",
+      "passed": true,
+      "evidence": "答鎖價僅2分鐘(120秒)、過期作廢後以當下目錄價重算,與標準答案(TTL+reprice)一致。"
+    },
+    {
+      "text": "probe 4 (near, trap): 原價9,500折後7,000要運費嗎",
+      "passed": true,
+      "evidence": "答免運(依折扣前9,500≥8,000),正確避開『7,000<8,000要付運費』的陷阱。"
+    },
+    {
+      "text": "probe 5 (decision): 改看實付金額誰受影響",
+      "passed": true,
+      "evidence": "答折扣前≥8,000但折後<8,000的高消費促銷客戶會開始付運費、體驗變差、無人新獲益,完全符合標準答案。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 是否支援分期付款",
+      "passed": true,
+      "evidence": "答『說明中沒有提到』,程式碼確無任何付款/分期概念,符合trap標準答案。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=2,開頭前三句是『執行指令被鎖住/我逐行讀完/不是猜的』流程免責聲明,未提供任何針對問題的答案。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,結構依實際pipeline展開(四關卡→出貨失敗→價格變動→計價規則→營運風險),因果鏈清楚,無形式化重複區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": false,
+      "evidence": "score=3,正文前先擺一段流程元資訊(執行被鎖/如何讀碼)且結尾又有服務選單與範圍免責;惟術語(dead-letter/reprice)首次出現即解釋,故未更低。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,關鍵計價主張綁定實際測試案例(9,000→6,300→稅315→運0→6,615,即test_pipeline的6615_00)與config參數;惟未附檔案路徑故非5。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "3/3全覆蓋:免運看折扣前(順帶提醒2)、120秒鎖價過期重算(Q2)、3次上限後dead-letter並釋放庫存(Q1-A)。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽『免運看折扣前8,000』『重試上限3次+backoff約0.2/0.4秒』『扣庫存冪等但出貨不防重複』,核對pricing.py/dispatch.py/inventory.py全部正確,wrong_flat=0。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "未引用檔案路徑,但抽驗spring-30/loyalty-10(pricing.py:33-34)、dead_lettered(pipeline.py:31)、測試案例6615(test_pipeline.py:30/39)均存在且支持主張。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": false
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 2,
+    "coherence": 5,
+    "overhead": 3,
+    "concreteness": 4
+  },
+  "boundary_coverage": {
+    "covered": [
+      "免運資格看折扣前原價(順帶提醒2,含9,000→6,300實例明說『實付低於8,000仍免運』)",
+      "價格/庫存僅保留2分鐘,過期按當下目錄價重算、總價可能改變(Q2,明說系統不會停下問客戶)",
+      "出貨重試上限3次後進待處理清單並釋放庫存、回dead_lettered收據而非噴錯給客戶(Q1-A)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.2,
+  "altitude": {
+    "implementation_share": 0.05
+  },
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 11,
+    "failed": 2,
+    "total": 13,
+    "pass_rate": 0.846
+  },
+  "graders": 2
+}

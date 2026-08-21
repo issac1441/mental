@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "answer": "實際執行順序與題目列出的順序完全一致：先「驗證輸入」(ingest / parse_order)，再「保留庫存」(reserve)，接著「計算價格」(price)，最後「出貨」(dispatch)。說明中 pipeline 的 stage 順序刻意固定為 ingest → reserve → price → dispatch（pipeline.py:3-14），入口是 Pipeline.process(raw) -> Receipt。"
+  },
+  {
+    "id": 2,
+    "answer": "因為計價一律使用 reservation 的「單價快照」，而不是原始 order。主幹 Reservation 在保留庫存時會同時凍結兩件事：扣下的 stock 與 unit-price 快照；price(reservation) 就是讀這份被凍結的單價快照來算 subtotal（pricing.py:48）。也就是說，計價所需的價格快照是在「保留庫存」這一步才被建立的，所以計價必須排在庫存保留之後——先保留才會有快照可算。"
+  },
+  {
+    "id": 3,
+    "answer": "不用付運費（免運）。因為免運資格是看「折扣前」的 subtotal，而不是折後金額，且折扣不影響免運資格。這筆訂單折扣前小計為 9,000 元 ≥ 8,000 元門檻，所以免運；即使套用 30% 折扣後變成 6,300 元（< 8,000），仍然維持免運（這點在 test_pipeline.py:32-39 有測試釘住）。"
+  },
+  {
+    "id": 4,
+    "answer": "稅是以「折後貨款」（套用折扣後的貨款金額）為基準計算，公式為 tax = round(折後貨款 × 0.05)，即 5% 稅率。運費不課稅——說明明確指出「只課貨款、不課運費」。"
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端會拿到一個 Receipt 物件（Pipeline.process 的回傳型別）。成功出貨時為 Receipt(status=\"dispatched\", carrier, total_cents)，關鍵欄位有三個：status（此時為 \"dispatched\"）、carrier（選定的承運商，例如 post）、total_cents（總金額，以「分」為單位，例如 happy path 的 661500）。"
+  }
+]

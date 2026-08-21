@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "多等約 2.4 秒（2400ms）。現況用盡前總 sleep 為 200+400=600ms，A 之後為 200+400+800+1600=3000ms，差額 3000−600=2400ms（不含 jitter）。",
+    "confidence": 95
+  },
+  {
+    "id": 2,
+    "answer": "選項 B 會讓既有測試失敗。失敗的是 test_dead_letter_after_exhausted_retries_releases_stock（tests/test_pipeline.py:51-63）。因為該測試明確斷言 dead-letter 後庫存會被還原/釋放，而 B 拿掉了 pipeline.py:62 的 inventory.release(...)，庫存不再還回，斷言就會失敗。（A 不會讓測試失敗，只會讓該 dead-letter 測試的真實 sleep 從約 0.6s 變約 3s，拖慢而非失敗。）",
+    "confidence": 96
+  },
+  {
+    "id": 3,
+    "answer": "會永久洩漏（永遠回不來）。因為系統沒有背景 sweeper，release 是唯一把 dead-letter 庫存還回去的路徑；若一直沒人重派或訂單被取消，那份保留的庫存就永遠不會歸還。日積月累會造成假性缺貨，導致未來正常 order 誤報 InsufficientStock。",
+    "confidence": 95
+  },
+  {
+    "id": 4,
+    "answer": "主要是選項 B 引入新的待決策事項：(1)「歸屬權」問題——dead-letter 且被取消或無人重派的庫存，由誰、在何時釋放；(2) 是否要連帶改 RESERVATION_TTL_SECONDS／建立 dead-letter reservation 的生命週期＋清掃(sweeper)補償路徑，還是只接受天真版（決策清單第 3、4 點）。（另外 A 也帶出一個決策：是否接受抖動時尾端 +2.4s 與吞吐下降的成本，決策清單第 2 點；但真正開出全新問題的是 B。）",
+    "confidence": 70
+  },
+  {
+    "id": 5,
+    "answer": "沒有影響。A 不破壞任何契約，dispatch 對外的失敗語意（只重試 retryable、用盡才 dead-letter、絕不靜默丟單）維持不變，只是把「用盡」的門檻由 3 抬到 5。DispatchExhausted 的訊息文字會自動跟著更新（反映新的次數），但那不算 Receipt 形狀或失敗語意的改變。",
+    "confidence": 90
+  },
+  {
+    "id": 6,
+    "answer": "沒有。提案不改 jitter 演算法。A 只改一個常數 MAX_DISPATCH_ATTEMPTS（退避基準不變），B 只改是否呼叫 release；jitter 維持 0–99ms 不動。",
+    "confidence": 93
+  }
+]

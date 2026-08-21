@@ -1,4 +1,4 @@
 interface:
   display_name: "Mental Practice"
-  short_description: "Repair one weak relationship at a time"
-  default_prompt: "Use $practice to repair my weakest relationship with adaptive transfer scenarios."
+  short_description: "Verify understanding with transfer practice"
+  default_prompt: "Use $practice to coach one weak relationship at a time with new transfer scenarios."

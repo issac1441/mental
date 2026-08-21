@@ -1,0 +1,59 @@
+{
+  "id": 5,
+  "name": "change-decision",
+  "target": "orderflow",
+  "skill": "change",
+  "question": "我們想降低 carrier 抖動造成的死信率。兩個選項：A) 把最大出貨嘗試次數從 3 改成 5（退避基準不變）；B) 維持 3 次，但 dead-letter 之後「不釋放」庫存保留，讓人工重派時不用重新搶庫存。幫我比較兩個選項的實際效果和代價。",
+  "question_type": "change-decision",
+  "prefixes": [0.25],
+  "boundaries": [
+    "選項 B 改變 dead-letter 補償語意，會使既有測試 test_dead_letter_after_exhausted_retries_releases_stock 失敗",
+    "死信後的保留沒有任何自動回收機制（TTL 重建只發生在同一單再次 reserve 時）——B 若無人工處理會永久鎖死庫存",
+    "選項 A 的代價是尾延遲：新增第 4、5 次嘗試前的退避（約 +2.4 秒，不含 jitter）"
+  ],
+  "jargon_list": ["dead-letter", "backoff", "jitter", "TTL", "idempotent"],
+  "probes": [
+    {
+      "id": 1,
+      "tier": "near",
+      "trap": false,
+      "question": "選項 A 在最壞情況下（全部嘗試都失敗）比現況多等多久？（不含 jitter）",
+      "ground_truth": "Two extra backoff waits before attempts 4 and 5: 200*2^2=800ms + 200*2^3=1600ms = +2400ms (~2.4s) worst-case added tail latency. Source: dispatch.backoff_ms, config.BASE_RETRY_DELAY_MS."
+    },
+    {
+      "id": 2,
+      "tier": "near",
+      "trap": false,
+      "question": "哪個選項會讓既有測試失敗？哪一個測試、為什麼？",
+      "ground_truth": "Option B breaks tests/test_pipeline.py test_dead_letter_after_exhausted_retries_releases_stock — it asserts stock returns to 2 after dead-lettering; keeping the reservation means stock stays 0. Option A keeps that test passing (mock always times out -> still dead-letters), just slower."
+    },
+    {
+      "id": 3,
+      "tier": "counterfactual",
+      "trap": false,
+      "question": "如果選了 B、而人工一直沒有處理死信訂單，被保留的庫存最後會怎樣？",
+      "ground_truth": "Locked forever. There is no automatic reclaim: reservation-expiry rebuild only happens when the SAME order is reserved again via reserve(); nothing else releases it. Source: inventory.reserve()/release(), no background sweeper exists."
+    },
+    {
+      "id": 4,
+      "tier": "decision",
+      "trap": false,
+      "question": "哪個選項引入了新的待決策事項？是什麼？",
+      "ground_truth": "Option B: who/when/how reclaims dead-letter reservations (a reclaim policy or tool), and how manual redispatch consumes the held reservation. Option A is a low-risk parameter change with no new decisions."
+    },
+    {
+      "id": 5,
+      "tier": "retention",
+      "trap": false,
+      "question": "選項 A 對收據（Receipt）形狀或失敗語意有影響嗎？",
+      "ground_truth": "No — only attempt count and timing change; receipt statuses (dispatched/failed/dead_lettered) and compensation semantics stay identical."
+    },
+    {
+      "id": 6,
+      "tier": "scope",
+      "trap": true,
+      "question": "這個提案有沒有要改 jitter 的演算法？",
+      "ground_truth": "Not covered — 說明中沒有提到 / 提案不含 jitter 變更. Any invented jitter change fails."
+    }
+  ]
+}

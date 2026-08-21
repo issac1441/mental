@@ -1,158 +1,135 @@
 # Mental methodology
 
-Use this reference to help a person acquire, test, and repair a useful model while an agent works.
+Use this reference to select the explanation shape and preserve the distinction between evidence and an agreed model.
 
 ## Purpose
 
-Agent throughput can exceed a person's ability to reconstruct what changed, why it changed, and what will happen next. Optimize for prediction, decision quality, and correction rather than document volume or diff size.
+Implementation throughput can exceed a person's ability to rebuild a correct model of a system or subject. Optimize for model acquisition, prediction, and correction rather than document volume or diff size.
 
-The core loop is:
+## Lens × Views × Detail
 
-`orient → human prediction → evidence → model gap → decision or repair → transfer`
-
-Do not let the agent perform the learner's prediction or treat recognition as understanding.
-
-## Lens × Job
-
-Use two primary controls. Infer them from the current session unless the user supplies them.
+Every explanation has three independent controls. State the selected values and a short basis when they affect the answer.
 
 ### Lens
 
-A Lens is the role whose typical knowledge, vocabulary, concerns, and decisions should shape the explanation. It is a session-scoped explanation assumption, not a permanent identity or ability label.
+A Lens is the role whose typical knowledge, vocabulary, concerns, and decisions should shape the answer. It combines audience and perspective. It is a session-scoped working assumption, not a permanent identity or an ability label.
 
-Built-in lenses are:
+Built-in lenses are starting points:
 
-- **general**: assume no specialist context; prioritize purpose, consequences, and minimum vocabulary.
-- **engineer**: assume code navigation and basic software concepts; prioritize mechanisms, contracts, failures, and evidence.
-- **architect**: assume system-design vocabulary; prioritize boundaries, ownership, invariants, and tradeoffs.
-- **pm**: assume product and delivery concepts; prioritize user effects, options, constraints, dependencies, and tradeoffs.
-- **operator**: assume operational procedures; prioritize runtime state, observability, recovery, and failure handling.
-- **student**: assume only declared prerequisites; prioritize anchors, vocabulary, worked examples, and transfer.
-- **researcher**: assume research-method vocabulary; prioritize constructs, evidence strength, boundary conditions, and alternative explanations.
+- **general**: assumes no specialist context; prioritizes purpose, consequences, and minimum vocabulary; defaults to `anchor,map,scenario`.
+- **engineer**: assumes code navigation and basic software concepts; prioritizes mechanisms, contracts, failures, and evidence; defaults to `map,mechanism,scenario,evidence`.
+- **architect**: assumes system-design vocabulary; prioritizes boundaries, ownership, invariants, and tradeoffs; defaults to `map,mechanism,scenario`.
+- **pm**: assumes product and delivery concepts; prioritizes user effects, options, constraints, dependencies, and decision tradeoffs; defaults to `anchor,map,scenario`.
+- **operator**: assumes operational procedures; prioritizes runtime state, observability, recovery, and failure handling; defaults to `mechanism,scenario,evidence`.
+- **student**: assumes only declared prerequisites; prioritizes anchors, vocabulary, prerequisite gaps, worked examples, and transfer; defaults to `anchor,map,scenario`.
+- **researcher**: assumes research-method vocabulary; prioritizes constructs, mechanism, evidence strength, boundary conditions, and alternative explanations; defaults to `map,mechanism,evidence`.
 
-Repository work defaults to `engineer`. General learning defaults to `student`. A project may define a custom `kind: lens` artifact with `assumes`, `concerns`, and `vocabulary` lists. Do not infer ability from grammar, response speed, identity, confidence, or protected traits.
+The repository context defaults to `engineer`. General learning defaults to `student`. Prefer a more specific goal-supported Lens when the evidence warrants it.
 
-### Job
+Each lens also implies a content altitude. `general`, `pm`, and `student` explanations stay at the purpose, functional, and operational levels: what the system does for whom, what happens when it runs, and what happens when it fails — implementation detail appears only as optional evidence pointers. `engineer`, `operator`, and `researcher` may descend into implementation; `architect` centers on boundaries, invariants, and tradeoffs. Descending below the lens's altitude unasked is a conformance failure, not extra thoroughness. Vocabulary follows the same rule: a term the lens does not assume is either replaced with plain words or defined in plain words at first use.
 
-Job describes what the person needs to do now:
+Projects may define reusable lenses as `kind: lens` artifacts under `mental/lenses/`. Each lens should declare:
 
-- **orient**: establish purpose, boundary, minimum vocabulary, and the relationship map.
-- **decide**: compare effects, tradeoffs, ownership, failure semantics, and reversibility.
-- **predict**: trace a mechanism or state transition and commit to an expected outcome before seeing the answer.
-- **verify**: compare a claim, implementation, or answer with contracts, evidence, and counterexamples.
-- **repair**: find the first broken relationship, correct it minimally, and test transfer.
+- `assumes`: knowledge that the explanation may use without first teaching it;
+- `prioritizes`: questions, risks, or decisions to emphasize;
+- `vocabulary`: terms to prefer, define, or avoid;
+- `default_views`: an ordered subset of the fixed View values.
 
-Infer Job from the request. Manual `job=` input wins. `understand` defaults to `orient`, `change` to `decide`, `review` and `quiz` to `verify`, and `practice` to `repair`.
+Use a custom lens by artifact ID or path. Do not infer a person's ability from grammar, response speed, identity, confidence, or protected traits.
 
-Job decides the cognitive objective. Lens decides assumed knowledge, vocabulary,
-and which concerns are most salient. When they appear to conflict, satisfy the
-Job and express it through the Lens; `concerns` is a salience hint, not an
-allowlist of topics the agent may discuss.
+### Views
 
-## Internal views and response density
+Views are fixed semantic slices and may be combined. Preserve this vocabulary so a request has the same meaning across domains:
 
-Use these semantic slices internally:
+- **anchor**: purpose, intuition, and the minimum vocabulary needed to start;
+- **map**: parts or concepts, boundaries, prerequisites, and relationships;
+- **mechanism**: causal chain, state transition, algorithm, or why an outcome occurs;
+- **scenario**: a concrete walkthrough, transfer case, failure, or counterexample;
+- **evidence**: exact source text, code, tests, observations, uncertainty, and conflicts.
 
-- **anchor**: purpose, intuition, and minimum vocabulary;
-- **map**: boundaries, prerequisites, parts, and relationships;
-- **mechanism**: causal chain, state transition, or algorithm;
-- **scenario**: walkthrough, transfer, failure, or counterexample;
-- **evidence**: source text, code, tests, observations, uncertainty, and conflicts.
+Choose only the Views needed to answer the current question. Manual input accepts a comma-separated multi-selection such as `views=map,scenario,evidence`.
 
-The agent selects only the slices needed by Lens, Job, and the current question. Do not require a first-time user to choose Views or Detail. Accept an explicit `views=` override as an advanced escape hatch when a user already knows the vocabulary.
+Views select content; they are not an output format. Never render View names as section headers or deliver one section per View — see Explanation shape below.
 
-Infer response density from natural language such as “briefly” or “go deep.” Do not turn density into a second content taxonomy. Do not print a repetitive Lens/Job/View header. Disclose the selection only when the user set it, the choice is uncertain or non-default, or knowing it makes the answer actionable.
+### Detail
 
-## Selection precedence
+Detail controls density inside the selected Views:
+
+- **brief**: an orientation or decision summary;
+- **standard**: enough relationships and examples to make a useful prediction;
+- **deep**: mechanisms, alternatives, boundary conditions, and exact evidence.
+
+Detail does not imply expertise. A `student` lens may request `deep`; an `architect` lens may request `brief`.
+
+### Selection precedence
 
 Choose context in this order:
 
-1. manual Lens, Job, or advanced View override;
-2. the explicit goal in the current turn;
-3. current-session evidence, including plans, TODOs, corrections, answers, and decisions;
-4. relevant `.mental/profile.md` or `.mental/mastery.json` state;
-5. host memory, only when exposed and only as a weak signal;
-6. skill defaults.
+1. manual `lens=`, `views=`, or `detail=` overrides;
+2. the user's explicit goal or request in the current turn;
+3. evidence from the current session, including active plans, TODOs, corrections, and demonstrated questions;
+4. `.mental/profile.md` and `.mental/mastery.json`, when present and relevant;
+5. host memory, only when the host exposes it and only as a weak signal;
+6. the scope defaults above.
 
-Never persist an inferred preference unless the user explicitly asks.
+Use each signal only for the control it supports. Explain the basis briefly, including uncertainty. Never persist an inferred preference unless the user explicitly asks.
 
-## Evidence and artifact authority
+## Three kinds of truth
 
-Source files, code, tests, and runtime observations are material or implementation truth. Artifacts declare who may update them:
+- **Observed**: directly supported by a supplied source, code, test, or runtime evidence.
+- **Inferred**: synthesized by the agent from observations; plausible but not yet agreed.
+- **Agreed**: explicitly accepted by a human as the canonical conceptual model.
 
-- **mechanical**: a representation that can be stably regenerated from registered evidence under a recorded source revision and refresh basis. The agent may refresh it without a human truth judgment.
-- **conceptual**: a durable explanation, boundary, prerequisite structure, or teaching model. It may become active only with recorded verification evidence; fluency or user assent is not verification.
-- **decision**: an intent, tradeoff, responsibility choice, or accepted change. Only a human with decision standing can accept or reject it.
+Do not silently turn an inference into an agreement. When implementation truth and conceptual truth differ, preserve both and label the mismatch as a conflict.
 
-Conflicts are first-class artifacts. Never hide a disagreement by rewriting either side. Resolve it with evidence or a recorded decision.
+## Core model
 
-## Three gates
+A useful model contains only what improves prediction:
 
-### Mechanical refresh
+- an anchor and a small relationship map;
+- concepts or components with clear boundaries;
+- representative scenarios, including one failure or counterexample;
+- contracts, invariants, prerequisites, and decisions when applicable;
+- evidence links and known gaps.
 
-Refresh a mechanical artifact automatically only when its registered source IDs,
-concrete source revisions, refresh basis, and Evidence section make the
-regeneration reproducible. Record the new basis and mark it `current`. Mark it
-`stale` and expose a delta when those conditions are missing or the source is
-unavailable. Do not infer mechanical authority from prose or ask a human to
-approve source-derived facts.
+C4-style structure answers **what exists**. Runtime scenarios answer **what happens**. Decision records answer **why this shape was chosen**. Do not collapse these into a single large document.
 
-### Conceptual activation
+## Explanation shape
 
-Move a conceptual artifact from `draft` to `active` only when its verification section records:
+Lens, Views, and Detail decide what an explanation contains. The subject decides how it reads. The test of an explanation is transfer — how quickly the reader gains a model that predicts — not how visibly the framework was applied.
 
-1. source or implementation evidence;
-2. a checked representative success and failure prediction;
-3. known gaps and linked open conflicts;
-4. one valid verification basis: source/test corroboration, domain-owner validation, runtime evidence, or demonstrated prediction and transfer.
-
-“Looks good” and recognition are not verification. `active` means “current working model with an explicit basis,” not infallible truth.
-
-Record activation in frontmatter with `verification_basis`,
-`checked_predictions`, `known_gaps`, and `conflicts`. Checked predictions must
-include a representative success plus a failure or boundary. Empty lists are
-valid for drafts; they are not sufficient for activation.
-
-Use typed verification entries so the basis can be checked: `source:<source-id>`,
-`artifact:<artifact-id>`, `owner:<evidence>`, `runtime:<evidence>`, or
-`transfer:<artifact-id>`. Prediction entries use the stable English type
-`success:`, `failure:`, or `boundary:` followed by a non-empty claim in the
-user's language.
-
-### Human decision
-
-Ask the human to decide desired behavior, tradeoffs, ownership, reversibility, and risk. A human decision can become `accepted` or `rejected`; it cannot make an unsupported factual claim true.
-
-## Trust unit
-
-Treat trust as `Model × Harness × Task Class`:
-
-- **Model**: the relevant boundaries, contracts, mechanisms, and known conflicts;
-- **Harness**: tests, runtime probes, canaries, or evaluation tasks that can detect a wrong prediction;
-- **Task Class**: the bounded kind of work for which the model and harness apply.
-
-Do not assign global agent trust. State missing model coverage or harness evidence before expanding autonomy for a task class.
+- Open with the direct answer: the response's very first sentence states a fact about the subject, and the first two to four sentences would be true and useful if the reader stopped there. No warm-up of any kind — not process narration ("I've read/compared/traced …"), not readiness declarations ("I have enough to analyze …", "Here is the analysis"), not tooling or permission notes, not methodology preambles or scope declarations. Material caveats (something traced but not executed, an inaccessible source) belong in the evidence footer, not the opening.
+- Organize by the subject's own structure. A runtime question follows the path of execution; an architecture question groups by component and responsibility; a "why" question follows the causal chain; a comparison is organized by the decision.
+- Never use View names or other framework vocabulary as section headers. Apply the selected Views as a completeness checklist while writing: purpose stated, relationships shown, cause explained, one concrete case walked through, claims traceable. Weave a missing piece in where the narrative needs it.
+- Order content shallow to deep. Each section refines what came before instead of depending on what comes after, so the reader can stop at any point with a correct partial model.
+- Ground every abstraction. A claim about behavior points to a path, test, command, or quoted source. One concrete scenario belongs inside the narrative, not appended as ceremony.
+- Name the levers. When a constant, rule, or threshold governs a mechanism, name it and the direction of its effect, so the reader can predict what happens if it changes — a model that cannot answer "what if X changed" has not transferred.
+- Include the boundary or failure that prevents the most likely overgeneralization. When the evidence exposes a tempting-but-wrong assumption, say it and correct it explicitly ("you might expect X; actually Y, because …").
+- Assert plainly only what the cited evidence shows; give everything else its basis. False confidence in an explanation becomes false confidence in the reader.
+- Treat negative guarantees as the highest-risk claims. "X never happens" or "this cannot recur" is assertable only after tracing every path that could cause X; otherwise say exactly what was verified ("the reservation layer will not double-book; whether dispatch re-sends was not verified").
+- Keep side-effect claims path-specific. A side effect observed on one branch must not be asserted for a sibling branch that looks similar — "the expiry rebuild sets this flag" says nothing about the fresh-build path until that branch is traced too. Cite the exact branch the claim traverses.
+- Keep bookkeeping out of the reader's way. Evidence sits beside the claims or in a compact footer; the Lens, Views, and Detail report is one closing line, not an opening header; provenance labels mark genuinely uncertain or conflicting claims, not every sentence.
 
 ## Change workflow
 
-Use this repository lifecycle:
+The recommended repository lifecycle is:
 
-1. Use `change` to expose intent, ask one useful human prediction when appropriate, and compare it with evidence.
-2. Record consequential choices and obtain the human decision.
-3. Use Plan Mode to turn the accepted delta into implementation steps.
-4. Implement and verify with a task-class-relevant harness.
-5. Use `review` to explain the actual delta and find Decision Surprises.
-6. Use `quiz` when the operator wants a bounded assessment.
-7. Use advanced `sync` only when durable artifacts need refresh or reconciliation.
+1. Use `change` to expose the proposed model delta or explain options.
+2. Obtain the human decision.
+3. Use the host's Plan Mode to turn the accepted delta into implementation steps.
+4. Implement and verify the accepted plan.
+5. Use `review` to explain the actual delta and audit it.
+6. Use `quiz` when the operator wants a bounded assessment of the change.
+7. Use `sync` to reconcile accepted model updates.
 
-`change` may also interpret an existing plan or TODO list. If an option is unclear, return from Plan Mode to `change`, decide, then revise the plan.
+`change` may also interpret an existing plan or TODO list. If an option remains unclear, return from Plan Mode to `change`, explain its actual effects and tradeoffs, decide, then revise the plan.
 
 ## Learning workflow
 
-Teach through `diagnose → anchor → relationship → scenario → retrieval → transfer → correction`. Prefer one meaningful chunk over a lecture. Evidence of understanding is the ability to predict, explain, apply, or find a counterexample—not familiarity or confidence.
+Teach through a loop of diagnose → anchor → relationships → scenario → recall → transfer → correction. Prefer one meaningful chunk over a complete lecture. Evidence of understanding is the learner's ability to predict, explain, apply, or find a counterexample—not familiarity or confidence alone.
 
-Use `practice` for adaptive repair and `quiz` for a fixed-coverage assessment. Integrate short prediction and teach-back moments into `change` and `review` so learning does not require a separate study session.
+Use `practice` for adaptive coaching and `quiz` for a complete bounded assessment. Practice changes the next task after each response. Quiz prepares a fixed exam first and normally evaluates it after submission.
 
 ## Presentation
 
-Read `output-style.md` and `writing-profile.md` for user-visible responses. Lead with the outcome, reveal only the model needed for the current Job, and preserve evidence, uncertainty, boundaries, decisions, and open conflicts.
+Apply `writing-profile.md` to user-visible responses and generated artifacts. Use the procedure profile for actions and approval gates, the technical-description profile for models and reviews, and the learning profile for lessons, practice, and quizzes. Explanatory responses also follow Explanation shape above. Follow the user's language. Do not trade away uncertainty, evidence, or boundary conditions to make text shorter — cut ceremony and framework display instead.

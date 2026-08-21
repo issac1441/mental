@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "使用者介面就是九個 skill(技能)。mental 是給 Claude Code / Codex 用的「agent-native」外掛,本身不是 CLI、也不是服務;它唯一的對外介面是這九個 skill,每個 skill 是一份 Markdown 指令檔。一般使用者的操作方式,是在 Claude Code 或 Codex 裡呼叫這些 skill 指令(例如 /mental:understand、/mental:build),agent 會把對應的 SKILL.md 讀進去照著執行。repo 裡的 Python 腳本是 skill 私下呼叫的輔助工具,不是給使用者的 CLI。",
+    "confidence": 93
+  },
+  {
+    "id": 2,
+    "answer": "SKILL.md 是介面/編排層(orchestration),檔案本身很薄;references/ 是共用規則層(policy),放真正的方法論,是系統的「大腦」。關係是:每個 skill 的第一步都是去讀 references(說明提到讀那幾份 reference,且測試強制每個 skill 都要載入 writing-profile.md),SKILL.md 只負責編排流程,把判斷邏輯與方法論外包給 references。因為方法論集中在共用 references,九個 skill 的行為才能保持一致。",
+    "confidence": 93
+  },
+  {
+    "id": 3,
+    "answer": "共享的 mental model 放在被 git 追蹤的 mental/ 資料夾;個人學習狀態(profile、mastery、答題紀錄)放在被 gitignore 的 .mental/(其 .gitignore 內容是 * 加上 !.gitignore)。分開的原因是隱私分流:團隊共享的概念模型要進版本控制供大家共用,而個人的學習/答題狀態屬於私人資料,不應被 git 追蹤或分享出去。",
+    "confidence": 95
+  },
+  {
+    "id": 4,
+    "answer": "scaffold_workspace.py:在目標 repo 蓋出 mental/ + .mental/ 骨架,刻意「笨但可靠」、非破壞式(遇到既有檔案就跳過不覆蓋),並依 --mode 決定蓋哪些資料夾(repository 模式多出 contracts/decisions/changes/,learning 模式多出 learning/misconceptions/exercises/),內容取自 assets/templates/ 並以 {{KEY}} 字串替換填入。validate_workspace.py:只驗結構、不判斷語意,檢查 frontmatter 必填欄位、kind/status 合法值、kind: lens 要放在 lenses/、canonical 檔案必須有 sources、連結不能斷、.mental/.gitignore 必須是 * + !.gitignore。使用者:這兩支是 skill 的私有實作細節,由 skill 呼叫,不是給人手跑的 CLI(開發驗證時例外)。依說明,scaffold 由 build 呼叫;validate 由 doctor 與 sync 呼叫(build 流程中也會呼叫它)。",
+    "confidence": 88
+  },
+  {
+    "id": 5,
+    "answer": "依說明,新增一個 skill 除了加 skills/<name>/SKILL.md 外,最少還要:(1) 為它加一支 agents/openai.yaml;(2) 在 tests/behavior_cases.json 補一筆(列出該 skill 必須出現的關鍵語句);(3) 更新 skill 白名單 SKILL_NAMES,讓 skill 集合對得上,否則 tests/test_plugin_contract.py 會紅。此外 SKILL.md 本身也要符合契約(只能有 name+description 兩個欄位、且必須載入 writing-profile.md)才會通過測試。",
+    "confidence": 88
+  },
+  {
+    "id": 6,
+    "answer": "說明中並沒有明確描述一個「檢查某個 canonical 是否真的經過人類確認」的偵測機制。升級閘門(promotion gate)是預防性的:它要求人類確認、擋的是 agent 自己把草稿升成 canonical,但擋不了人手動直接改檔。負責稽核的 skill 是 doctor(稽核結構與隱私),它會呼叫 validate_workspace.py;但 validate 明言只驗結構、不判斷語意,頂多因「canonical 檔案必須有 sources」這條規則,在該檔缺 sources 時被抓出來。所以除非這次手改同時違反了某條結構規則,說明中並沒有一個機制專門用來抓「未經人類確認就設成 canonical」這件事。",
+    "confidence": 48
+  },
+  {
+    "id": 7,
+    "answer": "這句話不對,方向剛好相反。測驗結果屬於個人學習狀態(答題紀錄),依說明是存放在被 gitignore 的 .mental/,不會被 git 追蹤、也不供團隊共用;git 追蹤、供團隊共享的是 mental/,裡面放的是人類同意過的概念模型。所以錯在:(1) 個人測驗結果存在 .mental/ 而非 mental/;(2) 它是被 gitignore 的私人資料,並不會拿來給團隊共用。",
+    "confidence": 85
+  },
+  {
+    "id": 8,
+    "answer": "因為學習進度與測驗紀錄屬於個人學習狀態,存放在被 gitignore 的 .mental/(其 .gitignore 是 * + !.gitignore),不會被 commit 進 git,所以你 clone 時根本拿不到這些檔案;被 clone 下來的只有 git 追蹤的 mental/ 共享模型。前一位工程師的 .mental/ 只留在他自己的機器上,沒有進版本控制,因此你看不到。",
+    "confidence": 95
+  }
+]

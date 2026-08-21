@@ -1,0 +1,176 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 使用者介面與一般操作方式",
+      "passed": true,
+      "evidence": "讀者答『9 個 skill，host 轉成 /mental: 與 $mental: 指令，非 CLal、scripts 為內部 helper』，與標準答案一致（README.md:5、skills/*/SKILL.md 佐證）。"
+    },
+    {
+      "text": "probe 2 (retention): SKILL.md 與 references 的關係",
+      "passed": true,
+      "evidence": "讀者答『references 是共用規則，每個 SKILL.md 第 1 步先讀、改一份影響全部』，與標準答案一致（已驗證 9 支 SKILL.md 皆讀 methodology/writing-profile）。"
+    },
+    {
+      "text": "probe 3 (retention): 共享模型 vs 個人狀態存放與分離原因",
+      "passed": true,
+      "evidence": "讀者答 mental/(git 追蹤) vs .mental/(gitignore 隱私)，理由正確，與標準答案吻合（artifact-contract.md:3,39）。"
+    },
+    {
+      "text": "probe 4 (retention): 兩支 Python 各做什麼、誰用",
+      "passed": true,
+      "evidence": "scaffold←build 建骨架、validate←doctor/sync 檢查結構皆正確；僅漏『build 亦呼叫 validate』（build/SKILL.md:23），但此漏同見於 validator docstring，關鍵事實已涵蓋，通過。"
+    },
+    {
+      "text": "probe 5 (near): 新增第 10 個 skill 最少要動哪些地方測試才過",
+      "passed": false,
+      "evidence": "標準答案需 openai.yaml+SKILL_NAMES+behavior_cases.json；讀者只中 SKILL_NAMES、hedge 提 openai.yaml，漏 behavior_cases.json，並誤稱需同步 manifest（實際 manifests 僅指向 ./skills/，不列舉）——照此作答測試仍會 fail。"
+    },
+    {
+      "text": "probe 6 (counterfactual): 誰抓出未經確認的 canonical",
+      "passed": true,
+      "evidence": "讀者正確指 doctor，並正確推論結構 validator 無法判定人類是否確認——與標準答案一致（doctor/SKILL.md:16 逐字『canonical inferences that were never confirmed』）。"
+    },
+    {
+      "text": "probe 7 (repair/trap): 測驗結果存 mental/exercises/ 供團隊共用對嗎",
+      "passed": true,
+      "evidence": "讀者判 WRONG 並正確定位個人結果於 gitignore 的 .mental/、非共享，符合標準答案（quiz/SKILL.md:34、practice:29）；僅『mental/exercises/ 不存在』一句略不精確，不影響判定。"
+    },
+    {
+      "text": "probe 8 (diagnosis): clone 後看不到前人學習進度之因",
+      "passed": true,
+      "evidence": "讀者答『個人狀態在 gitignore 的 .mental/，不入版本庫故 clone 不到』，與標準答案一致。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=5，前三句已交代『這是 Claude Code/Codex 的外掛、對外 9 個 skill、為目標 repo/教材建可驗證心智模型、agent 即 runtime』，完全獨立成立。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，結構為 是什麼→各部分職責→四條接線→具體流程→槓桿邊界，對應問題兩半；references-first 在三處出現屬刻意由淺入深分層而非贅述。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，開篇直入實質，無選項/方法論前言；術語（agent-native、provenance 四標籤、升級關卡）首見即解釋，Lens×Views×Detail 僅置文末 footer。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，幾乎每項主張都掛檔案/行號（README:3-5/97-113/132-151、understand:20、build:12、artifact-contract:90-110、test:41），含可驗證行數『約 380 行』（實測 378）。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3：(1).mental gitignore 隱私、(2)草稿→canonical 需人類拍板、(3)scripts 為私有 helper 非 CLI 皆明確揭露；missed 0。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽①scripts 為 skill 私有 helper 非 CLI ②9 skill 皆第 1 步讀 references、改 methodology 全數受影響 ③契約測試斷言兩份 plugin.json version=0.2.0——三條皆與程式碼相符，wrong_flat=0。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "README.md:132-151(迴圈序列✓)、skills/understand/SKILL.md:20(step1 讀 references✓)、tests/test_plugin_contract.py:41(assertEqual version 0.2.0✓)——3/3 存在且支持。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": false
+    },
+    {
+      "id": 6,
+      "correct": true
+    },
+    {
+      "id": 7,
+      "correct": true
+    },
+    {
+      "id": 8,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": false
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": true
+      },
+      {
+        "id": 7,
+        "correct": true
+      },
+      {
+        "id": 8,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 5,
+    "coherence": 5,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      ".mental/ 被 gitignore 的隱私邊界（『.mental/(個人、gitignore 掉的學習狀態)』+ validator 檢查 .mental/.gitignore）",
+      "draft→canonical 升級關卡需人類拍板（『把推論升級成共識一定要人類拍板』，引 artifact-contract.md:90-110）",
+      "scripts 是 skills 內部 helper 非使用者 CLI（『被 skill 呼叫的私有輔助工具…不是給使用者的 CLI』）"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.16,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 14,
+    "failed": 1,
+    "total": 15,
+    "pass_rate": 0.933
+  },
+  "graders": 2
+}

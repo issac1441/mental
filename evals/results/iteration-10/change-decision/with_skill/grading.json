@@ -1,0 +1,150 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): 選項 A 最壞情況比現況多等多久（不含 jitter）",
+      "passed": true,
+      "evidence": "讀者算出多出第4、5次退避 800+1600=2400ms≈2.4 秒（不含 jitter），與標準答案 +2400ms 逐字一致；backoff_ms 程式碼驗證無誤。"
+    },
+    {
+      "text": "probe 2 (near): 哪個選項會讓哪個既有測試失敗、為什麼",
+      "passed": true,
+      "evidence": "讀者指 B 拿掉 pipeline.py:62 的 release 使 test_dead_letter_after_exhausted_retries_releases_stock（斷言 stock=2）失敗、A 不破，符合標準答案。"
+    },
+    {
+      "text": "probe 3 (counterfactual): 選 B 且人工不處理，被保留庫存最終如何",
+      "passed": true,
+      "evidence": "讀者答永久鎖死/洩漏、無 sweeper、TTL 過期只影響下次 reserve()，與標準答案『locked forever, no automatic reclaim』一致（grep 證實）。"
+    },
+    {
+      "text": "probe 4 (decision): 哪個選項引入新的待決策事項",
+      "passed": true,
+      "evidence": "讀者指出 B 需連帶決定 reservation 生命週期/回收（拉高 TTL、重置 created_at、加 sweeper 等）、A 無新決策，符合標準答案。"
+    },
+    {
+      "text": "probe 5 (retention): A 是否影響 Receipt 形狀或失敗語意",
+      "passed": true,
+      "evidence": "讀者結論 A 不改失敗語意、僅改一常數無資料尾巴、無跡象改變輸出形狀，語意等同標準答案『No』。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 提案是否要改 jitter 演算法",
+      "passed": true,
+      "evidence": "讀者答『沒有』且未杜撰任何 jitter 變更，符合標準答案『提案不含 jitter 變更』，成功避開陷阱。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=5，首句即點明『只有 A 真降死信率、B 在人工時間尺度落空且反引入庫存洩漏、兩者可併用』，直接自足回答比較題。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，機制→選項A→選項B→取捨鏈條連貫；惟 Decision Manifest 與文末『Human Decision: pending』重述同一組 A/B 取捨，略有形式化重複。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，開篇即實質答案，lens/方法論/$build/record 等元資訊全置於文末不擋路，backoff/jitter/reprice 等術語就地解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，主張皆繫於具體檔案行號與可跑情境（ANVIL stock=2、200/400/800/1600ms、test_pipeline.py:51-63）。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3：B 破 test_dead_letter 契約、死信保留無 sweeper 會永久鎖死、A 尾延遲 +2.4s 皆主動點出。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽查退避 0.6s→3s/+2.4s 排程、release() 為唯一還庫路徑(無 sweeper)、過期重建再扣+reprice 三條均與程式碼相符，wrong_flat=0。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "dispatch.py:61(for range 迴圈)、pipeline.py:62(release 呼叫)、inventory.py:77-91(release 把 stock 加回) 三處皆存在且支持該處主張。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": false
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 5,
+    "coherence": 4,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "B 改 dead-letter 補償語意，使 test_dead_letter_after_exhausted_retries_releases_stock 失敗（文中明點測試名與契約變更）",
+      "死信後保留無自動回收/sweeper，TTL 重建僅在同單再 reserve 時觸發，B 若無人工處理則永久鎖死庫存",
+      "A 的代價是尾延遲：第4、5次退避 800+1600ms ≈ +2.4 秒（不含 jitter）"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.185,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 13,
+    "failed": 0,
+    "total": 13,
+    "pass_rate": 1.0
+  },
+  "graders": 2
+}

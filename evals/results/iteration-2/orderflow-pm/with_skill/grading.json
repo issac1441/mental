@@ -1,0 +1,153 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 客戶何時免運費",
+      "passed": true,
+      "evidence": "讀者答『折扣前小計滿8000免運、否則120元，折扣不影響資格』，與標準答案及 pricing.py:57（subtotal為折扣前）一致。"
+    },
+    {
+      "text": "probe 2 (near): 出貨一直失敗最後會怎樣、會否無限重試",
+      "passed": true,
+      "evidence": "讀者答『不會無限重試，最多3次後停進待處理佇列、退回庫存、記order_id與原因、非崩潰』，完全命中 pipeline.py:59-67。"
+    },
+    {
+      "text": "probe 3 (near): 為何晚點處理價格可能不同",
+      "passed": true,
+      "evidence": "讀者答『保留僅2分鐘，過期重跑按當下目錄價重算、可高可低』，與 TTL=120s + reprice_required (inventory.py:66-70) 一致。"
+    },
+    {
+      "text": "probe 4 (near, trap): 原價9500/折後7000是否免運",
+      "passed": true,
+      "evidence": "讀者答『免運，看折扣前9500≥8000，折後7000不影響』，正確避開 trap。"
+    },
+    {
+      "text": "probe 5 (decision): 改看折後金額受影響族群與體驗",
+      "passed": true,
+      "evidence": "讀者指出折前≥8000但折後<8000者（約8000–11429、適用7折）開始付運費、體驗變差、無人得益——區間與方向皆正確。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 是否支援分期付款",
+      "passed": true,
+      "evidence": "讀者答『說明中沒有提到』，與 ground truth 一致；grep 確認全 repo 無 payment/installment 概念。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=3，開頭前三句為 meta 前言（讀了 skill/references、分→元換算），真正答案在其後『直接的答案』段才出現；該段本身極佳但不落在前三句。 [graders disagreed]"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，結構依主題編織：系統地圖→出貨失敗→價格變動→注意事項，因果連貫；僅摘要段與細節段有預期性重述，無形式化重複區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": false,
+      "evidence": "score=3，術語（死信/重算/transient）首次即解釋，但對不懂程式的 PM 夾帶 framework 雜訊：skill/三份reference 前言、mental/$build 區塊、結尾 lens=views=detail= 行。 [graders disagreed]"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，幾乎每條主張都連到 file:line 與具體數字，並有可執行測試例（6615元 happy path、reprice 例）。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "3/3 全覆蓋：①免運看折扣前（價格段明列）②2分鐘TTL過期重算（直接的答案+價格段）③3次上限→待處理佇列+釋放庫存+非崩潰（出貨失敗段）。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": false,
+      "evidence": "抽『免運看折扣前/120元』(pricing.py:57-60,config:16,19)、『重試3次+0.2/0.4s』(dispatch.py:44-61,config:7,10)、『稅5%只課折後、運費不課稅』(pricing.py:55,68)——全部核實正確，wrong_flat=0。 [graders disagreed]"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "pricing.py:57-60、pipeline.py:59-67、inventory.py:64-70、test_pipeline.py:32-39 均存在且支持該處主張；僅 config.py 部分行號指向註解行而非賦值行、loyalty-10 標:33 實為:34，屬輕微偏移。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": false
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 4,
+    "coherence": 4.5,
+    "overhead": 3.5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "免運看折扣前原價非折扣後實付（價格段明列規則＋『折扣不影響免運資格』＋跌破8000冒運費之反例）",
+      "價格/庫存僅保留2分鐘、過期按當下目錄價重算致總價改變（直接的答案段＋價格變動段詳述）",
+      "出貨重試上限3次→進待處理佇列並釋放庫存、回dead_lettered收據而非崩潰（直接的答案段＋出貨失敗段）"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 1
+  },
+  "extraneous_ratio": 0.23,
+  "altitude": {
+    "implementation_share": 0.045
+  },
+  "grader_agreement": 0.769,
+  "summary": {
+    "passed": 10,
+    "failed": 3,
+    "total": 13,
+    "pass_rate": 0.769
+  },
+  "graders": 2
+}

@@ -1,16 +1,11 @@
 ---
 id: glossary
 kind: glossary
-authority: conceptual
 status: draft
 sources:
   - {{SOURCE_ID}}
 prerequisites: []
 updated_at: {{TODAY}}
-verification_basis: []
-checked_predictions: []
-known_gaps: []
-conflicts: []
 ---
 
 # Glossary

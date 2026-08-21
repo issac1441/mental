@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "約多等 2.4 秒(2400ms),不含 jitter。現況 3 次的死信前總阻塞約 0.6s(backoff 200+400ms),改成 5 次約 3.0s(200+400+800+1600ms),差額就是多出的第 4、5 次 backoff:800ms + 1600ms = 2400ms。",
+    "confidence": 92
+  },
+  {
+    "id": 2,
+    "answer": "選項 B 會讓既有測試失敗。失敗的是 test_dead_letter_after_exhausted_retries_releases_stock(tests/test_pipeline.py:51-63)。原因:該測試斷言死信後庫存會回到 2,但 B 移除了死信路徑上唯一一次 release() 呼叫(pipeline.py:62),庫存不再被歸還,斷言因此失敗。說明另外明確指出 A「不破壞任何測試」。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "被保留的庫存會被永久卡死/洩漏(stranded),永遠不會歸還。因為 release() 是回收 reservation 的唯一呼叫點,B 拿掉之後就沒有任何東西會回收;orphaned reservations 會在 store 裡無限累積,且無回收路徑。雖然有 120s TTL,但 TTL 只在有人再次 reserve()/重派時才觸發「expired→重建」;若人工始終不處理,就不會觸發,庫存等於被死保留永久鎖住。",
+    "confidence": 86
+  },
+  {
+    "id": 4,
+    "answer": "選項 A。它引入的新待決策事項是:動手前必須先量測 CarrierTimeout/CarrierUnavailable 事件的「恢復時間分布」,以確認多出的兩次重試是否落在有效帶(約 0.8s–3.4s)——因為 A 的收益完全取決於這個分布。附帶的延伸決策還包括:是否改為先只加到 4 次,以及上線時要監看 carrier 端負載與 pipeline backlog。",
+    "confidence": 70
+  },
+  {
+    "id": 5,
+    "answer": "收據(Receipt)形狀方面:說明中沒有提到「收據/Receipt」,無法判斷 A 對其形狀的影響(說明中沒有提到)。失敗語意方面:說明顯示 A 不改變失敗語意——全失敗訂單一樣會死信,只是延後約 3 秒才死(超過 ~3.4s 的斷線照樣死信),且無正確性風險、不破壞測試,改變的只是時間/尾延遲。",
+    "confidence": 62
+  },
+  {
+    "id": 6,
+    "answer": "沒有。提案本身(A 只是把常數 MAX_DISPATCH_ATTEMPTS 由 3 改成 5,說明稱之為「改一個常數」)並不更動 jitter 演算法,jitter 維持每單固定 0–99ms。說明只是在建議段落中「提到」一個替代方案——把 jitter 換成真正的隨機化或加上限——但那是替代建議,並非這個提案要做的內容。",
+    "confidence": 86
+  }
+]

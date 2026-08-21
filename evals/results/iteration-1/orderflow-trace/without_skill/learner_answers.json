@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "answer": "實際執行順序是：① 驗證輸入（ingest / parse_order）→ ② 保留庫存（reserve）→ ③ 計算價格（price）→ ④ 出貨（dispatch）。也就是說明文件所寫的 ingest → reserve → price → dispatch，而且說明指出這個順序刻意排定、不能對調。"
+  },
+  {
+    "id": 2,
+    "answer": "因為計價時用的單價是「快照」，而這份單價快照歸 reservation 所有——reserve 階段會把要計價用的單價（連同重量）一起凍結起來，price 階段只看 reservation 的快照、不看原始訂單價。所以必須先 reserve 產生單價快照，price 才有東西可以算，因此 price 一定要排在 reserve 之後。"
+  },
+  {
+    "id": 3,
+    "answer": "不用付運費。因為免運資格是看「折扣前」的 subtotal（9,000）有沒有到免運門檻（8,000），而不是看折後的實付金額（6,300）；說明明確指出折扣不影響免運資格。9,000 已達到 8,000 門檻，所以免運。"
+  },
+  {
+    "id": 4,
+    "answer": "稅是以「折後金額」為基準計算，稅 = round(折後金額 × 5%)。運費不課稅。"
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端會拿到一張 Receipt（Pipeline.process 的回傳值）。成功出貨時是 Receipt(dispatched, ...)，關鍵欄位包含：狀態為 dispatched、carrier（選定的承運方式）、以及 total_cents（總金額）。"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "answer": "使用者介面就是那 9 個 skill（build、understand、sync、doctor、change、review、learn、practice、quiz）。README 明講「The interface is nine skills」，而兩支 Python 腳本只是私有的實作輔助、不是介面。它是一個 agent-native 外掛，同時給 Claude Code 和 Codex 用；一般使用者是透過 host agent（Claude Code 或 Codex）去呼叫這些 skill 來操作，而不是直接執行 scripts。host 靠封裝/註冊層的三個 JSON manifest（都只指向 ./skills/）發現這些 skill，再靠每個 SKILL.md 的 name/description frontmatter 做路由；在 Codex 端另有 agents/openai.yaml 這個 4 行介面殼（display_name/short_description/default_prompt，用 $build 這種形式指回 skill）。"
+  },
+  {
+    "id": 2,
+    "answer": "references/ 是「共用契約層／單一真相來源」，每個 skill 的 SKILL.md 都會載入它——事實上每個 SKILL.md 的第一步就是載入 references（methodology.md、artifact-contract.md、writing-profile.md，再依模式加載 repository-workflow.md 或 learning-workflow.md）。關係是：SKILL.md 是各 skill 的行為規格本體，而共用的詞彙與契約（Lens×Views×Detail、三種真相、draft→canonical 升級門、mental/ 與 .mental/ 的隱私切分等）統一定義在 references/、不在各 SKILL.md 內重複。references/ 就是把 9 個 skill 綁成同一套語言的核心，SKILL.md 依賴並在開頭載入它。"
+  },
+  {
+    "id": 3,
+    "answer": "共用的 mental model 內容放在 mental/（共用、會進 git，內含需要有來源佐證的 model／lens／exercise）；個人的學習狀態放在 .mental/（私人，含 profile.md、mastery.json、sessions/），並被自身的 .gitignore 全部擋掉、永不進版控。分開的原因是隱私設計：共用模型與私人能力狀態永不混在一起，避免私人學習資料進入團隊共享／版控；doctor 這個 skill 還會專門稽核有沒有私人資料漏進 mental/。"
+  },
+  {
+    "id": 4,
+    "answer": "scaffold_workspace.py：用 assets/templates/ 建立工作區骨架，且是非破壞性的（目錄／檔案已存在就跳過）。validate_workspace.py：驗證 artifact 契約——frontmatter 必填欄位、id 唯一、來源／prerequisite／連結有效、mastery.json 的形狀、以及 .mental/.gitignore 有把私人狀態擋掉。誰會用到：這兩支都是 README 所說的「私有實作輔助」，不是給一般使用者直接使用；其中 validate_workspace.py 由 doctor 和 sync 這兩個 skill 呼叫。至於 scaffold_workspace.py 由誰呼叫，說明中沒有提到（只描述了它的用途）。"
+  },
+  {
+    "id": 5,
+    "answer": "先說一個不用動的地方：三個 manifest 都只指向 ./skills/，所以新增一個 skill 目錄會被自動發現，不必改 manifest。最關鍵、一定會被擋下的是：tests/test_plugin_contract.py 斷言「剛好有 9 個 skill 存在」，加到第 10 個會讓這條斷言失敗，所以最少要把這個數量從 9 更新成 10。另外新的 SKILL.md 本身必須符合各 skill 的契約檢查（frontmatter 只能有 name/description、必須載入 writing-profile、若是唯讀 skill 要寫明 \"Never edit\"、且不得出現舊詞彙 zoom／L0–L4）。至於 behavior_cases.json：測試會檢查它所列關鍵詞是否出現在對應 SKILL.md，若測試要求每個 skill 都要有對應條目，就需要新增一筆並讓關鍵詞出現在新 SKILL.md；但說明並未明確指出「每個 skill 都必須列在 behavior_cases.json」，這點無法完全確定。"
+  }
+]

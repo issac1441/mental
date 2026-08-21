@@ -1,0 +1,72 @@
+{
+  "id": 3,
+  "name": "mental-orientation",
+  "target": "mental",
+  "question": "我剛接手這個 repo，幫我快速理解它的整體架構：各個部分是做什麼的、彼此怎麼協作？",
+  "question_type": "orientation",
+  "prefixes": [0.25],
+  "boundaries": [
+    ".mental/ 被 gitignore：個人學習狀態是隱私邊界，永不進版本庫",
+    "draft 到 canonical 必須經過人類明確確認（promotion gate），agent 不能自行升級",
+    "scripts 是 skills 的內部 helper，不是使用者 CLI"
+  ],
+  "jargon_list": ["frontmatter", "canonical", "provenance", "scaffold", "lens"],
+  "probes": [
+    {
+      "id": 1,
+      "tier": "retention",
+      "trap": false,
+      "question": "這個專案的使用者介面是什麼？一般使用者是怎麼操作它的？",
+      "ground_truth": "Nine skills invoked from Claude Code / Codex (/mental:understand, /mental:build, $mental:*). It is a plugin, not a CLI or service; bundled Python scripts are internal helpers. Source: README.md, skills/*/SKILL.md."
+    },
+    {
+      "id": 2,
+      "tier": "retention",
+      "trap": false,
+      "question": "skills/ 目錄下的 SKILL.md 跟 references/ 目錄是什麼關係？",
+      "ground_truth": "Each SKILL.md instructs the agent to read shared reference docs via relative paths (../../references/methodology.md, artifact-contract.md, writing-profile.md, workflow refs). references/ holds shared methodology so skills stay small and consistent. Source: skills/*/SKILL.md step 1."
+    },
+    {
+      "id": 3,
+      "tier": "retention",
+      "trap": false,
+      "question": "共享的 mental model 內容與個人的學習狀態分別存放在哪裡？為什麼要分開？",
+      "ground_truth": "Shared artifacts in mental/ (versioned); personal state (profile.md, mastery.json, sessions/) in .mental/, gitignored — privacy boundary. Source: README artifact layout, references/artifact-contract.md."
+    },
+    {
+      "id": 4,
+      "tier": "retention",
+      "trap": false,
+      "question": "scripts/ 裡兩支 Python 腳本分別做什麼？誰會用到它們？",
+      "ground_truth": "scaffold_workspace.py creates the mental/ + .mental/ skeleton (used by build); validate_workspace.py checks structural validity (used by build/sync/doctor). Internal helpers, not end-user CLI. Source: scripts/, skills/build/SKILL.md, skills/doctor/SKILL.md."
+    },
+    {
+      "id": 5,
+      "tier": "near",
+      "trap": false,
+      "question": "如果要新增第 10 個 skill，除了新增它的 SKILL.md 之外，最少還需要動哪些地方測試才會過？",
+      "ground_truth": "Add skills/<name>/agents/openai.yaml (UI metadata test), update SKILL_NAMES in tests/test_plugin_contract.py, and add an entry to tests/behavior_cases.json (tests assert exact set equality and per-skill contract phrases). Source: tests/test_plugin_contract.py, tests/behavior_cases.json."
+    },
+    {
+      "id": 6,
+      "tier": "counterfactual",
+      "trap": false,
+      "question": "假設有人把某個 concept 檔的 frontmatter status 直接改成 canonical，但從來沒有人類確認過，哪個 skill 或機制應該把這個問題抓出來？",
+      "ground_truth": "The doctor skill's semantic audit — it explicitly checks for 'canonical inferences that were never confirmed'. The structural validator (validate_workspace.py) alone cannot decide this; the promotion-gate rule lives in artifact-contract.md. Source: skills/doctor/SKILL.md step 3, references/artifact-contract.md."
+    },
+    {
+      "id": 7,
+      "tier": "repair",
+      "trap": true,
+      "question": "有人說：「學習者的測驗結果會存在 mental/exercises/ 讓團隊共用。」這句話對嗎？錯在哪？",
+      "ground_truth": "WRONG. mental/exercises/ may hold reusable exercise questions (status: draft artifacts), but personal answers/results live ONLY under gitignored .mental/ (e.g. .mental/sessions/). Never publish learner answers under mental/. Source: skills/quiz/SKILL.md step 8, skills/practice/SKILL.md, artifact-contract.md."
+    },
+    {
+      "id": 8,
+      "tier": "diagnosis",
+      "trap": false,
+      "question": "你 clone 了一個有使用 mental 的專案，卻完全看不到前一位工程師的學習進度和測驗紀錄，為什麼？",
+      "ground_truth": "By design: personal state lives in .mental/, which is gitignored (the privacy boundary), so it never gets committed or cloned. Source: artifact-contract.md private layout, .mental/.gitignore."
+    }
+  ]
+}

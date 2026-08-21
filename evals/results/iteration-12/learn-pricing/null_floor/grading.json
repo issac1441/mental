@@ -1,0 +1,49 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): 9000元訂單套30%折扣後運費收多少、為什麼",
+      "passed": true,
+      "evidence": "雖以「無法確定」開頭，但最終committed運費為0（免運），並正確指出免運以折扣前小計判定，涵蓋關鍵事實。"
+    },
+    {
+      "text": "probe 2 (retention): 稅金以哪個金額計算、運費是否課稅",
+      "passed": false,
+      "evidence": "稅基正確（折扣後金額、5%），但運費課稅部分答「各系統不一…未知」，未committed「運費永遠不課稅」這個關鍵事實。"
+    },
+    {
+      "text": "probe 3 (retention, trap): spring-30 與 loyalty-10 同時符合會怎樣",
+      "passed": true,
+      "evidence": "雖列出兩種可能，但結論committed「只取優先度較高的 spring-30」，符合只套一個、不疊加的標準答案。"
+    },
+    {
+      "text": "probe 4 (counterfactual): 免運改折扣後判定，9000元訂單總額差多少",
+      "passed": false,
+      "evidence": "推理架構正確（差額=運費、門檻須落在6300~9000間），但明言「無法給出數字」，未得出120元／6615→6735。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": false
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": false
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 2,
+    "total": 4,
+    "pass_rate": 0.5
+  },
+  "graders": 1
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "依例外的分類決定，分叉點在 errors.py：屬於 RetryableError（暫時性）的會退避重試，三個子類為 VersionConflict（樂觀鎖寫入衝突）、CarrierTimeout、CarrierUnavailable；屬於 FatalError（不可恢復）的絕不重試，三個子類為 ValidationError（payload 不合法）、UnknownSku（SKU 不在 catalog）、InsufficientStock（庫存不足）。判斷方式就是看該例外繼承自 FatalError 還是 RetryableError。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "最多 3 次（MAX_DISPATCH_ATTEMPTS = 3）。三次都撞暫時性 carrier 錯誤後會拋 DispatchExhausted，接著 pipeline 做三件事：(1) 呼叫 inventory.release() 把庫存還回 catalog（補償）；(2) 把訂單推進 dead_letters 清單；(3) 回一張 status=\"dead_lettered\" 的 receipt。",
+    "confidence": 100
+  },
+  {
+    "id": 3,
+    "answer": "第 3 次嘗試前的基本延遲約 400ms（公式 200ms × 2^(attempt-2)，attempt=3 → 200×2=400ms）。再加上該訂單固定的 jitter：jitter 由 crc32 取模得到 0–99ms，且對同一張訂單是固定的（每單固定抖動）。因此實際約為 400ms + (0–99ms)。",
+    "confidence": 100
+  },
+  {
+    "id": 4,
+    "answer": "保留過期（now - created_at > 120 秒）後再處理同一張單，會走「重建」路徑：用當前 catalog 重建保留、把 reprice_required 設為 True 並寫回。但重建時 _build() 會再扣一次當前庫存，且沒有先把舊保留已凍結的那份庫存還回去，所以會對同一張單重複扣庫存（此點文件標為 [inferred]，無測試覆蓋）；若剩餘量因此不足，會對著自己正握著的庫存丟出 InsufficientStock，導致整張單 failed。總價方面：price() 一律從（已重建的）保留快照重新計算，而快照取的是重建當下的 catalog 價格，所以總價會反映當前價格——若 catalog 單價在期間有變動，總價就會改變；若沒變則維持相同。",
+    "confidence": 82
+  },
+  {
+    "id": 5,
+    "answer": "不會重試。InsufficientStock 屬於 FatalError，絕不重試。呼叫端（經由 pipeline 的 except FatalError 攔下）會拿到一張 status=\"failed\" 的 receipt，而且派送完全不會執行、不動庫存。",
+    "confidence": 100
+  },
+  {
+    "id": 6,
+    "answer": "改成 1 代表派送迴圈只跑 1 次，第一次嘗試就是唯一一次。只要 carrier 一發生暫時性（RetryableError）錯誤就立刻視為耗盡 → 拋 DispatchExhausted → 訂單走 dead_lettered（釋放庫存、進 dead_letters、回 dead_lettered receipt），不再有任何重試機會。退避不會發生：因為規則是「第一次不睡，之後每次才先退避」，只有 1 次嘗試永遠進不到需要退避的第 2 次，所以 backoff 完全不會被觸發。",
+    "confidence": 90
+  },
+  {
+    "id": 7,
+    "answer": "不對。VersionConflict 是 RetryableError，不是 FatalError。reserve 在 3 次寫入後仍衝突時會把 VersionConflict 原樣拋出，而 pipeline 那層只有 except FatalError，攔不到 RetryableError，例外會直接往外拋。結果是連 receipt 都沒有（並非 failed receipt），庫存也不會被釋放。這句話錯在假設它會產生 failed 收據，實際上是未被攔截的例外、完全沒有收據。",
+    "confidence": 100
+  },
+  {
+    "id": 8,
+    "answer": "carrier 選擇的部分：說明中沒有提到——文件只說派送時呼叫 send(carrier, order)，但沒有描述如何依 region（domestic/offshore）或重量挑選是哪一家 carrier。至於連續逾時後第 2 次嘗試前的等待：約 200ms（公式 200ms × 2^(attempt-2)，attempt=2 → 200×2^0=200ms）再加上該訂單固定的 jitter（crc32 取模得到的 0–99ms），所以約為 200ms + (0–99ms)。",
+    "confidence": 85
+  }
+]

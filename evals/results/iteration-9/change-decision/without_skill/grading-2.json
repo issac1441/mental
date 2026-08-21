@@ -1,0 +1,144 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): A 最壞情況比現況多等多久(不含 jitter)",
+      "passed": true,
+      "evidence": "讀者答 2400ms/~2.4s(第4次800+第5次1600),與 GT 完全一致,並正確給出 0.6s→3.0s 的總阻塞。"
+    },
+    {
+      "text": "probe 2 (near): 哪個選項讓既有測試失敗、哪個測試、為何",
+      "passed": true,
+      "evidence": "讀者指名 B 打破 test_dead_letter_after_exhausted_retries_releases_stock(斷言 stock 回到 2),並正確指出 A 不破壞測試,對齊 GT。"
+    },
+    {
+      "text": "probe 3 (counterfactual): 選 B 且人工不處理死信,保留庫存最終命運",
+      "passed": true,
+      "evidence": "讀者答『永久鎖死、無自動回收,TTL 重建只在同一單再次 reserve() 才觸發』,精確對齊 GT。"
+    },
+    {
+      "text": "probe 4 (decision): 哪個選項引入新的待決策事項、是什麼",
+      "passed": false,
+      "evidence": "GT 是『選項 B(誰/何時/如何回收死信保留)』;讀者卻答『選項 A,須先量測恢復時間分布』——選錯選項,核心答錯。"
+    },
+    {
+      "text": "probe 5 (retention): A 是否影響 Receipt 形狀/失敗語意",
+      "passed": true,
+      "evidence": "讀者正確斷言 A 不改失敗語意(只延後死信/尾延遲);Receipt 形狀因說明全篇未提 Receipt 而誠實標記無法判斷,無錯誤陳述,涵蓋主旨。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 提案是否要改 jitter 演算法",
+      "passed": true,
+      "evidence": "讀者答『沒有』,並正確辨識說明末段的 jitter 隨機化只是替代建議、非提案內容,未落入陷阱。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=4,開頭兩句是 sandbox/來源 caveat(meta),但緊接的『兩個選項不是在解同一個問題:只有 A 降死信率、B 是死信後回收、可並用』是正確且可獨立成立的答案。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,重構前提→A(機制→效果→代價→安全)→B(機制→兩情境→額外代價→判決)→結論,因果鏈清楚、無重複形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,僅 2 句 sandbox meta 前言;無方法論/選項報告框架,backoff 公式、TTL、release()、metastable 等術語首見即解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,每項主張帶精確行號(dispatch.py:44-71、inventory.py:64-71/77/111、pipeline.py:62、tests/test_pipeline.py:51-63)並附 WIDGET/ANVIL 具體算例,經核對全部正確。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3:B 破壞 test_dead_letter 測試、死信保留無自動回收會永久鎖死、A 代價為 +2.4s 尾延遲,皆主動點名揭露。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽:release() 唯一呼叫點在 pipeline.py:62(grep 證實)、過 TTL 重建於 :111 未先歸還即再扣、TTL 120s 遠大於 3.4s 重試視窗故無中途過期——3 條皆與程式碼吻合,wrong_flat=0。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "tests/test_pipeline.py:51-63(斷言 stock==2)、inventory.py:111(stock-=quantity)、pipeline.py:62(唯一 release 呼叫)三處皆存在且支持該處主張。"
+    }
+  ],
+  "scores": {
+    "gist": 4,
+    "coherence": 5,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": false
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": false
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "boundary_coverage": {
+    "covered": [
+      "B 改變 dead-letter 補償語意使 test_dead_letter_after_exhausted_retries_releases_stock 失敗(明確點名該測試與 :51-63)",
+      "死信保留無自動回收機制,TTL 重建只在同一單再次 reserve() 時發生,B 無人工處理則永久鎖死(明列『無回收路徑』與 ANVIL 永久 stranded)",
+      "A 代價為尾延遲 +2.4s(第4/5次前 800+1600ms,不含 jitter),明列 0.6s→3.0s 表格"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0,
+    "overhedged": 0,
+    "notes": "抽驗 release() 唯一呼叫點、expired-rebuild 雙扣(:111)、TTL 120s>>3.4s 三條肯定斷言皆經程式碼核實無誤。唯一 hedge 是開頭『execution sandbox-blocked、數字由程式碼路徑推導非實跑』——此為正當的來源揭露,且退避算術與雙扣結論本可由程式碼確定性驗證、說明仍以肯定語氣給出,不算過度 hedging。"
+  },
+  "extraneous_ratio": 0.08
+}

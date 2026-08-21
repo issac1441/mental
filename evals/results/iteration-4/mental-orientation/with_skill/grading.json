@@ -1,0 +1,176 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 使用者介面是什麼、一般人怎麼操作",
+      "passed": true,
+      "evidence": "讀者答『介面=九個 skill、agent-native 外掛非 CLI/服務、以 /mental:understand 等呼叫、Python 為內部 helper』完全對應標準答案"
+    },
+    {
+      "text": "probe 2 (retention): SKILL.md 與 references/ 的關係",
+      "passed": true,
+      "evidence": "讀者答『SKILL.md 負責編排、第一步讀共用 references、方法論集中故九 skill 一致』符合標準答案;測試強制載入 writing-profile.md 亦屬實"
+    },
+    {
+      "text": "probe 3 (retention): 共享模型 vs 個人狀態存放與為何分開",
+      "passed": true,
+      "evidence": "讀者答『mental/ 進版控、個人狀態放 gitignore 的 .mental/(*+!.gitignore)、隱私分流』= 標準答案,細節經 scaffold:81 核對正確"
+    },
+    {
+      "text": "probe 4 (retention): 兩支 Python 腳本各做什麼、誰用",
+      "passed": true,
+      "evidence": "讀者答『scaffold 建骨架(build 用)、validate 只驗結構(doctor/sync/build 用)、皆內部 helper 非 CLI』與程式碼一致"
+    },
+    {
+      "text": "probe 5 (near): 新增第 10 個 skill 最少要動哪些地方",
+      "passed": true,
+      "evidence": "讀者答『加 agents/openai.yaml、補 behavior_cases.json、更新 SKILL_NAMES』三項齊全,對應 test_plugin_contract.py"
+    },
+    {
+      "text": "probe 6 (counterfactual): 誰能抓出未經人類確認的 canonical",
+      "passed": false,
+      "evidence": "標準答案=doctor 語意稽核(doctor SKILL.md:16『canonical inferences that were never confirmed』);讀者雖點到 doctor 卻否定其語意偵測,最終結論『說明沒有描述專門機制』與標準答案相反 — 因說明未揭露 doctor 語意稽核這條"
+    },
+    {
+      "text": "probe 7 (repair/trap): 測驗結果存 mental/ 供團隊共用是否正確",
+      "passed": true,
+      "evidence": "讀者答『錯,測驗結果屬個人狀態存 .mental/ 而非 mental/、不供團隊共用』成功抓到陷阱"
+    },
+    {
+      "text": "probe 8 (diagnosis): 為何 clone 後看不到前人學習進度",
+      "passed": true,
+      "evidence": "讀者答『個人狀態在 gitignore 的 .mental/、未提交故 clone 拿不到』= 標準答案"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=4,前兩句為 meta 開場稍佔篇幅,但第 3 句粗體主旨『agent-native 外掛非 CLI/服務』即正確可獨立成立;截斷組 7/8 佐證前段模型可用"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,依『是什麼→工具vs產出→七塊架構圖→各部分→如何協作→具體情境→槓桿』推進,標題皆主題性、無重複形式化區塊"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,僅一行短 meta 開場即入實質;無選項/方法論前言,Lens×Views×Detail 與 promotion gate 等術語首見即解釋"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,密集連結 README.md:5、scaffold:22/59/81、validate:110、build/SKILL.md:24、test:93/101 等,抽查皆準確"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3:.mental/ gitignore 隱私邊界、promotion gate 需人類確認、scripts 是內部 helper 非 CLI(且以三個誤解專段強化);missed 無"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽①scaffold 非破壞式(write_new:22 見既有跳過)②validate 檢查 canonical 需 sources + .gitignore=*+!.gitignore③測試強制 SKILL.md 僅 name+description 且必載 writing-profile.md — 三條經程式碼核對全部屬實,wrong_flat=0"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "scaffold_workspace.py:81=.gitignore 寫入、README.md:5=非CLI/scripts internal、validate_workspace.py:2=internal docstring,三處皆存在且支持該處主張"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": false
+    },
+    {
+      "id": 7,
+      "correct": true
+    },
+    {
+      "id": 8,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": true
+      },
+      {
+        "id": 7,
+        "correct": true
+      },
+      {
+        "id": 8,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 4,
+    "coherence": 5,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      ".mental/ 被 gitignore、個人學習狀態為隱私邊界永不進版本庫(明列於架構表、governance 規則與具體情境,並附 scaffold:81)",
+      "draft→canonical 須經人類明確確認的 promotion gate(專段說明 agent 不能自行升級,附 build/SKILL.md:24、artifact-contract.md:102)",
+      "scripts 是 skills 的內部 helper 非使用者 CLI(開頭、架構表『機械輔助層』、以及『別把 scripts/ 當成使用者 CLI』誤解專段三度揭露)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.175,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 14,
+    "failed": 1,
+    "total": 15,
+    "pass_rate": 0.933
+  },
+  "graders": 2
+}

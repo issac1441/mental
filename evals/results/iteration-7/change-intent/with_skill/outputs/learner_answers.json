@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "必須先「重新 reserve（重新預留庫存）」。因為訂單進入 dead-letter 時，inventory.release() 已把庫存還回目錄並『刪除』該筆 reservation，之後持久狀態只剩 {order_id, reason}；而重送 dispatch 需要 Order 與 Reservation（choose_carrier 也要 region 與行重量）。既有 reservation 已不存在，所以出貨前必須先重新 reserve 把 Reservation 重建出來。這也是為了保留『dead-letter 釋放庫存』的失敗語意，其代價就是被迫重新 reserve（見 D2）。",
+    "confidence": 93
+  },
+  {
+    "id": 2,
+    "answer": "依現有機制若照自然的重建路徑做，會『靜默地用新價（當下目錄價）』——因為 reservation 被刪後重建會走『全新建立』分支抓當下目錄價，且 process() 從不讀 reprice_required、一律用當下 snapshot 定價。但這其實尚未拍板（D3）：可選沿用原始報價（則需在 D1 時把 Quote 一起存下）或收當下價。之所以需要人類決定，是因為『不改變失敗語意』這個限制並不涵蓋定價這一軸、不會自動給答案，且沿用原價需要額外保存 Quote（資料契約/記憶體代價），兩者是真實的取捨。",
+    "confidence": 85
+  },
+  {
+    "id": 3,
+    "answer": "文件把這標為尚未處理的風險。Pipeline 沒有鎖、dead_letters 只是普通 list：兩次併發的 force_redispatch（或撞上同 id 的新 process()）會 double-reserve / double-send（重複扣庫存、重複出貨）或弄亂 list（D6）。即使是先後兩次，若沒有 D5 的守衛（成功後從 dead_letters 移除、不在 dead_letters 就拒絕），也會被反覆重送→反覆出貨（D4/D5）。因此需要 D5 帳務守衛與 D6 並行處理來防止；在未實作這些守衛前，連按兩次可能導致重複出貨或狀態錯亂。",
+    "confidence": 78
+  },
+  {
+    "id": 4,
+    "answer": "文件明確列出多個尚未決定的點，例如：(D3) 重新出貨用原始報價還是當下價；(D2) 重新 reserve 遇 InsufficientStock 時 force_redispatch 回什麼、留在 dead_letters 還是轉 failed；(D4) 是否引入 idempotency key 以防重複出貨；(D1) 重建來源（是否加大 dead_letters 記錄、是否連 reservation 快照/原始 Quote 一起存）；(D6) 並行/加鎖假設（是否單執行緒操作員）；(D8) 稽核（timestamp、嘗試次數、操作者）。以上已超過兩項。",
+    "confidence": 90
+  },
+  {
+    "id": 5,
+    "answer": "主要可直接重用 dispatch() 的『重試→DispatchExhausted』狀態機（含 MAX_DISPATCH_ATTEMPTS、退避、釋放），讓『再次失敗』行為與原本一字不差（D7）；以及既有的 inventory reserve 機制來重新 reserve（其『先驗證所有行才提交、失敗不留半截庫存』的性質對重新預留有利）；結果契約則重用既有的 Receipt.status 三值 enum（dispatched/failed/dead_lettered），不新增第四種狀態。",
+    "confidence": 84
+  },
+  {
+    "id": 6,
+    "answer": "不對。兩個理由：(1) 這無法用『純新增、不動現有程式碼』做出來——dead-letter 目前只留 {order_id, reason}，Order/raw payload/Quote/carrier 全沒保存，光憑 order_id 重建不出要重送的東西，所以一定得回頭改 dead-letter 路徑保存更多資料（D1，屬資料契約變更）。(2)『不改變失敗語意』也不是寫成新函式就自動成立：reservation 被釋放刪除逼你重新 reserve，連帶把重新定價、庫存不足、重複出貨拖進來；要讓失敗行為真的不變，得刻意重用 dispatch() 機器並明確定義終態帳務（D5/D7）。文件明講『限制與複雜度是同一枚硬幣的兩面』，故該說法錯誤。",
+    "confidence": 90
+  }
+]

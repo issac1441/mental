@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "必須先『重新 reserve（re-reserve）』把庫存保留回來。因為訂單被 dead-letter 的當下，pipeline 已呼叫 inventory.release（pipeline.py:62），把庫存加回 catalog 並且刪除了那筆 reservation record（inventory.py:77-91），test_dead_letter_after_exhausted_retries_releases_stock 也證實 dead-letter 後 reservation 已不存在、庫存被還回。所以這張單目前沒有保留任何庫存；redispatch 的整條流程是 re-reserve → re-price → re-dispatch，出貨前的第一步就是重新 reserve，否則等於在沒有保留庫存的狀態下出貨。",
+    "confidence": 87
+  },
+  {
+    "id": 2,
+    "answer": "說明沒有明確指定要用原收據價還是新價：它只把中間步驟命名為 re-price（重新定價），但沒有規定重算結果要等於原收據價、或採用當前新價，因此這一點屬於『說明中沒有明確定義』。它之所以需要人類決定，說明有支持的理由是：dead-letter 只留下 {order_id, reason}、沒有保留 Order 本體，原始定價所需的資料已不在系統中；而且『不改變失敗語意』這個限制只鎖住既有 Fatal/Retryable 分流，並沒有替定價政策拍板。要遵守原報價還是反映最新價格是一個商業/語意上的決策，說明把它留作待決定，所以需要人為判斷。",
+    "confidence": 58
+  },
+  {
+    "id": 3,
+    "answer": "因為現有程式『完全沒有任何 idempotency 標記』，連按兩次很可能會把整條 re-reserve → re-price → re-dispatch 流程再完整跑一次，導致同一張單被重複出貨（duplicate dispatch）。這正是說明點名『如何避免重複出貨』卻尚未解決的風險；在沒有 idempotency 機制的前提下，第二次呼叫沒有東西能阻止它再次出貨。（確切結果取決於尚未定案的實作，但依說明所述的現況，重複出貨是預期中的風險。）",
+    "confidence": 72
+  },
+  {
+    "id": 4,
+    "answer": "說明明確點出的、尚未決定的事項（列舉三項，至少兩項）：(1) 重建訂單所需資料的來源——dead-letter 只留 {order_id, reason}，沒有 lines、region 等，要從哪裡取回這些資料未決；(2) 如何避免重複出貨 / idempotency——現有程式沒有任何 idempotency 標記；(3) redispatch 自己失敗時的語意——『不改變失敗語意』只鎖住既有 Fatal/Retryable 分流，並沒有回答 redispatch 本身失敗要怎麼處理，那是一塊全新、必須由實作者決定的語意。",
+    "confidence": 90
+  },
+  {
+    "id": 5,
+    "answer": "依說明可推知可直接重用者：dispatch()——含它對 RetryableError 重試到 MAX_DISPATCH_ATTEMPTS（config.py:7）、耗盡則 raise DispatchExhausted 的機制——用於 re-dispatch；inventory 模組的 reserve / release（inventory.py，release 於 77-91 行，reserve 由『它當初被 reserve』一語可知存在）用於 re-reserve。至於 re-price 所需的定價元件，在被截斷的說明中並未被具名，無法確定。注意：說明在此處被截斷，未提供完整的重用清單，以上為依所述流程做的推論。",
+    "confidence": 52
+  },
+  {
+    "id": 6,
+    "answer": "不完全對，這是一種以偏概全的說法。理由一（說明直接支持）：『不改變失敗語意』這個限制本身只鎖住既有的 Fatal/Retryable 分流，並沒有涵蓋 redispatch 自己失敗時該怎麼辦——那是全新、仍待決定的語意；所以不動舊碼並不會自動把這塊補齊，也就談不上『自動保證』整體語意正確。理由二（由說明描述的副作用推得）：系統行為來自共享的可變狀態（inventory / catalog / dead_letters / reservation），不是只看你改了哪幾行；一個新函式只要去 re-reserve、release 或追加 dead_letter，就可能透過副作用影響既有不變量（例如 dead-letter 釋放庫存那條不變量）。因此『只寫新函式、不動舊碼』並不等於『保證不改變現有失敗語意』。",
+    "confidence": 64
+  }
+]

@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1: 四階段實際執行順序",
+      "passed": true,
+      "evidence": "讀者給出 ingest→reserve→price→dispatch 並明指計價排在保留庫存之後,與標準答案完全一致。"
+    },
+    {
+      "text": "probe 2: 為何計價排在庫存保留之後",
+      "passed": true,
+      "evidence": "讀者答計價只認 reservation 持有的凍結單價快照(ReservedLine)、須先 reserve 才能定價,命中標準答案核心事實。"
+    },
+    {
+      "text": "probe 3: 9000 折 30% 後 6300、免運門檻 8000,是否付運費",
+      "passed": true,
+      "evidence": "讀者答免運,理由為以折扣前小計 9000≥8000 判定,並正確指出折後 6300 不影響資格,完全正確。"
+    },
+    {
+      "text": "probe 4: 稅基與運費是否課稅",
+      "passed": true,
+      "evidence": "讀者答稅以折後貨品小計為基準(discounted×0.05)、運費不課稅,與標準答案一致。"
+    },
+    {
+      "text": "probe 5: 出貨成功後呼叫端拿到什麼",
+      "passed": true,
+      "evidence": "讀者答回傳 status=dispatched 的 Receipt,並列出 status/carrier/total_cents 關鍵欄位,涵蓋標準答案(order_id 未點名但屬括號補充,非必要)。"
+    },
+    {
+      "text": "gist: 開頭即給出可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "開頭即以『Pipeline.process 驅動,固定走 ingest→reserve→price→dispatch 四階段』並列出三種結局,直接且自足地回答整個流程。"
+    },
+    {
+      "text": "coherence: 敘事連貫、組織服務主題 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,沿真實 pipeline 流程分四關展開、以單一 o-1 範例(含實際金額)貫穿全程,組織即是主題本身,高度連貫。"
+    },
+    {
+      "text": "overhead: 內容之前無元資訊/框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,開頭一句『依 methodology 說明形狀組織、已讀三份 reference』屬方法論元資訊,惟僅一句、第三句起即進入實質,術語首現即釋;結尾 lens/context 註腳位於文末不構成前置負擔。"
+    },
+    {
+      "text": "concreteness: 主張連結到具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,幾乎每項主張都附 file:line 引用與具體金額(900000→630000→661500 分)並連結對應測試名稱,證據極為具體。"
+    },
+    {
+      "text": "citations: 抽查的檔案引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽查 pipeline.py:44(process 四階段/三結局)、pricing.py:55&57(稅基折後、免運看折前 subtotal)、config.py:16(門檻 800000)皆存在且完全支持主張。"
+    }
+  ],
+  "scores": {
+    "gist": 5,
+    "coherence": 5,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "probe_summary": {
+    "correct": 5,
+    "total": 5
+  },
+  "summary": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "pass_rate": 1.0
+  }
+}
