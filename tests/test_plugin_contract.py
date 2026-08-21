@@ -41,7 +41,7 @@ class PluginContractTests(unittest.TestCase):
         )
         for manifest in (codex, claude):
             self.assertEqual(manifest["name"], "mental")
-            self.assertEqual(manifest["version"], "0.4.0")
+            self.assertEqual(manifest["version"], "0.4.1")
             self.assertEqual(manifest["skills"], "./skills/")
             self.assertEqual(manifest["license"], "0BSD")
             self.assertEqual(manifest["author"]["name"], "issac1441")

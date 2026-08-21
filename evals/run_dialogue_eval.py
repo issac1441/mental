@@ -22,6 +22,7 @@ import json
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from pathlib import Path
 
 EVALS_DIR = Path(__file__).resolve().parent
@@ -36,14 +37,21 @@ from run_eval import (  # noqa: E402
     STAGE_TIMEOUTS,
     envelope_duration_ms,
     envelope_tokens,
+    ensure_run_provenance,
     extract_json,
+    git_head,
     load_prompt,
+    load_complete_grading,
     merge_gradings,
+    plugin_version,
     probes_block,
     probes_with_gt,
     render,
     run_claude,
+    run_provenance,
+    sha256_path,
     target_path,
+    write_invocation_metadata,
 )
 
 
@@ -72,8 +80,20 @@ def run_arm(
     force: bool,
 ) -> str:
     run_dir = iteration_dir / case["name"] / arm
-    run_dir.mkdir(parents=True, exist_ok=True)
     target = target_path(case, workspace)
+    skill_ref = ("root", REPO_ROOT) if arm == "with_skill" else None
+    provenance_case = {**case, "protocol": "dialogue"}
+    provenance = run_provenance(
+        provenance_case,
+        arm,
+        skill_ref,
+        target,
+        model,
+        effort,
+        graders,
+        runner_path=Path(__file__),
+    )
+    ensure_run_provenance(run_dir, provenance, force)
     timing_file = run_dir / "timing.json"
     timing = (
         json.loads(timing_file.read_text(encoding="utf-8"))
@@ -118,7 +138,13 @@ def run_arm(
                 json.dumps(answers, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         grading_file = run_dir / "grading.json"
-        if not grading_file.exists() or force:
+        if grading_file.exists() and not force:
+            load_complete_grading(
+                grading_file,
+                [probe["id"] for probe in case["probes"]],
+                expected_expectations=len(case["probes"]),
+            )
+        else:
             log("floor grade: running")
             prompt = render(
                 load_prompt("grader-floor"),
@@ -134,7 +160,11 @@ def run_arm(
                 allowed_tools=READ_ONLY_TOOLS,
             )
             save_timing("grade", envelope)
-            grading = merge_gradings([extract_json(envelope.get("result", ""), "{", "}")])
+            grading = merge_gradings(
+                [extract_json(envelope.get("result", ""), "{", "}")],
+                expected_probe_ids=[probe["id"] for probe in case["probes"]],
+                expected_expectations=len(case["probes"]),
+            )
             grading_file.write_text(
                 json.dumps(grading, ensure_ascii=False, indent=2), encoding="utf-8"
             )
@@ -263,6 +293,12 @@ def run_arm(
     # -------------------------------------------------------------- graders
     grading_file = run_dir / "grading.json"
     if grading_file.exists() and not force:
+        load_complete_grading(
+            grading_file,
+            [probe["id"] for probe in case["probes"]],
+            expected_expectations=len(case.get("dialogue_checks", []))
+            + len(case["probes"]),
+        )
         log("grade: cached")
         return f"{case['name']}/{arm}"
     prompt = render(
@@ -293,7 +329,12 @@ def run_arm(
             json.dumps(grading, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         gradings.append(grading)
-    merged = merge_gradings(gradings)
+    merged = merge_gradings(
+        gradings,
+        expected_probe_ids=[probe["id"] for probe in case["probes"]],
+        expected_expectations=len(case.get("dialogue_checks", []))
+        + len(case["probes"]),
+    )
     grading_file.write_text(
         json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -335,6 +376,24 @@ def main() -> int:
     workspace = args.workspace.expanduser().resolve()
     iteration_dir = workspace / f"iteration-{args.iteration}"
     iteration_dir.mkdir(parents=True, exist_ok=True)
+
+    write_invocation_metadata(
+        iteration_dir,
+        {
+            "schema_version": 1,
+            "runner": "run_dialogue_eval.py",
+            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "model": args.model,
+            "effort": args.effort,
+            "graders": args.graders,
+            "arms": arms,
+            "cases": [case["name"] for case in cases],
+            "plugin_version": plugin_version(REPO_ROOT),
+            "plugin_git_head": git_head(REPO_ROOT),
+            "runner_sha256": sha256_path(Path(__file__)),
+            "prompt_tree_sha256": sha256_path(EVALS_DIR / "prompts"),
+        },
+    )
 
     for case in cases:
         case_dir = iteration_dir / case["name"]

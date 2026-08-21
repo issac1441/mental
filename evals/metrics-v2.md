@@ -117,7 +117,7 @@ repo 的差異化主張是 `[observed]/[inferred]/[agreed]/[conflict]`。如果�
 | `sync` | detection 變體：canonical model＋漂移後的 source → 偵測 `changed/contradicted/removed/unverifiable`、且不得悄悄改寫 `[agreed]`（conformance checks 併入 grader-detection）。fixture = `sync-workspace`（model@2026-08-05 + 四處程式碼漂移＋一個消失的註冊來源＋乾淨主張當誤報餌） | ✅ case: sync-drift |
 | `build` | 工件品質：build 產出 draft model → learner **只讀產出的 mental/ 工件**答 understand 同款 probes（模型可教性）＋ validate_workspace 通過率＋ promotion gate 是否完整呈現 | 📐 設計完成，需 write-enabled 沙盒跑法 |
 | `learn` | 多輪協定：腳本化學習者（固定迷思劇本）與 skill 對話；量測——診斷 2–5 題且先停、教學聚焦斷裂關係、試算錯誤被逐項糾正、teach-back 收尾不先揭答案、不杜撰 mastery；後測 = 獨立 learner 只讀逐字稿答 probes | ✅ 已跑 iteration-12：skill 9/9、裸 8/9（診斷先行為鑑別項） |
-| `practice` | 多輪協定：學習者按劇本答錯特定關係 → 量測 skill 是否找到「第一個斷裂關係」、給最小修正、出**結構等價新情境**（非改寫原題）、boundary 驗證後才認掌握、不提前 `verified` | ✅ 已跑 iteration-12：8/9（失分為連言式檢核設計瑕疵，見 results/README） |
+| `practice` | 多輪協定：學習者按劇本答錯特定關係 → 量測 skill 是否找到「第一個斷裂關係」、給最小修正、出**結構等價新情境**（非改寫原題）、boundary 驗證後才認掌握、不提前 `verified` | ✅ 已跑 iteration-12：8/9（失分為連言式檢核設計瑕疵，見 [exploratory findings](results/exploratory-2026-08-20.md)） |
 | `quiz` | 單輪可測一半：出題品質（涵蓋圖 vs 稿定 coverage map、無答案洩漏、格式合規）；閱卷需第二輪（提交假答卷 → 評分準確性、不得產生假 mastery 百分比） | 📐 出題半段可直接沿用現 harness |
 
 多輪 harness 的共同機制（`evals/run_dialogue_eval.py` 已實作）：`claude -p --resume <session>` 續同一 session；學習者側用固定劇本（腳本化錯誤與迷思，deterministic——被測的是導師行為）；停等契約與教學品質由 grader 拿完整逐字稿逐條檢核（`dialogue_checks`），後測遷移由獨立無程式碼權限的 learner 只讀逐字稿作答 probes 量測，floor 沿用 null-explanation 控制組。輸出檔案與單輪 battery 同構，`aggregate.py` 不需修改。

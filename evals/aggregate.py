@@ -20,6 +20,25 @@ from pathlib import Path
 
 EVALS_DIR = Path(__file__).resolve().parent
 ARM_ORDER = ["with_skill", "old_skill", "without_skill", "null_floor"]
+COMPARABILITY_KEYS = (
+    "schema_version",
+    "model",
+    "effort",
+    "graders",
+    "plugin_version",
+    "plugin_git_head",
+    "prompt_tree_sha256",
+    "runner_sha256",
+    "shared_runner_sha256",
+)
+REQUIRED_PROVENANCE_KEYS = COMPARABILITY_KEYS + (
+    "protocol",
+    "case",
+    "arm",
+    "case_sha256",
+    "target_sha256",
+    "skill_sha256",
+)
 
 
 def stats(values: list[float]) -> dict:
@@ -77,6 +96,12 @@ def collect(iteration_dir: Path) -> list[dict]:
                 if answers_path.exists()
                 else []
             )
+            provenance_path = arm_dir / "provenance.json"
+            provenance = (
+                json.loads(provenance_path.read_text(encoding="utf-8"))
+                if provenance_path.exists()
+                else None
+            )
             rows.append(
                 {
                     "case": eval_meta.get("eval_name", case_dir.name),
@@ -87,9 +112,91 @@ def collect(iteration_dir: Path) -> list[dict]:
                     "timing": timing,
                     "answers": {a.get("id"): a for a in answers},
                     "probe_meta": case_meta.get(case_dir.name, {}).get("probes", {}),
+                    "provenance": provenance,
                 }
             )
     return rows
+
+
+def validate_comparable_provenance(
+    rows: list[dict], allow_mixed: bool = False
+) -> dict | None:
+    """Reject legacy or mixed run artifacts unless explicitly overridden."""
+    missing = [f"{row['case']}/{row['arm']}" for row in rows if not row["provenance"]]
+    if missing and not allow_mixed:
+        raise ValueError(
+            "missing provenance for " + ", ".join(missing[:5])
+            + ("…" if len(missing) > 5 else "")
+        )
+    provenances = [row["provenance"] for row in rows if row["provenance"]]
+    if not provenances:
+        if allow_mixed:
+            return {
+                **{key: None for key in COMPARABILITY_KEYS},
+                "mixed": True,
+                "legacy": True,
+                "skill_sha256_by_arm": {},
+            }
+        return None
+    first = provenances[0]
+    mismatches = []
+    skill_by_arm = {}
+    for row in rows:
+        provenance = row["provenance"]
+        if provenance is None:
+            continue
+        missing_keys = [key for key in REQUIRED_PROVENANCE_KEYS if key not in provenance]
+        if missing_keys:
+            mismatches.append(
+                f"{row['case']}/{row['arm']}: missing {', '.join(missing_keys)}"
+            )
+        if provenance.get("case") != row["case"] or provenance.get("arm") != row["arm"]:
+            mismatches.append(f"{row['case']}/{row['arm']}: identity mismatch")
+        for hash_key in (
+            "case_sha256",
+            "target_sha256",
+            "prompt_tree_sha256",
+            "runner_sha256",
+            "shared_runner_sha256",
+        ):
+            value = provenance.get(hash_key)
+            if not isinstance(value, str) or len(value) != 64:
+                mismatches.append(f"{row['case']}/{row['arm']}: invalid {hash_key}")
+        skill_sha = provenance.get("skill_sha256")
+        if skill_sha is not None and (
+            not isinstance(skill_sha, str) or len(skill_sha) != 64
+        ):
+            mismatches.append(f"{row['case']}/{row['arm']}: invalid skill_sha256")
+        if row["arm"] in {"with_skill", "old_skill"} and skill_sha is None:
+            mismatches.append(f"{row['case']}/{row['arm']}: missing skill_sha256")
+        if row["arm"] in {"without_skill", "null_floor"} and skill_sha is not None:
+            mismatches.append(f"{row['case']}/{row['arm']}: unexpected skill_sha256")
+        head = provenance.get("plugin_git_head")
+        if not isinstance(head, str) or len(head) not in {40, 64}:
+            mismatches.append(f"{row['case']}/{row['arm']}: invalid plugin_git_head")
+        if provenance.get("schema_version") != 1:
+            mismatches.append(f"{row['case']}/{row['arm']}: unsupported schema_version")
+        if not isinstance(provenance.get("graders"), int) or provenance["graders"] < 1:
+            mismatches.append(f"{row['case']}/{row['arm']}: invalid graders")
+        for text_key in ("model", "effort", "plugin_version", "protocol"):
+            if not isinstance(provenance.get(text_key), str) or not provenance[text_key]:
+                mismatches.append(f"{row['case']}/{row['arm']}: invalid {text_key}")
+        changed = [
+            key for key in COMPARABILITY_KEYS if provenance.get(key) != first.get(key)
+        ]
+        if changed:
+            mismatches.append(f"{row['case']}/{row['arm']}: {', '.join(changed)}")
+        prior_skill_sha = skill_by_arm.setdefault(row["arm"], skill_sha)
+        if prior_skill_sha != skill_sha:
+            mismatches.append(f"{row['case']}/{row['arm']}: skill_sha256")
+    if mismatches and not allow_mixed:
+        raise ValueError("mixed eval provenance: " + "; ".join(mismatches[:5]))
+    return {
+        key: first.get(key) for key in COMPARABILITY_KEYS
+    } | {
+        "mixed": bool(missing or mismatches),
+        "skill_sha256_by_arm": skill_by_arm,
+    }
 
 
 def v2_metrics_for_arm(arm_rows: list[dict], floor_acc: dict) -> dict:
@@ -160,7 +267,7 @@ def v2_metrics_for_arm(arm_rows: list[dict], floor_acc: dict) -> dict:
         "boundary_coverage": round(statistics.mean(boundary_cov), 3)
         if boundary_cov
         else None,
-        "false_certainty_total": sum(false_cert) if false_cert else 0,
+        "false_certainty_total": sum(false_cert) if false_cert else None,
         "extraneous_ratio": round(statistics.mean(extraneous), 3)
         if extraneous
         else None,
@@ -176,12 +283,23 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("iteration_dir", type=Path)
     parser.add_argument("--skill-name", default="understand")
+    parser.add_argument(
+        "--allow-mixed-provenance",
+        action="store_true",
+        help="aggregate legacy or mixed artifacts, marking the output non-comparable",
+    )
     args = parser.parse_args()
 
     rows = collect(args.iteration_dir)
     if not rows:
         print("no graded runs found")
         return 1
+    try:
+        executor_provenance = validate_comparable_provenance(
+            rows, allow_mixed=args.allow_mixed_provenance
+        )
+    except ValueError as err:
+        parser.error(str(err))
 
     floor_acc = {
         row["case"]: probe_accuracy(row["grading"].get("probe_results", []))
@@ -268,7 +386,13 @@ def main() -> int:
         "metadata": {
             "skill_name": args.skill_name,
             "skill_path": "skills/understand",
-            "executor_model": "claude-opus-4-8 (effort=max)",
+            "executor_model": (
+                f"{executor_provenance['model']} "
+                f"(effort={executor_provenance['effort']})"
+                if executor_provenance and executor_provenance.get("model")
+                else "unknown (legacy or mixed provenance)"
+            ),
+            "executor_provenance": executor_provenance,
             "analyzer_model": "deterministic aggregate.py v2",
             "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "evals_run": sorted({r["case"] for r in rows}),
