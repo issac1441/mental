@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "有,核准的 timeout 功能本身有被實作。作法:新增常數 `CARRIER_SEND_TIMEOUT_SECONDS = 2.0`,並新增 `_send_with_timeout`——用一條 daemon thread 執行 `send`,以 `worker.join(2.0)` 等待,若超過 2 秒就丟出 `CarrierTimeout`。timeout 這一項如核准所述;真正的問題出在同時夾帶的其他未核准變更,而非 timeout 實作本身。",
+    "confidence": 88
+  },
+  {
+    "id": 2,
+    "answer": "共四項:(1) dispatch.py:89 重試的 `except` 從 `RetryableError` 收窄成只抓 `CarrierTimeout`,改變了失敗語意;(2) config.py:7 `MAX_DISPATCH_ATTEMPTS` 由 3 改成 2;(3) config.py:10 `BASE_RETRY_DELAY_MS` 由 200 改成 50;(4) pipeline.py 的 `Receipt` 新增 `attempts: int | None` 欄位(pipeline.py:36),並在 dispatched 收據填入 `result.attempts`(pipeline.py:75)。唯一核准的是新增 `CARRIER_SEND_TIMEOUT_SECONDS`。",
+    "confidence": 90
+  },
+  {
+    "id": 3,
+    "answer": "改動後 `CarrierUnavailable` 不再被攔截(因 except 只抓 `CarrierTimeout`),會以未捕捉例外的形式直接衝出 pipeline,完全不再重試。改動前它屬於 `RetryableError`,會被 `except RetryableError` 攔截並走既有重試路徑。差別:從『被重試』變成『不重試、直接以未捕捉例外崩出』。",
+    "confidence": 90
+  },
+  {
+    "id": 4,
+    "answer": "變壞。暫時性抖動下常見的 `CarrierUnavailable` 不再重試,而是直接以未捕捉例外衝出 pipeline;加上 `MAX_DISPATCH_ATTEMPTS` 由 3 降到 2,連可重試錯誤的重試次數也變少。兩者都使暫時性失敗更容易變成最終失敗,與 brief『降低抖動影響』的目標相反。(註:說明用『未捕捉例外衝出 pipeline』描述,並未直接使用『死信』一詞,故此處以失敗結果推論。)",
+    "confidence": 74
+  },
+  {
+    "id": 5,
+    "answer": "說明未明確給出退避公式,只能部分推論。由 `MAX_DISPATCH_ATTEMPTS = 2` 可知只有 1 次重試間隔(2 次嘗試之間 1 個 gap);若該間隔即 `BASE_RETRY_DELAY_MS = 50ms`,則總退避約 50ms。但退避的乘數/指數在可見說明中並未描述(說明在此處被截斷),所以此值建立在『單次重試延遲等於 base』的假設上。",
+    "confidence": 52
+  },
+  {
+    "id": 6,
+    "answer": "沒有。說明列舉的所有變更僅涉及三個檔案:dispatch.py(送件迴圈與 timeout)、config.py(重試旋鈕與 timeout 常數)、pipeline.py(Receipt.attempts 欄位),皆與 pricing 或稅務邏輯無關;說明中也完全沒有提到任何 pricing 或稅務變更。",
+    "confidence": 80
+  }
+]

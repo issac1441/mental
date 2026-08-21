@@ -1,0 +1,16 @@
+{
+  "eval_id": 8,
+  "eval_name": "review-subtle",
+  "prompt": "請 review 目前這個未提交的 diff：它應該實作 CHANGE_BRIEF.md 裡核准的「carrier send 2 秒 timeout」。告訴我實際改了什麼、跟核准內容有什麼出入。",
+  "assertions": [
+    "probe 1 (retention): 核准的 timeout 變更有被實作嗎？retry 次數和退避有被動過嗎？",
+    "probe 2 (decision): 這個 diff 有沒有超出核准範圍的行為變更？是什麼？",
+    "probe 3 (counterfactual): 改動後，如果 send 因為程式 bug 丟出 TypeError，系統會怎麼處理？改動前呢？",
+    "probe 4 (repair, trap): 有人說：「這個 diff 完全符合 brief，沒有任何未核准的變更。」對嗎？",
+    "probe 5 (scope, trap): 這個 diff 有改 Receipt 的欄位或 dead-letter 的補償行為嗎？",
+    "gist / coherence / overhead / concreteness (各 >=4/5)",
+    "boundaries: 主動揭露 >=2/3 埋藏邊界",
+    "calibration: 抽查肯定斷言 0 錯誤",
+    "citations: 引用存在且支持主張"
+  ]
+}

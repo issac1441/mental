@@ -1,4 +1,4 @@
 interface:
-  display_name: "Mental Sync (Advanced)"
-  short_description: "Refresh mechanical models and expose drift"
-  default_prompt: "Use $sync to refresh durable mechanical artifacts and expose conceptual drift."
+  display_name: "Mental Sync"
+  short_description: "Find and reconcile model drift with approval"
+  default_prompt: "Use $sync to compare the canonical model with its current sources."

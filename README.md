@@ -1,133 +1,183 @@
 # mental
 
-`mental` helps you understand repositories and supplied learning material from inside Claude Code or Codex. Use it to explain a system, evaluate a planned change, review completed work, learn a topic, or test your understanding.
+`mental` is an agent-native plugin for building, explaining, testing, and maintaining verifiable mental models. It helps people understand repositories and source-bound learning material from inside Claude Code or Codex.
+
+It is not a standalone CLI, hosted service, or replacement for source material. The interface is nine skills. The bundled Python scripts are private implementation helpers used by those skills.
 
 [繁體中文指南](README.zh-TW.md)
 
+Design notes: [background and research framing](docs/design-background.md) · [STE100 evaluation and writing policy](docs/ste100-evaluation.md)
+
 ## Quickstart
 
-### 1. Load the plugin
+### 1. Load `mental`
 
-With Claude Code:
+The fastest Claude Code development setup is:
 
 ```sh
-git clone https://github.com/issac1441/mental.git /absolute/path/to/mental
-cd /path/to/your-project
+git clone https://github.com/issac1441/mental.git
+cd /path/to/the-repository-you-want-to-understand
 claude --plugin-dir /absolute/path/to/mental
 ```
 
-With Codex, install `mental` from a configured plugin marketplace, then open your project:
+For Codex, install `mental` from a configured plugin marketplace as described in [Install and validate](#install-and-validate), then open the target repository:
 
 ```sh
-codex -C /path/to/your-project
+codex -C /path/to/the-repository-you-want-to-understand
 ```
 
-Claude Code uses `/mental:<skill>`. Codex uses `$mental:<skill>` or the skill selector.
+### 2. Build a draft model
 
-### 2. Understand something
+```text
+/mental:build Build a repository mental model for the current workspace.
+$mental:build Build a repository mental model for the current workspace.
+```
+
+`build` creates draft artifacts and shows a promotion gate. Review the boundaries, relationships, inferences, success and failure scenarios, conflicts, and known gaps. Promote only the artifacts you accept.
+
+### 3. Ask with automatic or manual context
 
 ```text
 /mental:understand How does a request move through this repository?
-$mental:understand How does a request move through this repository?
+/mental:understand Explain the retry decision. lens=pm views=anchor,scenario detail=brief
 ```
 
-You can use `understand` immediately. A `mental/` workspace is not required.
+`understand` first uses explicit controls, then the current goal, session history, private learning state, exposed host memory as a weak signal, and scope defaults. It reports the selected Lens, Views, Detail, and selection basis. It never saves inferred preferences unless asked.
 
-### 3. Examine a change before implementation
+Available controls:
+
+- `lens=general|engineer|architect|pm|operator|student|researcher|<custom-lens-id>`
+- `views=anchor,map,mechanism,scenario,evidence` as a multi-selection
+- `detail=brief|standard|deep`
+
+Projects may define shared custom Lens artifacts under `mental/lenses/`.
+
+The Input contract inside each skill is canonical. Host interfaces may show the skill description or default prompt, but enumerated argument autocomplete is not guaranteed across Claude Code and Codex.
+
+### 4. Make and understand a change
 
 ```text
-/mental:change Add request timeouts without changing failure behavior.
+/mental:change Add request timeouts without changing failure semantics.
 /mental:change Tell me the actual effect of option A in the current plan.
-```
-
-Answer the prediction question, or enter `skip` when you only want the explanation. The skill remains read-only unless you add `record=true`.
-
-### 4. Review completed work
-
-```text
-/mental:review Review the current diff.
+/mental:review Review the current diff against the accepted model.
 /mental:quiz current-change items=12 feedback=end format=mixed
 ```
 
-`review` explains the Before → After behavior and reports findings. `quiz` checks whether you can reconstruct the change.
+Use the `$mental:*` form in Codex. `change` is conversational and read-only unless asked to record a draft brief. It stops for a human decision. `review` first explains what actually changed, then audits it.
 
 ### 5. Learn from supplied material
 
 ```text
-/mental:learn Teach me the event loop from docs/event-loop.md.
-/mental:practice event-loop
-/mental:quiz event-loop items=15
+/mental:build Build a learning model from docs/protocol.md.
+/mental:learn I want to explain and debug this protocol.
+/mental:practice Help me repair my weakest relationship in this model.
+/mental:quiz docs/protocol.md items=12 format=open
 ```
 
-`learn` starts with 2–5 short diagnostic questions. Use `practice` for adaptive follow-up and `quiz` for a complete assessment.
+Shared material lives in `mental/`. Personal goals, answers, progress, and session records live in gitignored `.mental/`.
 
-### 6. Save a reusable model (optional)
+## Core method
+
+`mental` uses **Lens × Views × Detail**:
+
+- **Lens** combines audience and perspective. It is the role whose typical knowledge, vocabulary, concerns, and decisions should shape the answer—for example `engineer`, `architect`, `pm`, or `student`.
+- **Views** are composable semantic slices: `anchor`, `map`, `mechanism`, `scenario`, and `evidence`.
+- **Detail** controls density: `brief`, `standard`, or `deep`.
+
+A Lens is a session-scoped explanation strategy, not a permanent identity or ability judgment. Manual input always wins. Repository work defaults to `engineer`; general learning defaults to `student`.
+
+The remaining governance rules are:
+
+- distinguish `[observed]`, `[inferred]`, `[agreed]`, and `[conflict]` claims;
+- create drafts before canonical artifacts;
+- treat sources, code, tests, and runtime evidence as material truth and canonical artifacts as human-agreed conceptual truth;
+- never silently reconcile those truths when they disagree;
+- keep shared models in `mental/` and personal state in `.mental/`.
+
+## Skills
+
+| Skill | Purpose | Writes by default |
+| --- | --- | --- |
+| `understand` | Explain with session-selected or manual Lens, Views, and Detail | No |
+| `build` | Build draft models and reusable custom lenses from supplied sources | Drafts only |
+| `sync` | Propose source-to-model deltas | Draft delta only |
+| `doctor` | Audit structure, lenses, evidence, drift, and privacy | No |
+| `change` | Explain intent, options, a plan, or TODOs before implementation | No; draft brief only when asked |
+| `review` | Explain the actual change, then audit it against the agreed model | No |
+| `learn` | Diagnose 2–5 high-information gaps, then teach adaptively | Private state only after learner evidence |
+| `practice` | Adapt one task at a time to repair a weak relationship | Private state only after learner evidence |
+| `quiz` | Deliver a complete 10–20 item bounded assessment | No; private results only when requested |
+
+### Practice versus quiz
+
+Use `practice` when the next prompt should depend on the last answer: task → first broken relationship → minimal correction → structurally equivalent scenario → transfer → boundary. Use `quiz` when you want a complete exam. Quiz defaults to 12 mixed items and feedback at the end; an objective result such as `9/12` is allowed, but it never becomes a fake mastery percentage or global ability label.
+
+## When to invoke each skill
+
+| Situation | Skill |
+| --- | --- |
+| You entered an unfamiliar repository | `build` |
+| The current explanation or session became confusing | `understand` |
+| A plan presents option A versus B | `change` |
+| A long TODO list hides decisions or effects | `change` |
+| The agent finished implementing a diff | `review` |
+| You want to verify that you understand the change | `quiz current-change` |
+| You are starting a new source-bound topic | `build`, then `learn` |
+| One concept or relationship remains weak | `practice` |
+| Sources or code drifted from the canonical model | `sync` |
+| Artifacts, custom lenses, or privacy boundaries may be invalid | `doctor` |
+
+## Representative journeys
+
+**Vibe coding:** `build → understand → change → human decision → Plan Mode → implementation → review → quiz → sync`
+
+**Product decision:** `understand lens=pm → change compare A/B → human decision → Plan Mode → review`
+
+**Learning:** `build supplied sources → learn → practice → quiz`
+
+```mermaid
+flowchart LR
+    build["Build model"] --> understand["Understand context"]
+    understand --> change["Change mental model"]
+    change --> decision{"Human decision"}
+    decision -->|accepted| plan["Host Plan Mode"]
+    plan -->|option is unclear| change
+    plan --> implementation["Implementation"]
+    implementation --> review["Review actual change"]
+    review --> quiz["Quiz operator understanding"]
+    quiz --> sync["Sync accepted model"]
+```
+
+`change` usually comes before Plan Mode: it defines what should change and exposes tradeoffs. Plan Mode then defines how to implement the accepted decision. When a plan or TODO already exists, `change` can interpret it; return to Plan Mode after the decision changes.
+
+## Artifact layout
 
 ```text
-/mental:build Save the reusable model from this session.
+mental/
+├── index.md
+├── sources.md
+├── glossary.md
+├── lenses/          # reusable role lenses, on demand
+├── model/map.md
+├── concepts/
+├── scenarios/
+├── contracts/       # repository mode, on demand
+├── decisions/       # repository mode, on demand
+├── changes/         # recorded deltas, on demand
+├── learning/path.md # learning mode, on demand
+├── misconceptions/
+└── exercises/
+
+.mental/
+├── .gitignore
+├── profile.md
+├── mastery.json
+└── sessions/
 ```
 
-After artifacts exist, use:
+Every shared Markdown artifact has stable English frontmatter keys and IDs. See [the artifact contract](references/artifact-contract.md).
 
-```text
-/mental:sync
-/mental:doctor
-```
-
-## Skill reference
-
-| Skill | Syntax | Use it for | Default writes |
-| --- | --- | --- | --- |
-| `understand` | `<question> [job=...] [lens=...]` | Explain a repository, document, session, or supplied topic | None |
-| `change` | `<intent-or-question> [job=decide\|predict] [lens=...] [record=true\|false]` | Compare a proposed change, option, plan, or TODO list | None |
-| `review` | `[diff-or-ref] [job=verify\|predict] [lens=...]` | Explain and audit completed work | None |
-| `learn` | `<goal-or-scope> [lens=...]` | Diagnose prerequisites and teach from supplied sources | Private progress only with consent |
-| `practice` | `[scope] [lens=...]` | Run an answer-adaptive practice loop | Private progress only with consent |
-| `quiz` | `[scope] [items=12] [feedback=end\|after-each] [format=mixed\|open\|mcq] [lens=...]` | Run a fixed 10–20 item assessment | Private results only with consent |
-| `build` | `[source-or-scope] [mode=repository\|learning\|hybrid] [language=...]` | Create or extend reusable artifacts | `mental/` and `.mental/` |
-| `sync` | `[scope]` | Refresh existing artifacts after sources change | `mental/` |
-| `doctor` | `[scope] [repair=true\|false]` | Check artifact structure, links, evidence, conflicts, and privacy | None unless `repair=true` |
-
-## Common options
-
-You normally do not need to specify these values. The skill infers them from your request and current session.
-
-- `lens=` controls the assumed role and vocabulary: `general`, `engineer`, `architect`, `pm`, `operator`, `student`, `researcher`, or a custom lens ID.
-- `job=` controls the current task: `orient`, `decide`, `predict`, `verify`, or `repair`.
-
-Examples:
-
-```text
-/mental:understand lens=pm job=orient Explain the checkout service.
-/mental:understand lens=architect job=predict How does failover work?
-/mental:change job=decide Compare options A and B.
-```
-
-<details>
-<summary>Advanced view override</summary>
-
-Experienced users can supply one or more `views=` values: `anchor`, `map`,
-`mechanism`, `scenario`, or `evidence`. Most requests should let the skill choose
-these internal slices automatically.
-
-</details>
-
-## Typical workflows
-
-- Repository orientation: `understand`
-- Planned implementation: `understand → change → Plan Mode → implementation → review`
-- Explain a completed diff: `review → optional quiz`
-- Guided learning: `learn → practice → quiz`
-- Reusable workspace: `understand → optional build → later sync or doctor`
-
-## Files created by mental
-
-- `mental/` contains shared, versionable models, sources, scenarios, changes, decisions, and conflicts.
-- `.mental/` contains private profiles, answers, mastery state, and session records. The scaffold configures Git to ignore this directory.
-
-`understand` and `review` never write files. Learning skills save private progress only after you consent during the active session.
-
-## Installation and validation
+## Install and validate
 
 ### Claude Code
 
@@ -136,42 +186,44 @@ claude --plugin-dir /absolute/path/to/mental
 claude plugin validate /absolute/path/to/mental
 ```
 
-For persistent installation, add the repository to a Claude Code marketplace and install `mental` from it.
+The repository is also its own Claude Code marketplace (`.claude-plugin/marketplace.json`), so a persistent install needs no separate marketplace repo:
+
+```sh
+claude plugin marketplace add issac1441/mental
+claude plugin install mental@mental
+```
+
+A local checkout works the same way: `claude plugin marketplace add /absolute/path/to/mental`.
 
 ### Codex
 
-Install `mental` from a configured plugin marketplace, then use `/skills` or type `$` to select a skill. For a non-default local marketplace:
+Install `mental` from a configured plugin marketplace, then use `/skills` or type `$` to select a skill. This repository ships its own marketplace manifest, so the checkout can be registered directly:
 
 ```sh
-codex plugin marketplace add /absolute/path/to/marketplace
-codex plugin add mental@marketplace-name
+codex plugin marketplace add /absolute/path/to/mental
+codex plugin add mental@mental
 ```
 
-### OpenCode
+The package uses `.codex-plugin/plugin.json` plus `skills/*/SKILL.md`. Claude and Codex share the same skill semantics.
 
-OpenCode support is documentation-only. Copy or link `skills/`, `references/`, `scripts/`, and `assets/` under one `.agents/` directory while preserving their relative paths. Skills appear with unscoped names such as `understand` and `change`.
+### OpenCode compatibility
+
+OpenCode support is documentation-only in v1 and does not promise native namespace parity. Copy or link `skills/`, `references/`, `scripts/`, and `assets/` under one `.agents/` directory so the support paths remain intact. Skills appear by unscoped names such as `understand` and `build`.
 
 ## Development
+
+The repository has no runtime dependencies:
 
 ```sh
 python3 -m unittest discover -s tests -v
 python3 scripts/scaffold_workspace.py /tmp/mental-demo --mode hybrid --language en
 python3 scripts/validate_workspace.py /tmp/mental-demo
-python3 scripts/run_conversation_evals.py --list
-python3 scripts/run_conversation_evals.py --host claude --judge-host claude --case understand-without-workspace
 ```
 
-The workspace scripts are internal skill helpers, not a public CLI. Conversation
-evals actually invoke the selected host and a rubric judge; their ignored raw
-results are written under `eval-results/`. Codex evals require `mental` to be
-installed first. `--capture-only` records host output as `UNJUDGED` and exits
-with code 2; it is evidence collection, not a passing evaluation.
+The helper scripts are internal skill implementation details, not a supported end-user CLI.
 
-## Additional documentation
-
-- [Design background and research framing](docs/design-background.md)
-- [ASD-STE100 evaluation](docs/ste100-evaluation.md)
+Explanation quality is measured by the learning-transfer eval in [`evals/`](evals/README.md): a no-code-access reader answers probe questions using only the skill's explanation, and the result is compared against a bare-model baseline.
 
 ## License
 
-[0BSD](LICENSE). You may use, copy, modify, and distribute this project without an attribution requirement.
+[0BSD](LICENSE). Use, copy, modify, and distribute it freely. Redistribution does not require attribution or preservation of a copyright notice.

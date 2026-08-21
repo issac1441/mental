@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "使用者介面就是 skills/ 底下的 9 個 skill（各自的 SKILL.md）——文件明說 skills/ 是「對外的唯一介面」。這些 skill 是用自然語言寫成的指令，由 LLM agent（Claude Code 或 Codex）讀取後照著執行。一般使用者並不是直接執行程式碼，而是在 agent host 裡觸發某個 skill，agent 讀 SKILL.md 並依指示動作。那兩支 Python 工具是 skill 的內部輔助、不是給人用的 CLI，所以不算使用者介面。",
+    "confidence": 88
+  },
+  {
+    "id": 2,
+    "answer": "文件說各 skill 不靠函式呼叫互相協作，而是靠「共讀同一疊 references/ 契約文件」。所以 references/ 是所有 SKILL.md 共同閱讀的契約／方法論文件（例如 references/methodology.md）；SKILL.md 是消費者，references/ 提供大家共同遵循的規則契約。skill 之間是靠共讀同一份 references/ 來對齊，而不是彼此呼叫。",
+    "confidence": 78
+  },
+  {
+    "id": 3,
+    "answer": "文件只說模型檔案會被「共同讀寫」在 mental/ 與 .mental/ 兩個目錄。但這份（被截斷的）說明並沒有明確指出哪一個存共享的模型內容、哪一個存個人學習狀態，也沒有說明為什麼要分開。依常見命名慣例，.mental/（點開頭、隱藏）較可能是個人／本地狀態、mental/ 是共享，但文件沒有明講——因此「哪個放什麼」與「為何分開」屬於說明中沒有提到。",
+    "confidence": 38
+  },
+  {
+    "id": 4,
+    "answer": "文件只說「真正的程式碼只有兩支 Python 小工具，是 skill 的內部輔助，不是給人用的 CLI」。所以『誰會用到』很明確：是 skill／agent 在執行時內部使用，不是給一般使用者當 CLI。但這兩支腳本各自具體做什麼，說明中沒有提到。",
+    "confidence": 55
+  },
+  {
+    "id": 5,
+    "answer": "說明中唯一明確提到的測試要求是：測試強制每支唯讀 skill 要在 SKILL.md 寫明讀寫界線（例如 understand 要有「Never edit」）。所以若第 10 個 skill 是唯讀的，最少要在它的 SKILL.md 裡寫明讀寫邊界，測試才會過。另外每個 skill 結構上還含一份 agents/openai.yaml。至於是否需要更新 skill 數量／清單或其他測試，說明沒有完整描述測試套件，這部分屬於說明中沒有提到。",
+    "confidence": 45
+  },
+  {
+    "id": 6,
+    "answer": "依說明，doctor 是唯讀地「稽核結構／證據／隱私」的 skill，而整個產品核心是「可審閱、可追溯證據」的模型。一個 concept 被標成 canonical 卻沒有人類確認，屬於證據／來源可信度問題，應由 doctor 的證據稽核抓出來（sync 則負責來源與模型漂移）。不過說明並未明確提到 frontmatter 的 canonical 狀態或「需人類確認」這條規則（可能在被截斷處），所以這是合理推論而非文件直接明述。",
+    "confidence": 52
+  },
+  {
+    "id": 7,
+    "answer": "這句話有問題。說明並沒有提到測驗結果存在 mental/exercises/，也沒有說學習／測驗結果是團隊共用；文件其實把儲存分成共享的 mental/ 與另一個 .mental/。把個人測驗結果講成「存在共享的 mental/ 讓團隊共用」與這種共享／個人分離的設計相衝突，因此「讓團隊共用」這點很可能是錯的。但測驗結果具體存放路徑，說明中沒有提到，無法完全證實。",
+    "confidence": 44
+  },
+  {
+    "id": 8,
+    "answer": "說明提到除了共享的 mental/ 外還有一個 .mental/ 目錄。最合理的原因是：個人的學習進度／測驗紀錄屬於本地個人狀態，放在不會被提交／共享（隱藏、通常被 git 忽略）的 .mental/，所以 clone 專案時不會帶到別人的紀錄。但這份說明並沒有明確指出 .mental/ 是本地／被 git 忽略、或學習狀態就存在那裡，所以這是根據兩目錄設計所做的推論，而非文件直接明述。",
+    "confidence": 44
+  }
+]

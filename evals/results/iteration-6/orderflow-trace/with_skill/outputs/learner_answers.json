@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "四件事按一條刻意固定的順序執行：ingest（驗證輸入）→ reserve（保留庫存）→ price（計算價格）→ dispatch（出貨）。也就是：先驗證輸入，再保留庫存，接著計算價格，最後才出貨。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "因為 price 一律以保留單裡的『單價快照』(ReservedLine.unit_price_cents) 為計價基礎，而不是原始訂單。reserve 會用 key reservation/{order_id} 同時凍結『庫存』與『單價快照』，price 則無條件用這張快照算錢。所以必須先 reserve 把單價快照建立好，price 才有依據；若先算價再保留，就沒有已凍結的快照可用，也無法保證計價與實際凍結的單價/扣掉的庫存一致。",
+    "confidence": 87
+  },
+  {
+    "id": 3,
+    "answer": "不用付運費（免運）。因為免運判定看的是『折扣前』的小計：本例折扣前小計 9,000 ≥ 免運門檻 8,000，符合免運資格；折扣不影響免運資格，所以即使折後小計 6,300 已低於 8,000，仍然免運。",
+    "confidence": 100
+  },
+  {
+    "id": 4,
+    "answer": "稅以『折後小計』為基準計算：稅 = round(折後小計 × TAX_RATE=0.05)。運費不課稅。",
+    "confidence": 100
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端拿到一張 Receipt，狀態為 dispatched，關鍵欄位包含 carrier（承運商）與 total（總金額）。(dispatch 成功時內部產生 DispatchResult，process 據此回傳帶有 carrier 與 total 的 dispatched Receipt；如範例 o-1：carrier=post、total=6615.00。)",
+    "confidence": 85
+  },
+  {
+    "id": 6,
+    "answer": "會受影響的是『原本需要付運費』的訂單，也就是折扣前小計 < 8,000（FREE_SHIPPING_THRESHOLD_CENTS）的訂單——它們原本付 120 的運費，改成 0 後總價會少 120。不受影響的是『原本就免運』的訂單，也就是折扣前小計 ≥ 8,000 的訂單，因為它們運費本來就是 0，改成 0 沒有差別。",
+    "confidence": 87
+  },
+  {
+    "id": 7,
+    "answer": "最可能的原因鏈：隔天重新處理時，原保留單早已超過 RESERVATION_TTL_SECONDS=120 秒而過期 → reserve 觸發『過期重建』，用『當下目錄價』重建保留單並產生新的單價快照（同時標記 reprice_required=True）→ 若目錄價在兩次處理之間有變動，新快照的單價就與第一次不同 → price 一律用保留單快照計價 → 算出的總價因此不一樣。",
+    "confidence": 84
+  },
+  {
+    "id": 8,
+    "answer": "1) 折扣前小計是否 ≥ FREE_SHIPPING_THRESHOLD_CENTS(8000) → 影響 → 該訂單是否免運（進而影響 total）。 2) FLAT_SHIPPING_CENTS → 影響 → 需付運費訂單的運費金額與 total。 3) TAX_RATE → 影響 → 稅額（進而影響 total）。 4) 保留單的單價快照(ReservedLine.unit_price_cents) → 影響 → price 的商品小計與最終 total。 5) POST_MAX_WEIGHT_G 與總重 → 影響 → domestic 訂單走 post 或 freight（承運商選擇）。 6) region=offshore → 影響 → 承運商一律選 air。 7) RESERVATION_TTL_SECONDS ↑ → 影響 → 保留單存活更久、更常命中冪等回舊單、更少過期重建與重定價。 8) MAX_DISPATCH_ATTEMPTS / BASE_RETRY_DELAY_MS ↑ → 影響 → 更能撐過暫時性承運商故障，但失敗時要更久才 dead-letter。",
+    "confidence": 92
+  }
+]

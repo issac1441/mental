@@ -1,20 +1,12 @@
 ---
 id: predict-order
 kind: exercise
-authority: conceptual
-status: active
+status: canonical
 sources:
   - source-event-loop
 prerequisites:
   - event-loop
 updated_at: 2026-08-15
-verification_basis:
-  - source:source-event-loop
-checked_predictions:
-  - "success: a split task allows another queued task to run"
-  - "failure: one long task delays the task behind it"
-known_gaps: []
-conflicts: []
 ---
 
 # 預測順序

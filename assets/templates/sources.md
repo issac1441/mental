@@ -1,8 +1,7 @@
 ---
 id: source-catalog
 kind: sources
-authority: mechanical
-status: current
+status: draft
 sources: []
 prerequisites: []
 updated_at: {{TODAY}}
@@ -14,6 +13,6 @@ updated_at: {{TODAY}}
 
 - Type: {{SOURCE_TYPE}}
 - Location: {{SOURCE_LOCATION}}
-- Scope: supplied workspace or material; refine after inspection
+- Scope: supplied workspace or material; refine before promotion
 - Revision or retrieved date: {{TODAY}}
 - Access status: available

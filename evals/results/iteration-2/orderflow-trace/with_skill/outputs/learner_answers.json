@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "由 Pipeline.process() 串成固定四段流水線，實際順序為：1) 驗證輸入 parse_order → 2) 保留庫存並凍結價格快照 Inventory.reserve → 3) 計算價格 price → 4) 出貨 dispatch（最多重試 3 次）。即「驗證 → 保留庫存 → 計價 → 出貨」。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "因為計價是「從預留快照算，不是從原始訂單算」。reserve 時會把 catalog 的 unit_price_cents 抄進 ReservedLine，凍結成價格快照，而 price 的計價基準正是這份凍結單價。必須先 reserve 產生快照，price 才有基準可算，因此計價排在保留庫存之後。",
+    "confidence": 88
+  },
+  {
+    "id": 3,
+    "answer": "不用付運費（免運）。因為免運判斷用的是「折扣前」小計：折前 9,000 元 ≥ 8,000 元門檻即免運；折後雖只剩 6,300 元（低於門檻）並不影響此判斷。這與說明中 o-1 範例完全相同。",
+    "confidence": 100
+  },
+  {
+    "id": 4,
+    "answer": "稅以「折後貨款」（套用折扣後的貨款金額）為基準：稅 = round(折後貨款 × TAX_RATE=0.05)。運費不課稅。",
+    "confidence": 100
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端會拿到一張 Receipt，狀態為 dispatched。關鍵欄位包含：order_id、status（dispatched）、carrier（選到的承運方式，如 post）、total_cents（總金額，以分為單位）。例如 Receipt(o-1, dispatched, post, 6615_00)。",
+    "confidence": 90
+  },
+  {
+    "id": 6,
+    "answer": "只有原本需付運費的訂單會受影響、總價減少 120 元，也就是「折扣前小計 < 8,000 元」（未達免運門檻）的訂單；而折扣前小計 ≥ 8,000 元、原本就免運（運費為 0）的訂單不受影響。因為固定運費只在未達門檻時收取，且運費不課稅，所以受影響訂單的總價正好少 120 元。",
+    "confidence": 90
+  },
+  {
+    "id": 7,
+    "answer": "最可能的原因鏈：隔天重處理時，原預留早已超過 RESERVATION_TTL_SECONDS（120 秒）而過期 → reserve 不再冪等回傳舊快照，而是用「當下」catalog 價格重建預留（並標記 reprice_required=True）→ 若該商品在 catalog 的單價於這段期間已變動 → 計價依據的凍結單價改變 → 算出的總價不同。",
+    "confidence": 85
+  },
+  {
+    "id": 8,
+    "answer": "1) errors.py 的 FatalError/RetryableError 分類 → 影響 → dispatch 遇錯是否重試（Fatal 立即拋出、Retryable 才重試）。2) region 與訂單總重量 → 影響 → carrier 選擇（offshore→air；domestic ≤2000g→post，>2000g→freight）。3) 折扣前小計是否 ≥ 8,000 元 → 影響 → 是否免運（運費 0 或 120）。4) reserve 凍結的單價快照 → 影響 → price 的計價基準與 subtotal。5) RESERVATION_TTL_SECONDS → 影響 → 預留是否過期並以當下價格重建（reprice）。6) DISCOUNT_RULES 的門檻與 priority → 影響 → 選用哪一條折扣（擇一不疊加）。7) dispatch 重試耗盡（DispatchExhausted）→ 影響 → release 退還庫存並回 dead_lettered Receipt。",
+    "confidence": 95
+  }
+]

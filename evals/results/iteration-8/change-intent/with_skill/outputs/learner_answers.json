@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "必須先「重新 reserve（重新預留/重扣）庫存」。因為一張單被 dead-letter 的當下，reservation 已經被 release() 丟回目錄並刪除、庫存也已還原，所以事後手上沒有任何可出貨的預留；要出貨就得重新 reserve 才會再扣一次庫存。若這期間庫存被別的單吃掉，重新 reserve 會在 _build 丟出 InsufficientStock（Fatal）。",
+    "confidence": 95
+  },
+  {
+    "id": 2,
+    "answer": "說明沒有把它定死，這正是需要人類拍板的決策 #2。若照現有 reserve() 行為直接做，會用『當前目錄價』重抓，也就是新價格；而且因為 dead-letter 後 reservation 是被刪除、不是過期，reserve() 走『全新建立』分支，不會設 reprice_required 旗標，等於價格悄悄變了卻沒有平常會亮的那面旗。之所以要人決定：這牽動失敗/行為語意——總價可能改變且是無警示的靜默變動，若要沿用原始 Quote（原收據價）則得先把 Quote 存下來，所以必須由人選擇『允許依當前重新計價』還是『必須沿用原始 Quote』。",
+    "confidence": 88
+  },
+  {
+    "id": 3,
+    "answer": "可能造成『雙出（同一張單出兩次貨）』。原因：send 沒有冪等鍵也沒有回執；dead_letters 只是普通 append-only list，目前沒有移除/去重邏輯，該 id 不會被摘掉，可被重複 redispatch；且無鎖、無前置守衛。兩個 force_redispatch 之間、或 force_redispatch 撞上主線 process()，都可能雙出；甚至若該單此刻正在飛，reserve() 對還活著的 reservation 會冪等回傳既有那張，導致再 dispatch 一次。除非加入『先認領再出貨』的互斥，但那仍是未決策項。",
+    "confidence": 85
+  },
+  {
+    "id": 4,
+    "answer": "說明列出多個尚未拍板的事項（Decision Manifest），至少包括：(1) 出貨輸入來源——佇列記錄有損（只有 id 與 reason），要靠擴充 dead-letter 記錄存整個 Order、改 signature 帶 raw、還是另建 order archive；(2) 重新出貨是否允許依當前目錄重新計價與重選 carrier，或必須沿用原始 Quote；(3) 佇列的移除/去重策略（成功後是否從 dead_letters 移除、再失敗如何處理）；(4) send 的重複出貨要接受 operator 風險並標注、還是替 send 加冪等契約；(5) force_redispatch 各結局的 Receipt 狀態（尤其重新 reserve 撞 InsufficientStock 該回什麼）；(6) 前置守衛與併發『先認領再出貨』是否納入本次範圍。",
+    "confidence": 95
+  },
+  {
+    "id": 5,
+    "answer": "可直接重用的既有元件：dispatch()（走既有退避與 dead-letter 邏輯，不要複製）、inventory.reserve()（重新預留）、release()（釋放庫存），以及沿用 Receipt 的狀態詞彙（dispatched | failed | dead_lettered，不要發明新狀態）。建議做成 Pipeline.force_redispatch 復用這些，避免退避/ dead-letter 邏輯 fork。",
+    "confidence": 93
+  },
+  {
+    "id": 6,
+    "answer": "不對。說明指出：對正常主線 process() 來說 force_redispatch 是『加法』，S1–S4 對正常流不受影響，但真正要盯的是 force_redispatch 自己會不會違反 S1–S4——例如重新 reserve 後若再耗盡卻沒再 release 會造成庫存洩漏（違反 dead-letter 釋放庫存不變式與 S2/S3）、任何路徑沒給明確 receipt 會違反 S3『永不靜默丟單』、把 InsufficientStock/UnknownSku 這類 Fatal 拉進重試會違反 S4，還有雙出問題。此外，以目前 signature 想『完全不動現有程式碼』本來就做不到：要嘛擴充 dead-letter 記錄（會動到現有寫入點），要嘛另建 archive，否則 force_redispatch(order_id) 根本無法實作。所以『新函式＝自動保證不改失敗語意』並不成立。",
+    "confidence": 88
+  }
+]

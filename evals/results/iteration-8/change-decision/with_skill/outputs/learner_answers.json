@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "多等 2400 毫秒（約 2.4 秒）。現況 3 次重試的純 backoff 為 200+400=600ms，A 改成 5 次為 200+400+800+1600=3000ms，差 3000-600=2400ms（不含 jitter；說明中也直接給出純 backoff 由 600+2j → 3000+4j）。",
+    "confidence": 96
+  },
+  {
+    "id": 2,
+    "answer": "選項 B 會讓既有測試失敗。是 test_pipeline.py:51-63 的 test_dead_letter_after_exhausted_retries_releases_stock。原因：該測試斷言死信後 stock==2（庫存被退回），但 B 死信後不釋放保留，庫存維持 0，斷言就會變紅。說明另外明確指出 A 不會弄壞任何現有測試。",
+    "confidence": 96
+  },
+  {
+    "id": 3,
+    "answer": "庫存會被永久卡住／洩漏、無法販售。因為 release() 是唯一退回庫存的路徑，且沒有背景清掃機制；死信後若一直沒有人工重派，該筆保留的庫存就永遠不會被退回。",
+    "confidence": 95
+  },
+  {
+    "id": 4,
+    "answer": "選項 B。它引入了『是否要修改保留（reservation）生命週期』這個新的待決策事項——要真正達成 B 的意圖，得讓 dead-lettered 的保留豁免/刷新 TTL、並讓重派路徑重用既有保留而非 rebuild（因為照字面『一行不釋放』是錯的，會把死信正確性耦合到 RESERVATION_TTL_SECONDS）。這是比 A 大得多、牽動庫存正確性的決定。",
+    "confidence": 68
+  },
+  {
+    "id": 5,
+    "answer": "基本上沒有影響。收據形狀與失敗語意不變：仍回傳 dead_lettered 收據、仍釋放庫存，也不弄壞既有測試。只有兩個附帶差異：(1) 收據晚約 2.4–2.6 秒才回給呼叫端（時間層面）；(2) DispatchExhausted 訊息會依 MAX_DISPATCH_ATTEMPTS 自動把次數字從 3 更新為 5（文字更新，非語意改變）。",
+    "confidence": 78
+  },
+  {
+    "id": 6,
+    "answer": "沒有。A 和 B 都沒有更動 jitter 演算法。說明只是『另外建議』把目前每筆固定、且三次重試相同（只吃 order_id、不吃 attempt）的 jitter 改成 per-attempt 隨機退避，視為真正的 leverage 點（Decision Manifest 第 4 項，屬可選、需另行拍板），但這不屬於 A 或 B 任一提案。",
+    "confidence": 94
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "實際順序是「驗證輸入 → 保留庫存 → 計算價格 → 出貨」，對應管線的 ingest(parse_order) → reserve → price → dispatch。說明明確指出此順序刻意排定且不可調換。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "因為「單價快照」是由 reserve 階段建立並且『歸 reservation 所有』，而 price 階段只讀取 reservation 的快照、不看原始訂單。所以必須先 reserve 產生快照，price 才有價格依據；若先算價再保留庫存，price 就沒有快照可用。",
+    "confidence": 97
+  },
+  {
+    "id": 3,
+    "answer": "說明中沒有提到。文件在描述 price 階段的計價細節（折扣規則、免運門檻、門檻要比對折扣前 9000 還是折扣後 6300）之前就被截斷，說明本身也未提及免運門檻或折扣機制，因此無法判定這筆是否需付運費。",
+    "confidence": 85
+  },
+  {
+    "id": 4,
+    "answer": "說明中沒有提到。稅的計算基準以及運費是否課稅屬於 price 階段的細節，該段在文件中被截斷，未提供任何相關規則。",
+    "confidence": 88
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端拿到一個 Receipt 物件。成功出貨時為 Receipt(dispatched, carrier, total_cents)，關鍵欄位為：狀態 dispatched（已出貨）、carrier（承運商）、total_cents（總金額，單位為分）。（對照失敗情況則為 Receipt(failed) 或 Receipt(dead_lettered)。）",
+    "confidence": 88
+  },
+  {
+    "id": 6,
+    "answer": "說明中沒有提到。文件並未描述『固定運費 120』這項設定，也沒有免運門檻或運費計算規則（這些都落在被截斷的 price 階段），因此無法判定哪些訂單總價會受影響、哪些不會。",
+    "confidence": 80
+  },
+  {
+    "id": 7,
+    "answer": "最可能的原因鏈：單價快照是在 reserve 當下擷取並凍結的，price 只依這份快照計價。隔天重新處理會重跑 reserve、把『當下的最新單價』擷取成新的快照；若來源單價在兩次之間有變動，新快照的單價就不同，price 依新快照算出的 total 自然不同。即：重新處理 → reserve 重新擷取當前單價 → 快照值改變 → price 用新快照 → 總價不同。",
+    "confidence": 75
+  },
+  {
+    "id": 8,
+    "answer": "1) parse_order 驗證失敗(ValidationError) → 影響 → 回傳 Receipt(failed)；2) reserve 遇到 UnknownSku / InsufficientStock → 影響 → 回傳 Receipt(failed)；3) reserve 成功 → 影響 → 產生 Reservation（凍結庫存 + 單價快照 + 重量）；4) Reservation 的單價快照 → 影響 → price 算出的 Quote（price 只看快照、不看原始訂單）；5) dispatch 重試耗盡(DispatchExhausted) → 影響 → 釋放庫存並進 dead-letter → Receipt(dead_lettered)；6) dispatch 成功 → 影響 → 回傳 Receipt(dispatched, carrier, total_cents)；7) 單價快照歸 reservation 所有 → 影響 → 階段順序必須 reserve 先於 price。",
+    "confidence": 90
+  }
+]

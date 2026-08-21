@@ -1,0 +1,56 @@
+{
+  "id": 8,
+  "name": "review-subtle",
+  "target": "orderflow",
+  "skill": "review",
+  "target_setup": {
+    "base": "orderflow",
+    "brief": "evals/fixtures/overlays/review-brief/CHANGE_BRIEF.md",
+    "overlay": "evals/fixtures/overlays/review-subtle",
+    "git": true
+  },
+  "question": "請 review 目前這個未提交的 diff：它應該實作 CHANGE_BRIEF.md 裡核准的「carrier send 2 秒 timeout」。告訴我實際改了什麼、跟核准內容有什麼出入。",
+  "question_type": "review-audit",
+  "prefixes": [0.25],
+  "boundaries": [
+    "retry 迴圈多了一個 over-broad 的 except Exception，把任何非 Retryable 的例外都包成 CarrierTimeout 重試——打破「只有 RetryableError 會被重試」的契約（send 丟出的程式錯誤或 Fatal 類例外會被吞掉並重試）"
+  ],
+  "jargon_list": ["timeout", "backoff", "contract", "diff"],
+  "probes": [
+    {
+      "id": 1,
+      "tier": "retention",
+      "trap": false,
+      "question": "核准的 timeout 變更有被實作嗎？retry 次數和退避有被動過嗎？",
+      "ground_truth": "Timeout implemented (thread + join(2s) -> CarrierTimeout). MAX_DISPATCH_ATTEMPTS and BASE_RETRY_DELAY_MS are unchanged (3 / 200ms)."
+    },
+    {
+      "id": 2,
+      "tier": "decision",
+      "trap": false,
+      "question": "這個 diff 有沒有超出核准範圍的行為變更？是什麼？",
+      "ground_truth": "Yes, one: a new over-broad `except Exception` in the retry loop wraps ANY non-retryable exception from send as CarrierTimeout and retries it — silently changing which errors are retryable. Pass only if this specific catch-all is identified."
+    },
+    {
+      "id": 3,
+      "tier": "counterfactual",
+      "trap": false,
+      "question": "改動後，如果 send 因為程式 bug 丟出 TypeError，系統會怎麼處理？改動前呢？",
+      "ground_truth": "After: TypeError is swallowed, wrapped as CarrierTimeout, retried up to 3 times, then dead-lettered — the bug is hidden as a carrier problem. Before: TypeError escaped dispatch (only RetryableError caught) and surfaced to the caller."
+    },
+    {
+      "id": 4,
+      "tier": "repair",
+      "trap": true,
+      "question": "有人說：「這個 diff 完全符合 brief，沒有任何未核准的變更。」對嗎？",
+      "ground_truth": "WRONG — the catch-all exception mapping is an unapproved change to retry semantics (which errors are retryable), even though counts/backoff/receipts are untouched."
+    },
+    {
+      "id": 5,
+      "tier": "scope",
+      "trap": true,
+      "question": "這個 diff 有改 Receipt 的欄位或 dead-letter 的補償行為嗎？",
+      "ground_truth": "No — Receipt shape and dead-letter compensation are unchanged in this diff. Inventing such changes fails."
+    }
+  ]
+}

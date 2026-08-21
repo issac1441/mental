@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "系統依 errors.py 的分類把錯誤分成 FatalError 與 RetryableError。FatalError 依定義不重試（errors.py:12），包括 ingest 的 ValidationError（缺 order_id、region 非 domestic/offshore、沒有任何 line、line 缺 sku、quantity 非正整數）以及保留失敗的 UnknownSku、InsufficientStock。RetryableError 會被重試，且分屬兩個不同層：store 寫入層的 VersionConflict（樂觀鎖，最多 _PUT_ATTEMPTS=3 次、無退避）；dispatch 送貨層只重試 CarrierTimeout / CarrierUnavailable（最多 MAX_DISPATCH_ATTEMPTS=3 次、指數退避加 jitter）。分類的根本界線就是 FatalError（不重試）vs RetryableError（重試）。",
+    "confidence": 88
+  },
+  {
+    "id": 2,
+    "answer": "最多 MAX_DISPATCH_ATTEMPTS=3 次。三次全失敗會拋 DispatchExhausted，被 pipeline 接住（pipeline.py:61-67）後做三件事：(1) 呼叫 release 把庫存還回 catalog；(2) 把訂單推進 dead_letters 死信佇列；(3) 回傳 status=\"dead_lettered\" 的 receipt（是 receipt，不是例外）。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "約 400ms。公式為 BASE_RETRY_DELAY_MS * 2^(attempt-2)，第 3 次 = BASE * 2^1，說明中直接指出第 3 次前約等 400ms。此外再加一個 0–99ms 的 jitter，jitter 由 order_id 決定。",
+    "confidence": 87
+  },
+  {
+    "id": 4,
+    "answer": "保留過期（判定為 now - created_at > RESERVATION_TTL_SECONDS=120 秒）後再處理同一筆訂單，會用『當前 catalog』重建一份新的保留，並把 reprice_required=True，代表必須重新計價（不是拿舊的冪等回放）。總價可能會變：因為單價快照被以當前 catalog 重建，price() 依新快照算總額，若 catalog 單價已變動總價就會不同；若單價未變則總價不變。（重建同時會重新驗證 SKU 與庫存，故此時也可能因庫存不足而失敗。）",
+    "confidence": 78
+  },
+  {
+    "id": 5,
+    "answer": "不會重試。InsufficientStock 屬於 FatalError，依定義不重試，在保留階段被當場擋下（pipeline.py:53-54）。呼叫端拿到 status=\"failed\" 的 receipt。因為保留是『先全部驗證再一次提交』，所以一顆庫存都沒被扣、也不需要 release，且 dispatch 完全不會被呼叫（測試驗證 calls == []）。",
+    "confidence": 95
+  },
+  {
+    "id": 6,
+    "answer": "改成 1 代表 dispatch 只嘗試 1 次。行為改變：第一次就遇到 RetryableError（CarrierTimeout/CarrierUnavailable）便立刻用完次數、拋 DispatchExhausted，比原本 3 次更早放棄、更早 dead-letter（release 還庫存、推進死信、回 dead_lettered receipt）。退避等待不會發生：退避只發生在『兩次嘗試之間』，而第 1 次不等待；既然只有一次嘗試就沒有後續等待，backoff 完全不會觸發。",
+    "confidence": 87
+  },
+  {
+    "id": 7,
+    "answer": "不對。VersionConflict 屬於 RetryableError，不是 FatalError；而保留階段的 try/except 只接 FatalError（pipeline.py:53）。所以 _put_with_retry 重試 3 次仍失敗所拋的 VersionConflict 不會被接住、不會被轉成 failed receipt，而是直接穿過 pipeline 逸出 process()，成為未捕捉的例外。訂單並不會拿到 failed 收據。（註：這是說明中標為 [inferred] 的路徑，單執行緒 in-memory 現況幾乎踩不到，但多寫入者併發共用 store 時真實存在。）",
+    "confidence": 88
+  },
+  {
+    "id": 8,
+    "answer": "carrier 部分：說明中沒有提到——文件沒有描述任何依 region（domestic/offshore）或重量（5000g）選擇 carrier 的規則，只提到 CarrierTimeout/CarrierUnavailable 這類錯誤，沒有選商邏輯。等待時間部分：第 2 次嘗試前約等 200ms（BASE_RETRY_DELAY_MS * 2^(2-2) = BASE * 1，說明中直接指出約 200ms），另加 0–99ms、由 order_id 決定的 jitter。",
+    "confidence": 82
+  }
+]

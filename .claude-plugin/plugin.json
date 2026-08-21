@@ -1,11 +1,17 @@
 {
   "name": "mental",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Build, explain, assess, and maintain evidence-linked mental models for repositories and learning material.",
   "author": {
-    "name": "issac1441"
+    "name": "mental contributors"
   },
   "license": "0BSD",
-  "keywords": ["mental-models", "learning", "assessment", "architecture", "knowledge"],
+  "keywords": [
+    "mental-models",
+    "learning",
+    "assessment",
+    "architecture",
+    "knowledge"
+  ],
   "skills": "./skills/"
 }

@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "錯誤依 errors.py 的分類法分成兩類：FatalError（立即失敗、不重試）與 RetryableError（才會重試）。重試有兩個互相獨立的層：(1) 儲存層 _put_with_retry 只針對樂觀鎖衝突 VersionConflict 重試，最多 3 次，每次重讀最新 version；(2) 派送層 dispatch() 只針對 RetryableError（CarrierTimeout／CarrierUnavailable）重試，最多 3 次。不會重試的是 FatalError，包含 ValidationError（格式/region/數量）、UnknownSku、InsufficientStock，直接失敗。兩層各自只認自己那類錯誤：儲存層不重試 CarrierTimeout，派送層也不重試 VersionConflict。",
+    "confidence": 95
+  },
+  {
+    "id": 2,
+    "answer": "最多 3 次（MAX_DISPATCH_ATTEMPTS = 3）。三次都是 retryable 失敗會拋 DispatchExhausted，狀態變 dead_lettered，系統做三件事：(1) 釋放（release）保留的庫存、(2) 把訂單放進 dead-letter queue、(3) 回傳一張 receipt。",
+    "confidence": 95
+  },
+  {
+    "id": 3,
+    "answer": "退避公式為 BASE * 2^(attempt-2) + jitter。第 3 次嘗試前 attempt=3，基本延遲 = BASE × 2^(3-2) = 2×BASE，再加上 jitter。BASE 的實際數值說明中沒給。至於 jitter 具體怎麼決定（範圍／分佈／亂數方式）說明中沒有提到，只知道會在退避時間上加一個 jitter。",
+    "confidence": 80
+  },
+  {
+    "id": 4,
+    "answer": "保留過期（TTL=120 秒）後再處理同一筆，reserve() 會走過期分支、用「當下的目錄價」呼叫 _build() 重建一份新保留，並打上 reprice_required=True 讓 pipeline 重算總價。所以總價會被重算——若目錄價在這期間有變動，總價就會變（快照的是重建當下的價格）。此外文件指出一個 bug：過期重建時沒有先把舊保留的庫存還回去就又扣一次，會重複扣庫存（例如 WIDGET stock 10→9，過期後再→8），造成庫存洩漏。",
+    "confidence": 90
+  },
+  {
+    "id": 5,
+    "answer": "不會重試。InsufficientStock 屬於 FatalError，會立即失敗、完全不 dispatch、也不留殘餘庫存。呼叫端拿到的是一張狀態為 failed 的收據（receipt）。",
+    "confidence": 96
+  },
+  {
+    "id": 6,
+    "answer": "改成 1 代表只嘗試 1 次、沒有任何重試。任何一次 retryable 的派送失敗（CarrierTimeout／CarrierUnavailable）就會立刻耗盡 → DispatchExhausted → dead_lettered（釋放庫存、進 dead-letter queue、回 receipt）。退避等待不會再發生：退避是發生在重試之間（attempt 2、3 之前），既然只有 1 次嘗試、沒有後續重試，就不會有 backoff 等待。",
+    "confidence": 80
+  },
+  {
+    "id": 7,
+    "answer": "不對。VersionConflict 是 RetryableError（不是 FatalError）。reserve 階段在 pipeline 只用 except FatalError 去接，所以儲存重試 3 次耗盡後 _put_with_retry 把 VersionConflict 往上拋時並不會被接住，也不會產生任何 receipt（既不是 failed 也不是 dead_lettered），而是變成未捕捉例外直接讓 process() crash（即文件所稱「第三種、沒寫在文件裡的失敗」）。failed 收據只保留給 FatalError（ValidationError／UnknownSku／InsufficientStock）。所以錯在「會拿到 failed 收據」——實際上是直接炸掉、沒有任何收據。",
+    "confidence": 93
+  },
+  {
+    "id": 8,
+    "answer": "carrier 部分：說明中沒有提到——文件並沒有描述依 region（offshore）或重量（5000g）挑選 carrier 的規則，因此無法判斷用哪家。至於重試等待：CarrierTimeout 是 retryable 會重試，第 2 次嘗試前 attempt=2，等待 = BASE × 2^(2-2) = BASE（即 1×BASE）再加上 jitter。BASE 的實際數值說明中沒給，jitter 如何決定也沒提到。",
+    "confidence": 74
+  }
+]

@@ -1,19 +1,16 @@
 ---
 id: request-routing
 kind: concept
-authority: mechanical
-status: current
+status: canonical
 sources:
   - source-repo
 prerequisites: []
 updated_at: 2026-08-15
-refresh_basis:
-  - source-repo@2026-08-15
 ---
 
 # Request routing
 
-`/health` is the only successful route; every other path is not found.
+[agreed] `/health` is the only successful route; every other path is not found.
 
 ## Evidence
 

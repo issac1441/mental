@@ -1,0 +1,150 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): 出貨前庫存必須先做哪一步、為什麼",
+      "passed": true,
+      "evidence": "讀者答 re-reserve 優先,因 dead-letter 時 release 已加回庫存並 delete reservation(inventory.py:91),與標準答案一致。"
+    },
+    {
+      "text": "probe 2 (counterfactual): 重送價格是原收據價還是新價、為何需人類決定",
+      "passed": true,
+      "evidence": "讀者答新價(當前 catalog 價、快照重建),且屬待拍板的人類決策,與標準答案一致。"
+    },
+    {
+      "text": "probe 3 (diagnosis): 連按兩次 force_redispatch 會如何",
+      "passed": true,
+      "evidence": "讀者答重複出貨(double-send),因 send/dispatch 無去重、系統無 idempotency 標記,與標準答案一致。"
+    },
+    {
+      "text": "probe 4 (decision): 列出至少兩個尚未決定的隱含事項",
+      "passed": true,
+      "evidence": "讀者列 5 項(資料來源/去重/re-reserve Fatal/靜默改價/redispatch 耗盡),≥2 且對應標準清單。"
+    },
+    {
+      "text": "probe 5 (retention): 哪些既有元件可直接重用",
+      "passed": true,
+      "evidence": "讀者列 dispatch()/inventory.reserve/price()/release/dead_letters,涵蓋標準答案核心重用元件。"
+    },
+    {
+      "text": "probe 6 (repair, trap): 『寫成新函式就自動保證不改變失敗語意』是否正確",
+      "passed": true,
+      "evidence": "讀者答『不對』並指出 force 引入新失敗語意+共享狀態副作用,未落入陷阱,與標準答案一致。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=5,開頭三句即給出「re-reserve→re-price→re-dispatch 復原流程、真正待決是資料來源與去重、force 自身失敗語意是新決策」,正確且可獨立成立。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,現況→被迫機制→Decision Manifest→失敗語意鎖住/新開的因果鏈連貫;僅結尾 Human Decision 清單與 Manifest 有形式化重複。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,開篇即實質內容,Lens/Views/Detail 方法論置於文末,dead-letter、reprice_required、DispatchExhausted 等術語首次出現即解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,幾乎每條主張皆附 file:line,含具名測試 test_dead_letter_after_exhausted_retries_releases_stock 與正常/失敗 trace。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3:re-reserve+快照改價、無去重致雙送(冪等為新決策)、force 自身失敗語意須新定義,皆主動揭露。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽「dead-letter 只存{order_id,reason}」「re-reserve 不設 reprice_required 且全專案僅 inventory/測試碰它」「send 逾時與未送無法區分」,核對程式碼皆正確,wrong_flat=0。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽 pipeline.py:62、inventory.py:77-91、test_pipeline.py:51-63,三處皆存在且支持該處主張。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": false
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 5,
+    "coherence": 4,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "死信釋放保留、force 須 re-reserve,快照重建代表重送總價可能不等於原收據(現況段+Decision#4 明揭)",
+      "dispatch/send 層無去重、force 重複呼叫會重複出貨、冪等性為新決策(Decision#2 明揭)",
+      "『不改變失敗語意』無法自動保證、force 路徑自身失敗語意(re-reserve 失敗、再次耗盡)須新定義(Decision#5+失敗語意段明揭)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.13,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 13,
+    "failed": 0,
+    "total": 13,
+    "pass_rate": 1.0
+  },
+  "graders": 2
+}

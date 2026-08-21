@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "重試分兩層,且只有兩類錯誤會重試:(a) 儲存層對寫入衝突 VersionConflict 重試;(b) dispatch 層對可重試的投遞錯誤 RetryableError 以指數退避重試。不會被重試的是 FatalError(payload 不合法、SKU 不存在、庫存不足),它會立即拿到 failed 收據且完全不進 dispatch。分類依據就是錯誤型別:VersionConflict / RetryableError 屬可重試;FatalError 屬致命、不重試。",
+    "confidence": 90
+  },
+  {
+    "id": 2,
+    "answer": "最多嘗試幾次:說明中沒有提到(可見文件只給了 RESERVATION_TTL_SECONDS=120,並未列出 dispatch 的重試上限)。但全部失敗(重試用盡)後系統會做三件事:1) 釋放庫存;2) 將訂單放入 dead_letters 佇列;3) 回傳 status 為 dead_lettered 的收據。",
+    "confidence": 62
+  },
+  {
+    "id": 3,
+    "answer": "說明中沒有提到具體等待時間。文件只說 dispatch 對 RetryableError 採用『指數退避』重試,但並未給出基本延遲的數值,也完全沒有描述 jitter 如何決定;這些細節不在可見(被截斷)的文件內。",
+    "confidence": 80
+  },
+  {
+    "id": 4,
+    "answer": "保留過期(以 time.monotonic() 判斷 now - created_at > 120 秒)後,再處理同一筆訂單時,reserve 會用『當前目錄』重建一筆新的保留,並設定 reprice_required=True,讓 pricing 重新計算。由於重建會重新抓當前價,總價可以合法變動——若當前目錄價格與原快照不同,總價就會改變。(注意:『不再扣庫存』的冪等保證只適用於尚未過期的情況。)",
+    "confidence": 84
+  },
+  {
+    "id": 5,
+    "answer": "不會重試。庫存不足(InsufficientStock)屬於 FatalError,會在 reserve 階段立即失敗、完全不進 dispatch。呼叫端拿到的是 status 為 failed 的收據。",
+    "confidence": 80
+  },
+  {
+    "id": 6,
+    "answer": "可見文件其實沒有明講目前上限是 3(未列出 dispatch 次數)。但依文件模型(指數退避是『重試之間』的等待)推論:把上限設成 1 代表只嘗試一次、沒有任何重試,因此不會再發生退避等待;而這唯一一次一旦以 RetryableError 失敗,就直接 dead-letter(釋放庫存、進 dead_letters、回 dead_lettered)。簡言之:退避等待不會發生,失敗即刻進死信。",
+    "confidence": 65
+  },
+  {
+    "id": 7,
+    "answer": "不對。文件把 failed 收據明確定義為只來自 FatalError(payload 不合法、SKU 不存在、庫存不足),而 VersionConflict 是儲存層的寫入衝突,並非 FatalError。VersionConflict 重試耗盡不屬於三種乾淨收據(dispatched/failed/dead_lettered)中的任何一種;文件更預告了有兩條『丟例外而不是回收據』的邊界路徑(該節被截斷),VersionConflict 用盡很可能正是其中之一——也就是會拋出例外,而不是回一張 failed 收據。此外,文件也從未說 VersionConflict 會『重試 3 次』,這個次數同樣沒有依據。",
+    "confidence": 72
+  },
+  {
+    "id": 8,
+    "answer": "說明中沒有提到。可見文件完全沒有描述 carrier 的選擇規則(地區 offshore、重量門檻等),也沒有給出退避的基本延遲數值,因此既無法判斷會用哪家 carrier,也無法估算第 2 次嘗試前的等待時間。",
+    "confidence": 88
+  }
+]

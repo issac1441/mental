@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "answer": "400 毫秒（不含 jitter）。公式為 BASE_RETRY_DELAY_MS × 2^(attempt-2)，第 3 次嘗試 attempt=3，代入為 200 × 2^(3-2) = 200 × 2^1 = 400ms。導師在第 3、5 則明確確認此算法與數值。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "指「總共 3 次嘗試」。說明中：attempt 從 1 開始，attempt=1 是第一次嘗試（不退避、直接送），真正的重試只有 attempt=2、3，共 2 次重試。導師在第 7 則確認「最多 3 次嘗試、最多只有 2 次退避等待」。所以是總共 3 次，而非 3 次重試另加第一次共 4 次。",
+    "confidence": 100
+  },
+  {
+    "id": 3,
+    "answer": "拿到的是 status=\"dead_lettered\" 的 Receipt，而不是例外。機制：dispatch() 這層會 raise DispatchExhausted(last_error)，但 process() 那層會自己把它接住，並做三件事——釋放先前保留的庫存(inventory.release)、把訂單 append 到 dead_letters 死信佇列、return 一個 Receipt(status=\"dead_lettered\")。因此呼叫端不需 try/except，不會收到任何例外，只要看 receipt.status（reason 保留的是最後那個原始的 retryable 錯誤）。此為三次都以 retryable 失敗、重試用盡的情況。",
+    "confidence": 95
+  },
+  {
+    "id": 4,
+    "answer": "jitter 由 order_id 決定性地算出，不是亂數：程式為 zlib.crc32(order_id) % 100，得到 0–99ms 的值。因為只跟 order_id 有關（與 attempt 無關），同一筆訂單跑兩次的 jitter 會完全一樣、可重現。導師在第 3 則明確指出這是決定性的、每次算出同一個值，用來讓不同訂單的退避錯開。",
+    "confidence": 100
+  }
+]

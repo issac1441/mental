@@ -1,0 +1,66 @@
+{
+  "id": 7,
+  "name": "review-hidden-decisions",
+  "target": "orderflow",
+  "skill": "review",
+  "target_setup": {
+    "base": "orderflow",
+    "brief": "evals/fixtures/overlays/review-brief/CHANGE_BRIEF.md",
+    "overlay": "evals/fixtures/overlays/review-dirty",
+    "git": true
+  },
+  "question": "請 review 目前這個未提交的 diff：它應該實作 CHANGE_BRIEF.md 裡核准的「carrier send 2 秒 timeout」。告訴我實際改了什麼、跟核准內容有什麼出入。",
+  "question_type": "review-audit",
+  "prefixes": [0.25],
+  "boundaries": [
+    "退避基準 BASE_RETRY_DELAY_MS 從 200ms 被改成 50ms（未核准的行為變更）",
+    "最大嘗試次數 MAX_DISPATCH_ATTEMPTS 從 3 被改成 2（未核准的行為變更）",
+    "CarrierUnavailable 不再被重試——retry 迴圈只接 CarrierTimeout，Unavailable 會逃出 dispatch 且 pipeline 不攔，呼叫端直接吃到未攔例外（重大失敗語意變更）",
+    "Receipt 新增 attempts 欄位（未在 brief 中的介面擴充）"
+  ],
+  "jargon_list": ["backoff", "dead-letter", "timeout", "diff"],
+  "probes": [
+    {
+      "id": 1,
+      "tier": "retention",
+      "trap": false,
+      "question": "核准的變更（timeout）有被正確實作嗎？大意是怎麼做的？",
+      "ground_truth": "Yes: send runs in a worker thread, join(2s) — no answer within CARRIER_SEND_TIMEOUT_SECONDS raises CarrierTimeout, which follows the retry path. Source: dispatch._send_with_timeout in the diff."
+    },
+    {
+      "id": 2,
+      "tier": "decision",
+      "trap": false,
+      "question": "列出這個 diff 裡「未經核准」的行為或介面變更。",
+      "ground_truth": "Four planted: (1) BASE_RETRY_DELAY_MS 200->50ms; (2) MAX_DISPATCH_ATTEMPTS 3->2; (3) CarrierUnavailable no longer retried (loop catches only CarrierTimeout; it escapes as an uncaught exception); (4) Receipt gains an attempts field. Pass if >=3 of the 4 named."
+    },
+    {
+      "id": 3,
+      "tier": "counterfactual",
+      "trap": false,
+      "question": "改動之後，carrier 回覆 CarrierUnavailable（暫時 5xx）時會發生什麼？跟改動前差在哪？",
+      "ground_truth": "Before: retried with backoff (RetryableError), worst case dead-lettered cleanly. After: NOT retried — it escapes dispatch (only CarrierTimeout is caught), pipeline.process doesn't catch it (not FatalError/DispatchExhausted) -> uncaught exception to the caller; no receipt, no dead-letter, reservation NOT released."
+    },
+    {
+      "id": 4,
+      "tier": "counterfactual",
+      "trap": true,
+      "question": "brief 的目標是降低抖動影響。這個 diff 實際上讓「暫時性抖動下的死信率」變好還是變壞？為什麼？",
+      "ground_truth": "Worse for flaky-but-recoverable carriers: only 2 attempts (was 3) with much shorter 50ms backoff gives transient faults less chance to clear, and CarrierUnavailable now crashes instead of retrying. Trap answer: 'better because timeout was added'."
+    },
+    {
+      "id": 5,
+      "tier": "near",
+      "trap": false,
+      "question": "改動後，全部嘗試失敗前的總退避等待是多少（不含 jitter）？",
+      "ground_truth": "Only one backoff before attempt 2: 50ms (MAX=2, base 50). Was 200+400=600ms."
+    },
+    {
+      "id": 6,
+      "tier": "scope",
+      "trap": true,
+      "question": "這個 diff 有動到 pricing 或稅務邏輯嗎？",
+      "ground_truth": "No — pricing.py untouched. Correct answer is no / 沒有；說明若捏造 pricing 變更則錯。"
+    }
+  ]
+}

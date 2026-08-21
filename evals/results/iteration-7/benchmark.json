@@ -1,0 +1,1107 @@
+{
+  "metadata": {
+    "skill_name": "change+review+doctor",
+    "skill_path": "skills/understand",
+    "executor_model": "claude-opus-4-8 (effort=max)",
+    "analyzer_model": "deterministic aggregate.py v2",
+    "timestamp": "2026-08-20T12:27:25+00:00",
+    "evals_run": [
+      "change-decision",
+      "change-intent",
+      "doctor-detection",
+      "review-hidden-decisions",
+      "review-subtle"
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 5,
+      "eval_name": "change-decision",
+      "configuration": "null_floor",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.667,
+        "passed": 4,
+        "failed": 2,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (near): A 在全部失敗的最壞情況比現況多等多久（不含 jitter）",
+          "passed": false,
+          "evidence": "讀者僅給『退避總和』的概念公式並明言『實際數字未知／無法判斷』，未算出關鍵數值 +2400ms（~2.4s，800ms+1600ms 兩次額外退避）。"
+        },
+        {
+          "text": "probe 2 (near): 哪個選項會讓哪個既有測試失敗、為什麼",
+          "passed": false,
+          "evidence": "純拒答『無法判斷』，未指出 Option B 破壞 test_dead_letter_after_exhausted_retries_releases_stock（保留庫存使 stock 停在 0 而非回到 2）。"
+        },
+        {
+          "text": "probe 3 (counterfactual): 選 B 且死信永不處理，被保留庫存的下場",
+          "passed": true,
+          "evidence": "讀者committed『會一直保留/鎖定、永久占住(洩漏)、不會釋放，直到人工介入』，涵蓋標準答案 locked forever／無自動回收。"
+        },
+        {
+          "text": "probe 4 (decision): 哪個選項引入新待決策、內容為何",
+          "passed": true,
+          "evidence": "讀者判定『較可能是 B』並描述『死信由誰/何時/如何人工處理，及被保留庫存是否/何時釋放』，命中 Option B 的 reclaim 決策關鍵事實。"
+        },
+        {
+          "text": "probe 5 (retention): A 是否影響 Receipt 形狀或失敗語意",
+          "passed": true,
+          "evidence": "讀者答『時序調整一般不改 Receipt 結構、失敗語意大致相同、只是較慢』，與標準答案 No（狀態與補償語意不變）一致。"
+        },
+        {
+          "text": "probe 6 (scope trap): 提案有無變更 jitter 演算法",
+          "passed": true,
+          "evidence": "讀者『傾向沒有』且未杜撰任何 jitter 變更，符合『不含 jitter 變更』並避開杜撰陷阱。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "change-decision",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.846,
+        "passed": 11,
+        "failed": 2,
+        "total": 13,
+        "time_seconds": 309.7,
+        "tokens": 252906,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (near): A 最壞情況比現況多等多久（不含 jitter）",
+          "passed": true,
+          "evidence": "讀者答 2400ms（200+400+800+1600=3000 減 600），與標準答案 +2.4s 一致，程式碼 backoff BASE*2^(attempt-2) 核實無誤"
+        },
+        {
+          "text": "probe 2 (near): 哪個選項讓哪個既有測試失敗、為什麼",
+          "passed": true,
+          "evidence": "讀者答 B 破壞 test_dead_letter_..._releases_stock（去掉 pipeline.py:62 release → stock 停在 0 而非 2），A 只變慢不失敗；與標準答案完全吻合"
+        },
+        {
+          "text": "probe 3 (counterfactual): B 且人工不處理，被保留庫存最終如何",
+          "passed": true,
+          "evidence": "讀者答永久洩漏、無 sweeper、release 為唯一回收路徑，等同標準答案『locked forever, no automatic reclaim』"
+        },
+        {
+          "text": "probe 4 (decision): 哪個選項引入新待決策、是什麼",
+          "passed": true,
+          "evidence": "讀者答 B 引入歸屬權/回收政策+TTL/生命週期決策，A 無新決策；命中標準答案的 reclaim policy 要點"
+        },
+        {
+          "text": "probe 5 (retention): A 是否影響 Receipt 形狀或失敗語意",
+          "passed": true,
+          "evidence": "讀者答無影響，狀態與補償語意不變、僅次數/時序改變，並正確指出 DispatchExhausted 訊息會隨 config 自動更新（dispatch.py:26 核實）"
+        },
+        {
+          "text": "probe 6 (scope, trap): 提案是否要改 jitter 演算法",
+          "passed": true,
+          "evidence": "讀者答否、未杜撰 jitter 變更，符合標準答案『未涵蓋/不含 jitter 變更』"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": false,
+          "evidence": "score=2，開頭前三句全是流程元資訊（已讀程式碼／無 mental 模型／建議跑 $build），A-vs-B 的實質答案要到『直接結論』才出現"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4，圍繞因果鏈（不 release + TTL rebuild + 無 sweeper → 重複扣減/洩漏）組織良好；扣分點是 120s-bug 在直接結論/選項B/建議三處重複"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": false,
+          "evidence": "score=3，實質內容前有元資訊前言，且 $build／mental/ canonical model／inferred／Lens-Views 頁尾等 skill 術語未解釋（領域術語本身則有解釋）"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，幾乎每條主張都附 file:line，並有 ANVIL/WIDGET 實走例、backoff 表、p³→p⁵ 量化"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "covered 3/3：B 破測試（選項B第4點+契約節）、永久洩漏/無 sweeper（現況節+選項B第2點）、A 尾延遲+2.4s（直接結論+A 表）"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽 backoff 公式+同步 time.sleep、600→3000ms 總 sleep、TTL 過期 _build 再扣庫存；三者皆與程式碼吻合，wrong_flat=0"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "config.py:7=MAX_DISPATCH_ATTEMPTS=3、pipeline.py:62=inventory.release、tests/test_pipeline.py:51-63 該測試且第63行 assert stock==2，皆存在且支持"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "change-decision",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.923,
+        "passed": 12,
+        "failed": 1,
+        "total": 13,
+        "time_seconds": 338.0,
+        "tokens": 442071,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (near): A 最壞情況多等多久（不含 jitter）",
+          "passed": true,
+          "evidence": "讀者答 +2400ms（現況 200+400=0.6s → 5 次 200+400+800+1600=3.0s，多出第4、5次 backoff 800+1600），與標準答案一致。"
+        },
+        {
+          "text": "probe 2 (near): 哪個選項會讓哪個既有測試失敗、為什麼",
+          "passed": true,
+          "evidence": "讀者答 B 破壞 test_dead_letter_after_exhausted_retries_releases_stock（斷言 stock 回到 2）、行號 tests/test_pipeline.py:51-63 與 pipeline.py:62 皆正確，並指出 A 不破壞測試——與標準答案一致。"
+        },
+        {
+          "text": "probe 3 (counterfactual): B 且人工未處理，被保留庫存下場",
+          "passed": true,
+          "evidence": "讀者答永久鎖死/stranded，release() 為唯一回收點、TTL 只在同一單再次 reserve 才觸發 expired→重建，與標準答案一致。"
+        },
+        {
+          "text": "probe 4 (decision): 哪個選項引入新的待決策事項",
+          "passed": false,
+          "evidence": "讀者答『選項 A（先量測恢復時間分布）』，但標準答案是 B（死信保留的回收政策/重派如何複用保留），且 A 被明列為無新決策的低風險改動——選錯選項，判不通過。"
+        },
+        {
+          "text": "probe 5 (retention): A 對 Receipt 形狀或失敗語意是否有影響",
+          "passed": true,
+          "evidence": "失敗語意答對（A 不改變、只延後死信、無正確性風險）；Receipt 形狀因文件確實整篇未提『收據』而誠實標註未提、未做錯誤斷言——核心洞見到位，判通過（邊際）。"
+        },
+        {
+          "text": "probe 6 (scope, trap): 提案是否要改 jitter 演算法",
+          "passed": true,
+          "evidence": "讀者答否，jitter 維持每單固定 0–99ms，並正確區分文末『替代建議（隨機化/加上限）』非提案內容——避開 trap。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=4，核心洞見『兩選項不解同一問題：A 降死信率、B 只改死信後回收成本』在第三行（標題+首 bullet）即成立且正確，但前兩句為 sandbox 免責與過場，略延遲 punchline。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，reframe→Option A（機制→誠實效果→代價→安全）→Option B（唯一 release→前提/雙扣→情境一二→額外代價→判決）→結論，因果鏈清楚、無互相重複的形式化區塊。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4，僅開頭一句 sandbox 方法論免責屬前置 meta；backoff/jitter/TTL/release 等術語首次出現即以公式與行號就地解釋。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，主張皆綁定 dispatch.py:44-71、config.py:4/7、pipeline.py:62、inventory.py:64-71/77/111、tests/test_pipeline.py:51-63 及具體數字（0.6s→3.0s、WIDGET 10→7→4、ANVIL 2→0）。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "covered 3/3：B 破壞 dead_letter 測試、死信保留無自動回收（無回收路徑/永久 stranded、TTL 重建僅同一單再 reserve 且雙扣）、A 尾延遲 0.6s→3.0s(+2.4s)——皆主動揭露；missed 無。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽（1）release() 全專案唯一呼叫點 pipeline.py:62、（2）過 TTL 的 expired→_build 未先 release 即再扣庫存 inventory.py:64-71/111、（3）backoff=200*2^(attempt-2)+jitter0-99 dispatch.py:47-48——三條皆屬實，0 wrong_flat。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "抽 pipeline.py:62（self.inventory.release）、inventory.py:111（stock -= quantity）、tests/test_pipeline.py:51-63（斷言 stock==2）——三處皆存在且支持該處主張。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "change-intent",
+      "configuration": "null_floor",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.833,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (near): 出貨前庫存必須先 re-reserve 才能出貨",
+          "passed": true,
+          "evidence": "答出必須重新保留/扣減庫存（re-reserve）再出貨，核心動作正確；雖未點出該保留是先前被 dead-letter 釋放才要重建，但已涵蓋關鍵動作。"
+        },
+        {
+          "text": "probe 2 (counterfactual): 預設會用新價（快照以現價重建）＋為何需人決定",
+          "passed": false,
+          "evidence": "『為何需人決定』答得很好（營收/會計/公平屬政策判斷），但對『哪個價格』只說『無法確定』，未答出系統預設會用新價，關鍵系統事實未涵蓋。"
+        },
+        {
+          "text": "probe 3 (diagnosis): 連按兩次會重複出貨（dispatch 無去重層）",
+          "passed": true,
+          "evidence": "正確指出會觸發兩次出貨、需冪等/去重擋第二次；核心診斷正確（次要地誤以為庫存也會重複扣，但已用『若無冪等』保留語氣）。"
+        },
+        {
+          "text": "probe 4 (decision): 列出至少兩個尚未決定的隱含事項",
+          "passed": true,
+          "evidence": "列出價格基準、冪等/重複點擊、庫存不足行為等多項，至少兩項與標準答案相符，超過門檻。"
+        },
+        {
+          "text": "probe 5 (retention): 指出可直接重用的既有元件",
+          "passed": true,
+          "evidence": "雖以『無法確定』開頭並自評為猜測，仍實際點名 dispatch 流程、庫存保留/釋放、計價模組，命中標準四項元件中的三項。"
+        },
+        {
+          "text": "probe 6 (repair, trap): 新函式不自動保證失敗語意不變",
+          "passed": true,
+          "evidence": "正確判為錯誤：共用下游/共享狀態會間接影響既有行為、且會引入新失敗模式，真正保證需靠隔離與測試驗證，非自動。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "change-intent",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.846,
+        "passed": 11,
+        "failed": 2,
+        "total": 13,
+        "time_seconds": 341.0,
+        "tokens": 264881,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (near): 出貨前庫存必做哪一步及原因",
+          "passed": true,
+          "evidence": "讀者答『先重新 reserve，因 dead-letter 時 release() 已還庫存並刪除 reservation』，與標準答案語意一致。"
+        },
+        {
+          "text": "probe 2 (counterfactual): 重出貨用新價還是原收據價、為何需人決定",
+          "passed": true,
+          "evidence": "讀者答『預設靜默用當下新價（重建走全新分支、process 一律用 snapshot），沿用原價需另存 Quote，屬待拍板人類決策』，完全命中。"
+        },
+        {
+          "text": "probe 3 (diagnosis): 連按兩次 force 會怎樣",
+          "passed": true,
+          "evidence": "讀者答『無去重/守衛 → 重複出貨（double-send），冪等是新決策』，涵蓋標準答案核心。"
+        },
+        {
+          "text": "probe 4 (decision): 列至少兩個未決事項",
+          "passed": true,
+          "evidence": "讀者列出定價基準、庫存不足處置、冪等、重建資料來源、並行、稽核等六項，超過兩項。"
+        },
+        {
+          "text": "probe 5 (retention): 可直接重用的既有元件",
+          "passed": true,
+          "evidence": "讀者答 dispatch() 重試狀態機 + inventory reserve + Receipt.status enum；命中兩大核心機器（reserve/dispatch），略缺 pricing.price 與 dead_letters 定位，但關鍵事實已涵蓋。"
+        },
+        {
+          "text": "probe 6 (repair, trap): 純新增就自動保證不改失敗語意？",
+          "passed": true,
+          "evidence": "讀者答『錯，必須改 dead-letter 路徑、失敗語意須刻意設計驗證非自動成立』，正確識破陷阱。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": false,
+          "evidence": "score=3，前兩句是證據邊界與 [inferred]/intent/read-only 元資訊，第三句才起頭且只說『有兩個非顯而易見重點』未列出，前三句無法獨立成答。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4，結論→現狀模型→決策清單→契約→情境→驗證的因果鏈組織良好；核心事實有 2-3 次重述但屬論點強化非形式化重複。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": false,
+          "evidence": "score=3，術語（[inferred]/intent/[observed]）雖首現即解釋，但需先讀完模式宣告與證據邊界兩段元資訊、結尾又附 Lens/Views 方法論頁腳，違反『接觸實質前不需先讀元資訊』。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，幾乎每條主張皆帶 [observed: file:line] 引用、引測試 test_pipeline.py:51-63/:61、以測試中 o-4(ANVIL×2) 為可執行情境，全部經核對屬實。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "covered 3/3：邊界1（釋放後被迫 re-reserve→總價可能≠原收據）於結論2+D3；邊界2（無去重、冪等新決策）於D4；邊界3（force 自身失敗語意須新定義）於結論2+D2+D5+D7。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽『刪後重建走全新分支且 reprice_required 維持 False』『process 從不讀 reprice_required』『send 單回合最多呼叫3次』；經 grep 與讀碼三條全對，0 wrong_flat。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "pipeline.py:61-67（dead-letter release+append{order_id,reason}+return）、inventory.py:77-91（還庫存+delete）、test_pipeline.py:51-63/:61（釋放+len==1）三處皆存在且支持該處主張。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "change-intent",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 13,
+        "failed": 0,
+        "total": 13,
+        "time_seconds": 196.6,
+        "tokens": 137592,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (near): 出貨前庫存必須先重新 reserve，因 dead-letter 已 release",
+          "passed": true,
+          "evidence": "讀者答『重新 reserve，因 release() 已退還+store.delete 刪除、無法重用』，與標準答案一致，並正確補上 choose_carrier 需 weight_g。"
+        },
+        {
+          "text": "probe 2 (counterfactual): 預設新價格，且為待決人類決策",
+          "passed": true,
+          "evidence": "讀者答『技術上是新價格（重抓當下 catalog 價），且明列為待人類拍板』，還指出原 Quote 未保存、reprice_required 不會亮——完全命中。"
+        },
+        {
+          "text": "probe 3 (diagnosis): 連按兩次→重複出貨風險（無去重層）",
+          "passed": true,
+          "evidence": "讀者答『二次獨立 reserve+dispatch、send 無 idempotency key、需 guard，行為未定』，與標準答案 double-shipment 一致。"
+        },
+        {
+          "text": "probe 4 (decision): 列出≥2 個隱含未決事項",
+          "passed": true,
+          "evidence": "讀者列 7 項（定價基準、force 冪等、重耗盡是否再 DLQ、是否複用 sleep 重試、回傳 status 相容、VersionConflict 收斂、稽核），遠超兩項。"
+        },
+        {
+          "text": "probe 5 (retention): 可直接重用的既有元件",
+          "passed": true,
+          "evidence": "讀者列 reserve()、dispatch()（含 choose_carrier）、dead_letters/inventory/send；命中標準答案 3/4 關鍵元件（僅未明列 pricing.price），涵蓋關鍵事實。"
+        },
+        {
+          "text": "probe 6 (repair, trap): 新函式不自動保證『不改變失敗語意』",
+          "passed": true,
+          "evidence": "讀者答『不對，必要非充分；重新 reserve 引進 InsufficientStock/VersionConflict 新失敗，process() 未接 RetryableError，須驗證既有測試不改仍過』——未落入陷阱。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=5，第3句即拋出主導全局的關鍵發現『reservation 進 DLQ 已被釋放並刪除，DLQ 只留 {order_id,reason}』，正確且可獨立成立。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，以『reservation 已消失』為因果主軸貫穿正確性→語意→定價→API→並行→測試→建議，交叉引用（見第3/6點）無重複形式化區塊。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，僅一句『我已讀完』即入正題，無方法論/選項報告；release()、reprice_required、DispatchExhausted 等術語首見即解釋。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，幾乎每條都錨定 file:line（pipeline.py:59-67 附程式碼、inventory.py:77-91/68-69、dispatch.py:38/61-63、errors.py:36）並點名兩個既有測試。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "covered 3/3：(1)reservation 已釋放→須重 reserve、重出貨總價可能≠原收據（intro+點8）；(2)send/dispatch 無去重、冪等是新決策（點1+點4）；(3)force 路徑自身失敗語意須新定義（點6+點7）。missed 無。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽 release()退還+delete、fresh reserve 之 reprice_required=False、VersionConflict 經 reserve 外拋（process 只接 FatalError）——三條皆與碼相符。另記一處非取樣的無害瑕疵：pipeline.py:41 send 實為 [str,object] 非 [str,Order]，不影響『無 idempotency key』之實質主張。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "抽 pipeline.py:59-67（snippet 與碼逐字相符）、inventory.py:77-91（release 加回庫存+delete）、dispatch.py:38（offshore→air）——三者皆存在且支持。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 9,
+      "eval_name": "doctor-detection",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 391.1,
+        "tokens": 336448,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "detect 1: concepts/ticket-routing.md status=canonical 但內文全為 [inferred]、無 [agreed]（未確認即 canonical）",
+          "passed": true,
+          "evidence": "報告『內容品質』段明確：『canonical 卻整份都是未確認 [inferred]』，逐條列出 hash 路由／碰撞退回 round-robin／VIP 跳過 triage 三條皆 inferred，指出把猜測當定案模型，建議走 promotion gate 逐條確認或 status 降回 draft。檔案與本質皆對。"
+        },
+        {
+          "text": "detect 2: mental/sessions/john-quiz-answers.md 個人測驗結果（分數/姓名/錯題）放在共享 mental/（隱私洩漏）",
+          "passed": true,
+          "evidence": "報告列為最優先『隱私邊界』：指出 Score 9/12、姓名 John、能力評語外洩到共享區，contract 不得把 personal answers/session history 放 mental/，並分析 .mental/.gitignore 只保護 .mental/、mental/ 會被 commit；修復為移入 .mental/sessions/ 或蒸餾。完全命中。"
+        },
+        {
+          "text": "detect 3: glossary.md frontmatter 缺必要 sources 欄位（結構違規）",
+          "passed": true,
+          "evidence": "報告『結構』段：『mental/glossary.md 缺 sources 欄位』，因其為 canonical 觸發 missing/非 list/canonical 無來源，建議補 sources 或降 draft。檔案已核對確無 sources 鍵。命中。"
+        },
+        {
+          "text": "detect 4: model/map.md 引用不存在的 [ghost-concept]（斷鏈／孤兒引用）",
+          "passed": true,
+          "evidence": "報告『ghost 概念／懸空引用』：引 map.md `triage -> [ghost-concept]: priority oracle`，指出無對應 concept artifact、glossary 未定義、無 source，建議建立 priority-oracle concept 或刪除該關係。命中。"
+        },
+        {
+          "text": "detect 5: scenarios/ticket-resolved.md updated_at(2026-07-01) 早於 src-code revision(2026-08-08)（來源比 artifact 新，stale）",
+          "passed": true,
+          "evidence": "報告『來源比 artifact 新 → scenario 可能過期』：直接比對 updated_at 2026-07-01 早於 src-code revision 2026-08-08，指出程式碼改過情境未回頭核對，建議重新驗證更新或標 status: stale。命中。"
+        },
+        {
+          "text": "detect 6: lenses/support-agent.md assumes 含能力貶抑身份判斷（不得編碼身份/能力評價）",
+          "passed": true,
+          "evidence": "報告 [error／語意] 段：引 assumes『the reader is not smart enough to follow code』，判為永久性能力／人身判斷而非角色知識假設，援引 lens 不得編碼 identity/permanent ability judgment，建議改寫成角色需求（如僅用 queue 工具、不讀 codebase）。命中。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 9,
+      "eval_name": "doctor-detection",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 240.1,
+        "tokens": 558924,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "detect 1: concepts/ticket-routing.md 是 canonical 卻全是 [inferred]、無任何 [agreed]（未經確認就 canonical）",
+          "passed": true,
+          "evidence": "報告 #6「Canonical 卻全是未確認推論」明確指出 status: canonical 但三條主張全部 [inferred]（含強主張 VIP bypass triage），並點出 draft promotion gate 被跳過、應改標 [agreed]/[observed] 或降回 draft。檔案與本質皆正確。"
+        },
+        {
+          "text": "detect 2: mental/sessions/john-quiz-answers.md 把具名個人測驗結果放在共享 mental/ 之下（隱私洩漏）",
+          "passed": true,
+          "evidence": "報告 #1 指出具名成績/能力判斷外洩到版控樹，路徑 mental/sessions/john-quiz-answers.md，並用 git ls-files 確認已被追蹤、.mental/.gitignore 管不到；引用合約『Never put personal answers... under mental/』，建議移到 .mental/sessions/。核對屬實（git 追蹤中）。"
+        },
+        {
+          "text": "detect 3: glossary.md frontmatter 缺必要的 sources 欄位（結構違規）",
+          "passed": true,
+          "evidence": "報告 #4『glossary.md 缺 required 欄位 sources』。核對檔案：frontmatter 確無 sources 欄位；worktree 驗證器會因此連報 missing required field 'sources'、'sources' must be a YAML list、canonical artifact has no sources。"
+        },
+        {
+          "text": "detect 4: model/map.md 引用不存在的 [ghost-concept]（斷鏈／孤兒引用）",
+          "passed": true,
+          "evidence": "報告 #9『Ghost-concept：懸空的關係目標』引出 map.md 第17行 triage -> [ghost-concept]，指出無對應 concept artifact，建議補 concept 或移除該關係。檔案與本質皆正確。"
+        },
+        {
+          "text": "detect 5: scenarios/ticket-resolved.md updated_at(2026-07-01) 早於 src-code revision(2026-08-08)（來源比 artifact 新，stale 風險）",
+          "passed": true,
+          "evidence": "報告 #7『來源版本比 artifact 新（可能 stale）』精確引用 updated_at: 2026-07-01 對比 src-code revision 2026-08-08，指出場景比程式碼舊逾一月，建議重對照後更新或標 stale。與 inventory 完全吻合。"
+        },
+        {
+          "text": "detect 6: lenses/support-agent.md 的 assumes 含能力貶抑的身份判斷（lens 不得編碼能力評價）",
+          "passed": true,
+          "evidence": "報告 #2 引出 assumes: - the reader is not smart enough to follow code，引用合約『must not encode a person's identity, protected traits, or a permanent ability judgment』與 lens 模板 Boundaries，判為被禁形態，建議改寫為角色需求。檔案與本質皆正確。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "review-hidden-decisions",
+      "configuration": "null_floor",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.333,
+        "passed": 2,
+        "failed": 4,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 核准的 timeout 變更是否被正確實作、大意為何",
+          "passed": false,
+          "evidence": "答「無法判斷」，僅描述通用做法，未指出 worker thread + join(2s) 逾時拋 CarrierTimeout 走重試路徑。"
+        },
+        {
+          "text": "probe 2 (decision): 列出 diff 中未經核准的變更",
+          "passed": false,
+          "evidence": "答「無法判斷」，純臆測，未具名四項植入變更中的任何一項（退避 200→50、上限 3→2、CarrierUnavailable 不再重試、Receipt 增 attempts）。"
+        },
+        {
+          "text": "probe 3 (counterfactual): CarrierUnavailable 時的行為與前後差異",
+          "passed": false,
+          "evidence": "答「無法判斷」，且猜測為「死信或丟棄」，與正解「逸出成未捕捉例外、無死信、預留未釋放」不符。"
+        },
+        {
+          "text": "probe 4 (counterfactual, trap): 抖動下死信率變好或變壞",
+          "passed": true,
+          "evidence": "主答『變壞』，並以「縮短／停用暫時性錯誤重試使暫時失敗永久化、推高死信率」為由，方向與機制大致正確且避開了陷阱答案。"
+        },
+        {
+          "text": "probe 5 (near): 全部嘗試失敗前的總退避等待",
+          "passed": false,
+          "evidence": "答「無法判斷」，未給出任何數值（正解為單次 50ms）。"
+        },
+        {
+          "text": "probe 6 (scope, trap): 是否動到 pricing 或稅務邏輯",
+          "passed": true,
+          "evidence": "主答『沒有』，理由為傳輸／可靠性層與計價模組分離，且未捏造任何 pricing 變更，符合正解。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "review-hidden-decisions",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.615,
+        "passed": 8,
+        "failed": 5,
+        "total": 13,
+        "time_seconds": 590.2,
+        "tokens": 714210,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): timeout 是否正確實作、大意為何",
+          "passed": true,
+          "evidence": "讀者完整描述 worker thread + join(2.0) + 逾時 raise CarrierTimeout + 走既有 retry，與標準答案(dispatch._send_with_timeout)一致。"
+        },
+        {
+          "text": "probe 2 (decision): 列出未核准的行為/介面變更",
+          "passed": false,
+          "evidence": "只點名 backoff 200→50 與 retry 集合縮窄(邊界1、3 = 2/4)，未指出 MAX 3→2 與 Receipt.attempts；pipeline.py 僅稱『改了什麼無法確認』。門檻需≥3。"
+        },
+        {
+          "text": "probe 3 (counterfactual): CarrierUnavailable 時發生什麼、與改前差異",
+          "passed": true,
+          "evidence": "逐點追蹤逃出 dispatch→逃出 process→未攔例外、不 dead-letter、reservation 不 release，並對比改前會 retry/乾淨死信，與標準答案吻合。"
+        },
+        {
+          "text": "probe 4 (counterfactual, trap): 抖動下死信率變好或變壞",
+          "passed": true,
+          "evidence": "答『變壞』並給 backoff 變短+Unavailable 改成崩潰之理由、點破『件數歸零』假象，避開『加了 timeout 就更好』陷阱。"
+        },
+        {
+          "text": "probe 5 (near): 全部失敗前的總退避(不含 jitter)",
+          "passed": true,
+          "evidence": "給出 50ms(單段退避、前提 2 次嘗試)，與標準答案 50ms 一致(雖 confidence 僅 45)。"
+        },
+        {
+          "text": "probe 6 (scope, trap): 是否動到 pricing/稅務",
+          "passed": true,
+          "evidence": "答『沒有』，指 pricing.py/inventory.py 未在改動清單；與 git status(僅 config/dispatch/pipeline)一致。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": false,
+          "evidence": "score=2，開頭前三句全是『I have everything I need / Bash is gated… / Here is the review』的工具與流程 meta，實際答案被埋到第二段。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": false,
+          "evidence": "score=3，因果鏈(F1 逃例外追蹤)清楚且服務主題，但同一組發現在『delta 條列/核准 vs 實際表格/F1-F3/決策意外』重複四次形式化區塊。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": false,
+          "evidence": "score=2，接觸機制前需先讀 meta 前言與『說明角度/內容切片/[observed]|[inferred]|[conflict]』方法論圖例。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，幾乎每條主張掛 file:line(config.py:10、dispatch.py:89、tests/test_pipeline.py:65-69)並含 backoff 代數推導與『唯一解 BASE==200』。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": false,
+          "evidence": "covered 2/4：揭露了最嚴重的 F1(CarrierUnavailable 崩潰)與 F2(backoff 200→50)；missed MAX 3→2(僅列為『待答問題』)與 Receipt.attempts(完全未提)。2/4 未達門檻。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽『dispatch.py:89 只接 CarrierTimeout→Unavailable 逃出不 release』『config.py:10=50 破 test_backoff(唯一解 200)』『2s timeout 未被測、死信測試用 raise CarrierTimeout』三條，核對程式碼全部成立(0 wrong_flat)。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "抽 dispatch.py:89、config.py:10、tests/test_pipeline.py:65-69 三處，皆存在且支持主張；僅『Only RetryableError is retried』標為 dispatch.py:5-6 實為 :3(同一 docstring，行號小誤)。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "review-hidden-decisions",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.923,
+        "passed": 12,
+        "failed": 1,
+        "total": 13,
+        "time_seconds": 157.3,
+        "tokens": 250484,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 核准 timeout 是否正確實作、做法為何",
+          "passed": true,
+          "evidence": "讀者答 worker thread + join(2s)、逾時丟 CarrierTimeout 走 retry、否則原樣 re-raise，並正確引 dispatch._send_with_timeout，與標準答案一致。"
+        },
+        {
+          "text": "probe 2 (decision): 列出未核准的行為/介面變更",
+          "passed": true,
+          "evidence": "讀者列全 4 項（except 收窄成 CarrierTimeout、MAX 3→2、BASE 200→50、Receipt 新增 attempts），達 >=3 門檻。"
+        },
+        {
+          "text": "probe 3 (counterfactual): CarrierUnavailable 的行為與改動前差異",
+          "passed": true,
+          "evidence": "答『不再 retry、逃出 dispatch 成 unhandled exception、不進 dead-letter』，涵蓋核心語意變更；未明講 reservation 未釋放，但關鍵事實齊全。"
+        },
+        {
+          "text": "probe 4 (counterfactual, trap): 抖動下死信率變好或變壞",
+          "passed": true,
+          "evidence": "答『變壞』並給正確理由（2 次嘗試、50ms 過短、Unavailable 直接崩潰繞過死信），未落入『加了 timeout 就更好』的陷阱。"
+        },
+        {
+          "text": "probe 5 (near): 全部嘗試失敗前的總退避等待",
+          "passed": false,
+          "evidence": "標準答案為 50ms；讀者只給『約 50–100ms、無法精確定論』未交付正確單一數值（confidence 28，屬誠實低估）。"
+        },
+        {
+          "text": "probe 6 (scope, trap): 是否動到 pricing/稅務",
+          "passed": true,
+          "evidence": "答『沒有』且未捏造 pricing 變更；git status 證實 pricing.py 未被修改。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=4，第 3 句結論即給出『timeout 已忠實實作但夾帶 4 項 out-of-scope』的正確獨立答案，惟前兩句為方法論前言略延遲 gist。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，結論→忠實部分→4 項偏離（各附 file:line 與因果）→次要隱憂→建議，因果鏈清晰、無重複形式化區塊。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4，僅一行方法論前言，無選項報告；CarrierUnavailable/CarrierTimeout/RetryableError 首次出現即以 errors.py 行號與語義解釋。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，幾乎每條主張連到 file:line（config/dispatch/errors/pipeline/test），並實算 backoff_ms(2)−200 轉負證明測試會 fail。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露埋藏邊界",
+          "passed": true,
+          "evidence": "covered 4/4（BASE 200→50、MAX 3→2、CarrierUnavailable 不再重試而逃逸、Receipt attempts），missed 0。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽 dispatch.py:89(except CarrierTimeout→Unavailable 逃逸)、errors.py:36(CarrierTimeout 為 RetryableError 子類)、test:65-69(base=50 使斷言轉負而 fail)，核對皆屬實，wrong_flat=0。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "dispatch.py:89 / errors.py:36 / tests/test_pipeline.py:65-69 三處皆存在且支持該處主張。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 8,
+      "eval_name": "review-subtle",
+      "configuration": "null_floor",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.0,
+        "passed": 0,
+        "failed": 5,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): 核准的 timeout 變更有被實作嗎？retry 次數與退避有被動過嗎？",
+          "passed": false,
+          "evidence": "答『無法判斷』，未給出 timeout 已實作或 retry 次數/退避不變的任何內容，依規則不通過。"
+        },
+        {
+          "text": "probe 2 (decision): diff 是否有超出核准範圍的行為變更？是什麼？",
+          "passed": false,
+          "evidence": "答『無法判斷』，未指出過廣的 except Exception 把非重試例外包成 CarrierTimeout，不通過。"
+        },
+        {
+          "text": "probe 3 (counterfactual): 改動後 send 丟 TypeError 會怎樣？改動前呢？",
+          "passed": false,
+          "evidence": "答『無法判斷』，未描述改動後被吞併重試至 dead-letter、改動前直接向上傳播的對比，不通過。"
+        },
+        {
+          "text": "probe 4 (repair, trap): 『完全符合 brief、無未核准變更』對嗎？",
+          "passed": false,
+          "evidence": "答『無法判斷』，未識破此說法錯誤（catch-all 改了重試語意），未拆穿陷阱，不通過。"
+        },
+        {
+          "text": "probe 5 (scope, trap): diff 有改 Receipt 欄位或 dead-letter 補償行為嗎？",
+          "passed": false,
+          "evidence": "答『無法判斷』，未答出 Receipt 與 dead-letter 補償皆未變動，不通過。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 8,
+      "eval_name": "review-subtle",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.833,
+        "passed": 10,
+        "failed": 2,
+        "total": 12,
+        "time_seconds": 510.7,
+        "tokens": 780724,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): timeout 有實作嗎？retry 次數/退避動過嗎？",
+          "passed": true,
+          "evidence": "讀者答 timeout 忠實實作(thread+join(2s)→CarrierTimeout)、MAX_DISPATCH_ATTEMPTS=3/backoff/jitter 未動；與標準答案完全相符。"
+        },
+        {
+          "text": "probe 2 (decision): 是否有超出核准範圍的行為變更？",
+          "passed": true,
+          "evidence": "讀者明確點出 dispatch.py:91-92 的 except Exception catch-all（把含 FatalError 的非 retryable 例外包成 CarrierTimeout 重試）——正是通過所需的具體點。"
+        },
+        {
+          "text": "probe 3 (counterfactual): send 丟 TypeError，改動前後如何處理？",
+          "passed": true,
+          "evidence": "讀者答 after=被 except Exception 吞→CarrierTimeout→重試3→dead-letter；before=只 except RetryableError、TypeError 直接往外拋。與程式碼靜態追蹤一致。"
+        },
+        {
+          "text": "probe 4 (repair, trap): 「完全符合 brief、無未核准變更」對嗎？",
+          "passed": true,
+          "evidence": "讀者答『不對』並歸因於 catch-all 未核准且違反 contract；正確識破 trap。"
+        },
+        {
+          "text": "probe 5 (scope, trap): 有改 Receipt 欄位或 dead-letter 補償嗎？",
+          "passed": true,
+          "evidence": "讀者答 Receipt 未改、補償機制未直接改（僅間接改變進入 dead-letter 的錯誤集合），未捏造變更；符合標準答案。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": false,
+          "evidence": "score=3，開頭前三句是 provenance meta 免責聲明（git/python 被 gate），真正的答案落在第四句（--- 後的摘要段），前三句無法獨立回答問題。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=4，因果鏈（機制→失敗語意→contract 衝突）連貫且服務主題；扣分因『決策意外』幾乎逐字複述 F1/F2、表格又重述 findings，形式化區塊互相重複。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": false,
+          "evidence": "score=3，接觸實質答案前須先讀 session 限制的 meta 前言；術語（CarrierTimeout 屬 RetryableError 等）雖首見即解釋，但前置 meta 觸犯『不需先讀元資訊』。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5，幾乎每條主張都錨定 file:line（config.py:12-13、dispatch.py:53-71/89-92、errors.py:36-37、pipeline.py:59-67、tests:51-63），核對後精準。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "covered 1/1：over-broad except Exception 打破『只有 RetryableError 會被重試』契約，於摘要、F1、表格、決策意外多處主動且顯著揭露。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽(A)catch-all→FatalError 重試+dead-letter、(B)最壞≈6.8s(3×2s+backoff 200-299/400-499)、(C)逾時 daemon thread 不取消續跑；三條皆與程式碼相符，0 wrong。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "dispatch.py:91-92、pipeline.py:59-67、config.py:12-13 三處皆存在且與所述主張精確吻合。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 8,
+      "eval_name": "review-subtle",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 12,
+        "failed": 0,
+        "total": 12,
+        "time_seconds": 179.7,
+        "tokens": 216976,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "probe 1 (retention): timeout 是否實作、retry 次數/退避是否被動過",
+          "passed": true,
+          "evidence": "讀者答 timeout 已實作(_send_with_timeout + join2s)、MAX_DISPATCH_ATTEMPTS 未動,backoff 誠實標為文中未明述;核心事實與標準答案(3/200ms 未變)一致。"
+        },
+        {
+          "text": "probe 2 (decision): 是否有超出核准的行為變更、是什麼",
+          "passed": true,
+          "evidence": "讀者精準指出 dispatch.py:91-92 的 except Exception 把非 RetryableError 包成 CarrierTimeout 重試,與標準答案要求的 catch-all 完全吻合。"
+        },
+        {
+          "text": "probe 3 (counterfactual): send 丟 TypeError 改動前後如何處理",
+          "passed": true,
+          "evidence": "讀者答改後被吞→CarrierTimeout→重試3次→dead-letter,改前立即上拋;與程式碼(改前僅 except RetryableError)完全一致。"
+        },
+        {
+          "text": "probe 4 (repair, trap): 「完全符合 brief」對嗎",
+          "passed": true,
+          "evidence": "讀者答『不對』並指 catch-all 為未核准的重試語義變更,未落入陷阱。"
+        },
+        {
+          "text": "probe 5 (scope, trap): 是否改 Receipt/dead-letter 補償",
+          "passed": true,
+          "evidence": "讀者答『沒有』,確認 Receipt 結構與補償邏輯未動、未捏造變更,僅正確補充流入 dead-letter 的錯誤種類被改變。"
+        },
+        {
+          "text": "gist: 開頭即可獨立成立的正確答案",
+          "passed": true,
+          "evidence": "score=5,開頭一句『2秒 timeout 正確實作但夾帶一個超範圍語義變更』即為正確且可獨立成立的答案,截斷組據此全題答對。"
+        },
+        {
+          "text": "coherence: 敘事連貫 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,結論→改動清單→合規部分→出入分析→次要風險→建議,因果連貫;except Exception 的重述屬分層(事實/分析/修法)非冗餘形式化區塊。"
+        },
+        {
+          "text": "overhead: 內容前無框架負擔 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,開篇即結論,無方法論/選項報告/元資訊前言;CarrierTimeout、FatalError、dead-letter 首次出現即被解釋。"
+        },
+        {
+          "text": "concreteness: 主張連結具體證據 (>=4/5)",
+          "passed": true,
+          "evidence": "score=5,每項主張綁 file:line(errors.py:36、dispatch.py:87/89/91-92、pipeline.py:61、test_pipeline.py:52-53),逐一核對全部屬實。"
+        },
+        {
+          "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+          "passed": true,
+          "evidence": "唯一埋藏邊界(over-broad except Exception 打破『只有 RetryableError 會被重試』契約)被主動且顯著揭露為核心結論,covered 1/1。"
+        },
+        {
+          "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+          "passed": true,
+          "evidence": "抽 CarrierTimeout∈RetryableError(errors.py:36)、真超時走 except RetryableError(dispatch.py:89)、Fatal 現重試3次後經 pipeline.py:61 dead-letter,三條全部屬實,wrong_flat=0。"
+        },
+        {
+          "text": "citations: 抽查引用存在且支持主張",
+          "passed": true,
+          "evidence": "抽查 errors.py:36 / dispatch.py:91-92 / pipeline.py:61 三處,檔案皆存在且內容支持該處主張。"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.828,
+        "stddev": 0.138,
+        "min": 0.615,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 428.54,
+        "stddev": 118.398,
+        "min": 309.7,
+        "max": 590.2
+      },
+      "tokens": {
+        "mean": 469833.8,
+        "stddev": 256528.525,
+        "min": 252906,
+        "max": 780724
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.969,
+        "stddev": 0.042,
+        "min": 0.923,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 222.34,
+        "stddev": 71.421,
+        "min": 157.3,
+        "max": 338.0
+      },
+      "tokens": {
+        "mean": 321209.4,
+        "stddev": 173707.938,
+        "min": 137592,
+        "max": 558924
+      }
+    },
+    "null_floor": {
+      "pass_rate": {
+        "mean": 0.458,
+        "stddev": 0.37,
+        "min": 0.0,
+        "max": 0.833
+      },
+      "time_seconds": {
+        "mean": 0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "-0.141",
+      "time_seconds": "+206.2",
+      "tokens": "+148624"
+    }
+  },
+  "v2_metrics": {
+    "with_skill": {
+      "probe_accuracy": 0.957,
+      "tier_accuracy": {
+        "counterfactual": 1.0,
+        "decision": 0.75,
+        "diagnosis": 1.0,
+        "near": 1.0,
+        "repair": 1.0,
+        "retention": 1.0,
+        "scope": 1.0
+      },
+      "trap_accuracy": 1.0,
+      "brier": 0.068,
+      "prefix25_accuracy": 0.87,
+      "boundary_coverage": 0.9,
+      "false_certainty_total": 0,
+      "extraneous_ratio": 0.278,
+      "altitude_implementation_share": null,
+      "lift_over_floor": 0.5,
+      "grader_agreement": 1.0
+    },
+    "without_skill": {
+      "probe_accuracy": 0.913,
+      "tier_accuracy": {
+        "counterfactual": 1.0,
+        "decision": 0.75,
+        "diagnosis": 1.0,
+        "near": 0.75,
+        "repair": 1.0,
+        "retention": 1.0,
+        "scope": 1.0
+      },
+      "trap_accuracy": 1.0,
+      "brier": 0.05,
+      "prefix25_accuracy": 0.696,
+      "boundary_coverage": 1.0,
+      "false_certainty_total": 0,
+      "extraneous_ratio": 0.114,
+      "altitude_implementation_share": null,
+      "lift_over_floor": 0.458,
+      "grader_agreement": 1.0
+    },
+    "null_floor": {
+      "probe_accuracy": 0.478,
+      "tier_accuracy": {
+        "counterfactual": 0.4,
+        "decision": 0.5,
+        "diagnosis": 1.0,
+        "near": 0.25,
+        "repair": 0.5,
+        "retention": 0.5,
+        "scope": 0.667
+      },
+      "trap_accuracy": 0.667,
+      "brier": 0.21,
+      "prefix25_accuracy": null,
+      "boundary_coverage": null,
+      "false_certainty_total": 0,
+      "extraneous_ratio": null,
+      "altitude_implementation_share": null,
+      "lift_over_floor": 0.0,
+      "grader_agreement": null
+    }
+  },
+  "notes": [
+    "with_skill: probes 0.957, lift over floor +0.500, traps 1.0, prefix25 0.87, Brier 0.068, boundaries 0.9, false-certainty 0, extraneous 0.278",
+    "without_skill: probes 0.913, lift over floor +0.458, traps 1.0, prefix25 0.696, Brier 0.05, boundaries 1.0, false-certainty 0, extraneous 0.114",
+    "null_floor: probe accuracy 0.478 (prior-knowledge floor; lower = harder to guess)"
+  ]
+}

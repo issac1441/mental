@@ -1,0 +1,144 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): A 最壞情況多等多久（不含 jitter）",
+      "passed": true,
+      "evidence": "讀者答 +2400ms（現況 200+400=0.6s → 5 次 200+400+800+1600=3.0s，多出第4、5次 backoff 800+1600），與標準答案一致。"
+    },
+    {
+      "text": "probe 2 (near): 哪個選項會讓哪個既有測試失敗、為什麼",
+      "passed": true,
+      "evidence": "讀者答 B 破壞 test_dead_letter_after_exhausted_retries_releases_stock（斷言 stock 回到 2）、行號 tests/test_pipeline.py:51-63 與 pipeline.py:62 皆正確，並指出 A 不破壞測試——與標準答案一致。"
+    },
+    {
+      "text": "probe 3 (counterfactual): B 且人工未處理，被保留庫存下場",
+      "passed": true,
+      "evidence": "讀者答永久鎖死/stranded，release() 為唯一回收點、TTL 只在同一單再次 reserve 才觸發 expired→重建，與標準答案一致。"
+    },
+    {
+      "text": "probe 4 (decision): 哪個選項引入新的待決策事項",
+      "passed": false,
+      "evidence": "讀者答『選項 A（先量測恢復時間分布）』，但標準答案是 B（死信保留的回收政策/重派如何複用保留），且 A 被明列為無新決策的低風險改動——選錯選項，判不通過。"
+    },
+    {
+      "text": "probe 5 (retention): A 對 Receipt 形狀或失敗語意是否有影響",
+      "passed": true,
+      "evidence": "失敗語意答對（A 不改變、只延後死信、無正確性風險）；Receipt 形狀因文件確實整篇未提『收據』而誠實標註未提、未做錯誤斷言——核心洞見到位，判通過（邊際）。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 提案是否要改 jitter 演算法",
+      "passed": true,
+      "evidence": "讀者答否，jitter 維持每單固定 0–99ms，並正確區分文末『替代建議（隨機化/加上限）』非提案內容——避開 trap。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=4，核心洞見『兩選項不解同一問題：A 降死信率、B 只改死信後回收成本』在第三行（標題+首 bullet）即成立且正確，但前兩句為 sandbox 免責與過場，略延遲 punchline。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，reframe→Option A（機制→誠實效果→代價→安全）→Option B（唯一 release→前提/雙扣→情境一二→額外代價→判決）→結論，因果鏈清楚、無互相重複的形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4，僅開頭一句 sandbox 方法論免責屬前置 meta；backoff/jitter/TTL/release 等術語首次出現即以公式與行號就地解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，主張皆綁定 dispatch.py:44-71、config.py:4/7、pipeline.py:62、inventory.py:64-71/77/111、tests/test_pipeline.py:51-63 及具體數字（0.6s→3.0s、WIDGET 10→7→4、ANVIL 2→0）。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3：B 破壞 dead_letter 測試、死信保留無自動回收（無回收路徑/永久 stranded、TTL 重建僅同一單再 reserve 且雙扣）、A 尾延遲 0.6s→3.0s(+2.4s)——皆主動揭露；missed 無。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽（1）release() 全專案唯一呼叫點 pipeline.py:62、（2）過 TTL 的 expired→_build 未先 release 即再扣庫存 inventory.py:64-71/111、（3）backoff=200*2^(attempt-2)+jitter0-99 dispatch.py:47-48——三條皆屬實，0 wrong_flat。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽 pipeline.py:62（self.inventory.release）、inventory.py:111（stock -= quantity）、tests/test_pipeline.py:51-63（斷言 stock==2）——三處皆存在且支持該處主張。"
+    }
+  ],
+  "scores": {
+    "gist": 4,
+    "coherence": 5,
+    "overhead": 4,
+    "concreteness": 5
+  },
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": false
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": false
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "boundary_coverage": {
+    "covered": [
+      "選項 B 改變死信補償語意→test_dead_letter_after_exhausted_retries_releases_stock 失敗（明列測試名與 51-63 行、斷言 stock 回到 2）",
+      "死信保留無自動回收機制：release 為唯一回收路徑、TTL 重建僅在同一單再次 reserve 時發生且會雙扣、B 無人工處理則永久 stranded",
+      "選項 A 代價為尾延遲：新增第4、5次前退避 800/1600ms，死信前阻塞 0.6s→3.0s（+2.4s，不含 jitter），最晚成功尾延遲 ~3.4s"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0,
+    "overhedged": 0,
+    "notes": "抽 3 條肯定斷言皆經程式碼核對為真：release() 唯一呼叫點 pipeline.py:62（grep 確認其餘僅 docstring/測試）；expired-rebuild 於 inventory.py:64-71 呼叫 _build 而未先 release、於 111 行再扣一次庫存（雙扣屬實）；backoff 公式 dispatch.py:47-48 屬實。無錯誤或無憑據斷言。反向記錄：開頭『execution was sandbox-blocked…not run empirically』對可由程式碼直接推導的數字（如情境一 10→7→4、情境二 2→0→InsufficientStock）略偏保守，但屬誠實免責且個別數字仍以肯定語氣+行號給出，不計為過度 hedging。"
+  },
+  "extraneous_ratio": 0.06
+}

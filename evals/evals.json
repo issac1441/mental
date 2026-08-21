@@ -1,0 +1,41 @@
+{
+  "skill_name": "understand",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "一筆訂單從進來到出貨，這個 codebase 是怎麼處理的？幫我理解整個流程。",
+      "expected_output": "A narrative, answer-first explanation of the orderflow pipeline (ingest -> reserve -> price -> dispatch) that transfers a predictive model: a reader with no code access can answer probes about stage order, why pricing follows reservation, the pre-discount free-shipping rule, the tax base, and the Receipt shape.",
+      "files": ["evals/fixtures/orderflow"],
+      "expectations": [
+        "A no-code-access reader answers the 5 probes in evals/cases/orderflow-trace.json correctly",
+        "The opening of the explanation alone answers the question correctly (gist)",
+        "The explanation is coherent, low-overhead, and concrete (rubric >=4/5 each)",
+        "Sampled file citations exist and support their claims"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "這個系統的庫存保留跟重試是怎麼運作的？什麼情況下一筆訂單會整個失敗？我想搞懂失敗的行為。",
+      "expected_output": "An explanation of orderflow failure semantics (retryable vs fatal errors, 3 dispatch attempts, dead-lettering with compensation, reservation expiry repricing) good enough for a no-code reader to answer the probes in evals/cases/orderflow-failure.json.",
+      "files": ["evals/fixtures/orderflow"],
+      "expectations": [
+        "A no-code-access reader answers the 5 probes in evals/cases/orderflow-failure.json correctly",
+        "The opening of the explanation alone answers the question correctly (gist)",
+        "The explanation is coherent, low-overhead, and concrete (rubric >=4/5 each)",
+        "Sampled file citations exist and support their claims"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "我剛接手這個 repo，幫我快速理解它的整體架構：各個部分是做什麼的、彼此怎麼協作？",
+      "expected_output": "An orientation of the mental plugin repository (skills as the interface, shared references, mental/ vs .mental/ split, helper scripts, contract tests) good enough for a no-code reader to answer the probes in evals/cases/mental-orientation.json.",
+      "files": [],
+      "expectations": [
+        "A no-code-access reader answers the 5 probes in evals/cases/mental-orientation.json correctly",
+        "The opening of the explanation alone answers the question correctly (gist)",
+        "The explanation is coherent, low-overhead, and concrete (rubric >=4/5 each)",
+        "Sampled file citations exist and support their claims"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "answer": "實際執行順序為:① ingest(驗證輸入)→ ② reserve(保留庫存,同時凍結單價快照)→ ③ price(計算價格)→ ④ dispatch(選承運商並出貨)。這四個階段由 Pipeline.process 固定、刻意排定,順序與題目所列一致。",
+    "confidence": 100
+  },
+  {
+    "id": 2,
+    "answer": "因為 price 只認 reservation 持有的凍結單價快照,而不認即時目錄。單價快照是在 reserve 這一步被凍結進 ReservedLine 的,所以必須先保留庫存拿到那份被凍結的快照,計價才有依據。若先算價再保留,計價就沒有凍結快照可用(等於用即時目錄),會失去『以保留當下的價格收費』這個設計保證。",
+    "confidence": 100
+  },
+  {
+    "id": 3,
+    "answer": "不用付運費(免運)。因為免運資格是用『折扣前』小計判定:折扣前小計 9,000 元 ≥ 免運門檻 8,000 元,所以免運。雖然折後的 6,300 元低於門檻,但判定基準是折扣前而非折後,因此仍符合免運資格。",
+    "confidence": 100
+  },
+  {
+    "id": 4,
+    "answer": "稅以『折後貨品小計』為基準計算(tax = round(折後貨品小計 × 0.05));運費不課稅——稅只加在折後貨品上,不加在運費上。",
+    "confidence": 100
+  },
+  {
+    "id": 5,
+    "answer": "呼叫端會拿到一個 Receipt 物件,status 為 'dispatched'。關鍵欄位有:status(結果狀態,此處為 dispatched)、carrier(選定的承運商,例如 'post')、total_cents(總價,以分為單位,例如 661500)。",
+    "confidence": 95
+  },
+  {
+    "id": 6,
+    "answer": "會受影響的是『折扣前小計低於免運門檻(8,000 元)』的訂單——它們原本要付運費,運費由 120 元改成 0 元後,總價會下降(減少該筆運費)。不受影響的是『折扣前小計 ≥ 8,000 元、原本就免運』的訂單,因為它們的運費本來就是 0,改設定不會改變結果。(備註:說明文件本身並未直接寫出『固定運費為 120 元』這個設定值,僅描述了免運規則;上述分界是依免運規則直接推得。)",
+    "confidence": 72
+  },
+  {
+    "id": 7,
+    "answer": "最可能的原因鏈:reservation 的冪等性與凍結單價只在 TTL(RESERVATION_TTL_SECONDS,120 秒)內有效;隔天遠超過 120 秒,舊的 reservation 已逾時,於是重新處理時會用『當前目錄價』重建 reservation(並標記 reprice_required),使凍結的單價快照改變;而 price 只吃 reservation 的快照,因此只要目錄單價在隔天之間有變動,重建後算出的總價就會不同。",
+    "confidence": 88
+  },
+  {
+    "id": 8,
+    "answer": "1) reservation 凍結的單價快照 → 影響 → price 算出的貨品小計與總價;2) 折扣前小計是否 ≥ 免運門檻(800000 分) → 影響 → 是否免運(運費為 0 或非 0);3) region 是否為 offshore、以及總重是否 ≤ 2000g → 影響 → choose_carrier 選 air/post/freight;4) send 拋出的例外型別(是否為 RetryableError) → 影響 → 是否重試以及最終結局(dispatched / dead_lettered / 非 Retryable 則穿透拋出);5) RESERVATION_TTL 是否逾時 → 影響 → reservation 是否用當前目錄價重建(單價快照與 reprice_required 旗標);6) 折後貨品小計 → 影響 → 稅額(× 0.05);7) dispatch 三次重試用盡(DispatchExhausted) → 影響 → 呼叫 release() 退回庫存 + 進死信佇列 + status='dead_lettered'。",
+    "confidence": 95
+  }
+]

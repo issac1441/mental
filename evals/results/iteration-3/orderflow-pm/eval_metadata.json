@@ -1,0 +1,18 @@
+{
+  "eval_id": 4,
+  "eval_name": "orderflow-pm",
+  "prompt": "我是這個產品的 PM，不懂程式。可以幫我理解這個訂單系統對客戶和營運來說是怎麼運作的嗎？特別是：出貨失敗、價格變動這些情況，客戶會遇到什麼？",
+  "assertions": [
+    "probe 1 (retention): 客戶的訂單什麼情況下可以免運費？",
+    "probe 2 (near): 如果出貨一直失敗，客戶那筆訂單最後會怎麼樣？系統會一直重試下去嗎？",
+    "probe 3 (near): 為什麼同一筆訂單，晚一點再處理價格可能會不一樣？",
+    "probe 4 (near, trap): 一筆原價 9,500 元、打折後實付 7,000 元的訂單，需要付運費嗎？（免運門檻 8,000）",
+    "probe 5 (decision): 行銷團隊提案：把免運門檻改成看「折扣後實付金額」。哪一群客戶會受影響？對他們的體驗是變好還是變差？",
+    "probe 6 (scope, trap): 這個系統支援分期付款嗎？",
+    "gist / coherence / overhead / concreteness (各 >=4/5)",
+    "boundaries: 主動揭露 >=2/3 埋藏邊界",
+    "calibration: 抽查肯定斷言 0 錯誤",
+    "citations: 引用存在且支持主張",
+    "altitude: implementation 段落 <= 10%"
+  ]
+}

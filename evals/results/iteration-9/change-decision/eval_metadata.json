@@ -1,0 +1,17 @@
+{
+  "eval_id": 5,
+  "eval_name": "change-decision",
+  "prompt": "我們想降低 carrier 抖動造成的死信率。兩個選項：A) 把最大出貨嘗試次數從 3 改成 5（退避基準不變）；B) 維持 3 次，但 dead-letter 之後「不釋放」庫存保留，讓人工重派時不用重新搶庫存。幫我比較兩個選項的實際效果和代價。",
+  "assertions": [
+    "probe 1 (near): 選項 A 在最壞情況下（全部嘗試都失敗）比現況多等多久？（不含 jitter）",
+    "probe 2 (near): 哪個選項會讓既有測試失敗？哪一個測試、為什麼？",
+    "probe 3 (counterfactual): 如果選了 B、而人工一直沒有處理死信訂單，被保留的庫存最後會怎樣？",
+    "probe 4 (decision): 哪個選項引入了新的待決策事項？是什麼？",
+    "probe 5 (retention): 選項 A 對收據（Receipt）形狀或失敗語意有影響嗎？",
+    "probe 6 (scope, trap): 這個提案有沒有要改 jitter 的演算法？",
+    "gist / coherence / overhead / concreteness (各 >=4/5)",
+    "boundaries: 主動揭露 >=2/3 埋藏邊界",
+    "calibration: 抽查肯定斷言 0 錯誤",
+    "citations: 引用存在且支持主張"
+  ]
+}

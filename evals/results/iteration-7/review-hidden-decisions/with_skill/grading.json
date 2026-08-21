@@ -1,0 +1,152 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): timeout 是否正確實作、大意為何",
+      "passed": true,
+      "evidence": "讀者完整描述 worker thread + join(2.0) + 逾時 raise CarrierTimeout + 走既有 retry，與標準答案(dispatch._send_with_timeout)一致。"
+    },
+    {
+      "text": "probe 2 (decision): 列出未核准的行為/介面變更",
+      "passed": false,
+      "evidence": "只點名 backoff 200→50 與 retry 集合縮窄(邊界1、3 = 2/4)，未指出 MAX 3→2 與 Receipt.attempts；pipeline.py 僅稱『改了什麼無法確認』。門檻需≥3。"
+    },
+    {
+      "text": "probe 3 (counterfactual): CarrierUnavailable 時發生什麼、與改前差異",
+      "passed": true,
+      "evidence": "逐點追蹤逃出 dispatch→逃出 process→未攔例外、不 dead-letter、reservation 不 release，並對比改前會 retry/乾淨死信，與標準答案吻合。"
+    },
+    {
+      "text": "probe 4 (counterfactual, trap): 抖動下死信率變好或變壞",
+      "passed": true,
+      "evidence": "答『變壞』並給 backoff 變短+Unavailable 改成崩潰之理由、點破『件數歸零』假象，避開『加了 timeout 就更好』陷阱。"
+    },
+    {
+      "text": "probe 5 (near): 全部失敗前的總退避(不含 jitter)",
+      "passed": true,
+      "evidence": "給出 50ms(單段退避、前提 2 次嘗試)，與標準答案 50ms 一致(雖 confidence 僅 45)。"
+    },
+    {
+      "text": "probe 6 (scope, trap): 是否動到 pricing/稅務",
+      "passed": true,
+      "evidence": "答『沒有』，指 pricing.py/inventory.py 未在改動清單；與 git status(僅 config/dispatch/pipeline)一致。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=2，開頭前三句全是『I have everything I need / Bash is gated… / Here is the review』的工具與流程 meta，實際答案被埋到第二段。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": false,
+      "evidence": "score=3，因果鏈(F1 逃例外追蹤)清楚且服務主題，但同一組發現在『delta 條列/核准 vs 實際表格/F1-F3/決策意外』重複四次形式化區塊。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": false,
+      "evidence": "score=2，接觸機制前需先讀 meta 前言與『說明角度/內容切片/[observed]|[inferred]|[conflict]』方法論圖例。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5，幾乎每條主張掛 file:line(config.py:10、dispatch.py:89、tests/test_pipeline.py:65-69)並含 backoff 代數推導與『唯一解 BASE==200』。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": false,
+      "evidence": "covered 2/4：揭露了最嚴重的 F1(CarrierUnavailable 崩潰)與 F2(backoff 200→50)；missed MAX 3→2(僅列為『待答問題』)與 Receipt.attempts(完全未提)。2/4 未達門檻。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽『dispatch.py:89 只接 CarrierTimeout→Unavailable 逃出不 release』『config.py:10=50 破 test_backoff(唯一解 200)』『2s timeout 未被測、死信測試用 raise CarrierTimeout』三條，核對程式碼全部成立(0 wrong_flat)。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽 dispatch.py:89、config.py:10、tests/test_pipeline.py:65-69 三處，皆存在且支持主張；僅『Only RetryableError is retried』標為 dispatch.py:5-6 實為 :3(同一 docstring，行號小誤)。"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": false
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": false
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": false
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 2.5,
+    "coherence": 3,
+    "overhead": 2,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "邊界1: BASE_RETRY_DELAY_MS 200→50 — F2 明確揭露，並用未修改的 test_backoff(唯一解 BASE==200)佐證會破測",
+      "邊界3: CarrierUnavailable 不再被 retry、逃出成未攔例外 — F1 明確揭露且完整追蹤到 reservation 洩漏"
+    ],
+    "missed": [
+      "邊界2: MAX_DISPATCH_ATTEMPTS 3→2 — 未主動揭露，只在『待答問題』把它列為疑問(config.py:7=2 其實可讀)",
+      "邊界4: Receipt 新增 attempts 欄位 — 完全未提；pipeline.py 改動被宣告為『無法確認/需要 diff』，但該檔可讀且 attempts 欄位已接到 result.attempts"
+    ]
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.26,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 8,
+    "failed": 5,
+    "total": 13,
+    "pass_rate": 0.615
+  },
+  "graders": 2
+}

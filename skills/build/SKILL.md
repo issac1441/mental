@@ -1,30 +1,29 @@
 ---
 name: build
-description: Advanced persistence skill that saves reusable, evidence-linked mental artifacts after an explanation or learning interaction proves worth preserving. Use when the user explicitly wants a durable repository or learning model, mechanical cache, custom lens, decision record, or conflict record; it is not required before understand or learn.
+description: Build draft, evidence-linked mental-model artifacts from a supplied repository, files, text, or URLs. Use to bootstrap mental artifacts, map an unfamiliar codebase or subject, create learning material, or define reusable role lenses. This skill may write drafts but must not make them canonical without explicit human confirmation.
 ---
 
 # Build
 
-Persist only the model that has earned its maintenance cost.
-
-## Input contract
-
-`[source-or-scope] [mode=repository|learning|hybrid] [language=<BCP-47-tag>]`
-
-The current repository is the default source when invoked from it. Otherwise use only supplied files, text, or URLs.
+Create the smallest model that improves prediction. Treat every new conceptual claim as a candidate until a human confirms it.
 
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md`. Read the relevant repository or learning workflow.
-2. Establish the source boundary. Fetch only user-supplied URLs and do not expand research scope.
-3. If `mental/` is absent, run `python3 ../../scripts/scaffold_workspace.py <workspace> --mode <mode> --language <language>` using absolute paths resolved from this skill directory.
-4. Inventory evidence and register stable source IDs with revision and access status.
-5. Persist a source-derived map, concept, contract, or scenario as `authority: mechanical` only when it can be stably regenerated from registered evidence. Record `refresh_basis` as `<source-id>@<revision>` and an `Evidence` section. Use `status: current` only when both are concrete and complete; otherwise use `stale` and expose the missing basis.
-6. Persist interpretive boundaries, teaching structures, custom lenses, or durable explanations as `authority: conceptual`, `status: draft`. Add empty activation fields from the template. Activate only after recording a typed verification basis from the artifact contract, checked non-empty success and failure or boundary predictions, known gaps, and linked conflicts; user assent alone is not evidence.
-7. Persist consequential choices only as `authority: decision` artifacts when recording is requested. Preserve options, owner, surfaced timing, reversibility, and history.
-8. Create a first-class `kind: conflict`, `status: open` artifact for every unresolved material mismatch. Never bury it in prose or rewrite one side.
-9. Build only artifacts that improve a future prediction, decision, repair, or source-navigation task. Do not target complete wiki coverage.
-10. Run `python3 ../../scripts/validate_workspace.py <workspace>`. Fix structural errors without inventing evidence or resolving conflicts.
-11. Present mechanical refresh results, conceptual drafts with verification requirements, recorded decisions, open conflicts, and maintenance cost. Stop without implementing repository code.
+1. Resolve references relative to this `SKILL.md`. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, and `../../references/writing-profile.md`. Read `../../references/repository-workflow.md` for repository mode or `../../references/learning-workflow.md` for learning mode.
+2. Establish the source boundary. The current repository is supplied when invoked from it; otherwise require files, text, or URLs from the user. Fetch only URLs the user supplied. Do not expand into autonomous web research.
+3. Choose `repository`, `learning`, or `hybrid` mode and follow the user's language. If `mental/` is absent, run the internal helper with an absolute workspace path:
 
-Use the conceptual activation gate from the methodology. Never overwrite decision history or downgrade an active artifact silently.
+   `python3 ../../scripts/scaffold_workspace.py <workspace> --mode <mode> --language <language>`
+
+   Resolve the script path from this skill directory. It is non-destructive and keeps existing files.
+4. Inventory evidence before modeling. Register stable source IDs in `mental/sources.md` with type, location, scope, revision, and access status.
+5. Build `mental/model/map.md` first, then only the concepts and scenarios needed to support it. Add mode-specific artifacts only when evidence exists.
+6. When the user asks for a reusable role-conditioned explanation, create a `kind: lens` draft under `mental/lenses/` from `../../assets/templates/lens.md`. Define `assumes`, `prioritizes`, `vocabulary`, and `default_views`; never encode identity or an inferred ability judgment.
+7. Mark direct claims `[observed]`, synthesis `[inferred]`, and mismatches `[conflict]`. Every created or materially changed artifact remains `status: draft`.
+8. Validate with `python3 ../../scripts/validate_workspace.py <workspace>`. Fix structural errors without hiding semantic conflicts.
+9. Present a promotion gate containing boundaries, key relationships, causal claims or invariants, one success scenario, one failure/counterexample, and known gaps. Stop for the human decision.
+10. On a later turn, promote only explicitly accepted artifacts to `canonical`, change accepted conceptual claims to `[agreed]`, preserve their evidence, and leave rejected or unresolved artifacts as draft or stale.
+
+## Output
+
+Summarize created or changed artifacts, source coverage, inferences needing a decision, conflicts, and the exact promotion choices. Do not implement repository code as part of this skill.

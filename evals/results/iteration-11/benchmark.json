@@ -1,0 +1,202 @@
+{
+  "metadata": {
+    "skill_name": "understand",
+    "skill_path": "skills/understand",
+    "executor_model": "claude-opus-4-8 (effort=max)",
+    "analyzer_model": "deterministic aggregate.py v2",
+    "timestamp": "2026-08-20T14:47:37+00:00",
+    "evals_run": [
+      "sync-drift"
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 10,
+      "eval_name": "sync-drift",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 405.5,
+        "tokens": 601712,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "detect 1: dispatch-retry.md 主張 MAX_DISPATCH_ATTEMPTS=3，實際 config.py 為 4",
+          "passed": true,
+          "evidence": "報告表格 #5 標 changed、明指 config.py:7 現為 =4，並於 D1 提出機械更新草案；核對 config.py:7 = 4、dispatch-retry.md:13 = 3，屬實。"
+        },
+        {
+          "text": "detect 2: pricing-totals.md [agreed] 免運以折扣前小計判定被折扣後程式反駁",
+          "passed": true,
+          "evidence": "報告 #10 + 衝突B + D4 標 contradicted、指 pricing.py:58 用 discounted（折扣後）判定，並給 $8500→$5950 失免運例；核對 pricing.py:58 `if discounted >= FREE_SHIPPING_THRESHOLD_CENTS`、canonical 為 [agreed] 折扣前，屬實。"
+        },
+        {
+          "text": "detect 3: pricing-totals.md 主張稅按折扣後計，程式改為折扣前計稅",
+          "passed": true,
+          "evidence": "報告 #9 + 衝突A + D3 指 pricing.py:56 對折扣前 subtotal 課稅、canonical 說先折後稅，給 $6000→多收$90 例；核對 pricing.py:56 `tax = round(subtotal * TAX_RATE)` 用未折扣 subtotal，屬實。分類用 contradicted 而非 inventory 的 changed，屬用詞差異，問題本質與檔位皆正確。"
+        },
+        {
+          "text": "detect 4: reservation.md 引用 RESERVATION_TTL_SECONDS 已更名為 RESERVATION_HOLD_SECONDS（值 120 不變）",
+          "passed": true,
+          "evidence": "報告 #12 + D2 明指已更名為 RESERVATION_HOLD_SECONDS=120（config.py:4），並反覆強調『值/行為不變，僅更名』、特別說明歸 changed 而非 removed，未誤判為行為漂移；核對 config.py:4 屬實，符合『須指出更名且不得誤判為行為層漂移』要求。"
+        },
+        {
+          "text": "detect 5: sources.md 的 doc-pricing-policy(./docs/pricing-policy.md) 不存在，應歸 unverifiable 且不擅找替代來源",
+          "passed": true,
+          "evidence": "報告 #11 + 衝突C + D5 + source delta 表標 unverifiable/access:missing、明言『保留為 gap、不擅自尋找替代來源充當依據』；核對整個 docs/ 目錄不存在，屬實且處置符合來源政策要求。"
+        },
+        {
+          "text": "conformance 1: 報告以提案/修正草案收尾並帶 Human Decision: pending，未宣稱已更新 canonical",
+          "passed": true,
+          "evidence": "全文為草案，開頭聲明『無寫檔權限…未建立或修改任何檔案；mental/ canonical 主張全部保持原狀』，change record 內含『## Human Decision: pending』，結尾『需要你決定』逐項待決、『canonical artifacts 一律不動』。符合。"
+        },
+        {
+          "text": "conformance 2: 被反駁的 [agreed] 免運主張以新舊並陳為待決衝突，保留 [agreed]、未直接覆寫",
+          "passed": true,
+          "evidence": "D4 並陳 canonical [agreed]（commerce team 2026-08-05 簽核）與 code(pricing.py:58) 對立，建議標 [conflict]、『保留 [agreed] 原文（絕不靜默降級為 [inferred]）』，並要求選『政策已改』時須 commerce team 重新簽核方可改寫。符合。"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 10,
+      "eval_name": "sync-drift",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 373.8,
+        "tokens": 215629,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "detect 1: dispatch-retry.md 主張最多 3 次 (MAX_DISPATCH_ATTEMPTS=3)，實際 config.py 為 4",
+          "passed": true,
+          "evidence": "報告 D1『重試上限 3→4』，明指 config.MAX_DISPATCH_ATTEMPTS = 4（config.py:7），且指出主張『at most 3』已錯。檔案位置與本質皆對。核對 config.py:7 = 4，屬實。"
+        },
+        {
+          "text": "detect 2: pricing-totals.md [agreed] 免運以折扣前小計判定被反駁，現以折扣後小計比較門檻",
+          "passed": true,
+          "evidence": "報告 P3『免運判定時機反轉』，指出 pricing.py:58 用折扣後 discounted 比較 FREE_SHIPPING_THRESHOLD_CENTS、大額折扣會失去免運，並引 docstring 規則4與 config.py:15-16 佐證。核對屬實，covered。"
+        },
+        {
+          "text": "detect 3: pricing-totals.md 主張稅按折扣後小計，實際以折扣前小計計稅",
+          "passed": true,
+          "evidence": "報告 P2『課稅基準反轉』，指出 tax=round(subtotal*TAX_RATE)（pricing.py:56）用折扣前 subtotal，config.py:12 註解『before any discount』。核對屬實。報告標 contradicted、inventory 標 changed，但本質一致，用詞差異不影響 covered。"
+        },
+        {
+          "text": "detect 4: reservation.md 的 RESERVATION_TTL_SECONDS 已更名 RESERVATION_HOLD_SECONDS 值仍120，屬引用失效非行為漂移",
+          "passed": true,
+          "evidence": "報告 R1『常數更名』，明言改名 RESERVATION_HOLD_SECONDS（config.py:4、inventory.py:41）、『值仍為120』『行為未變』，歸為 changed 而非行為漂移。核對屬實，未誤判為行為層面漂移，符合要求。"
+        },
+        {
+          "text": "detect 5: sources.md 的 doc-pricing-policy(./docs/pricing-policy.md) 不存在，應歸 unverifiable 且不找替代來源",
+          "passed": true,
+          "evidence": "報告 P4『佐證來源消失』標 unverifiable，指出 workspace 無 docs/ 目錄、找不到該檔，P4 仲裁依據無法執行；建議找回文件/與 commerce team 對齊，未自行以替代來源充當依據。核對 docs/ 確不存在，符合要求。"
+        },
+        {
+          "text": "conformance 1: 報告以提案/修正草案收尾並帶待人決定明示，未宣稱已直接更新 canonical",
+          "passed": true,
+          "evidence": "報告設『模型修正草案』與『建議動作』段，結尾明示『僅寫在回覆中，未建立或修改任何檔案』；對 P2/P3 標 needs-reconfirm、『不要標回 canonical』『與 commerce team 對齊再決定』『Do not adopt as canonical until confirmed』，構成等義的待人決定。三要件皆滿足。"
+        },
+        {
+          "text": "conformance 2: 對被反駁的 [agreed] 免運主張，新舊並陳為待決衝突、未以新行為覆寫舊主張作結",
+          "passed": true,
+          "evidence": "報告 P3 並陳舊 [agreed] 主張（含 2026-08-05 commerce team 確認）與新程式行為，明指『正好是主張的反面 / the OPPOSITE of the 2026-08-05 [agreed] guarantee』，草案標 needs-reconfirm 並要求對齊後再定，保留 [agreed] 存在且未直接覆寫。"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 405.5,
+        "stddev": 0.0,
+        "min": 405.5,
+        "max": 405.5
+      },
+      "tokens": {
+        "mean": 601712,
+        "stddev": 0.0,
+        "min": 601712,
+        "max": 601712
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 373.8,
+        "stddev": 0.0,
+        "min": 373.8,
+        "max": 373.8
+      },
+      "tokens": {
+        "mean": 215629,
+        "stddev": 0.0,
+        "min": 215629,
+        "max": 215629
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.000",
+      "time_seconds": "+31.7",
+      "tokens": "+386083"
+    }
+  },
+  "v2_metrics": {
+    "with_skill": {
+      "probe_accuracy": null,
+      "tier_accuracy": {},
+      "trap_accuracy": null,
+      "brier": null,
+      "prefix25_accuracy": null,
+      "boundary_coverage": 1.0,
+      "false_certainty_total": 0,
+      "extraneous_ratio": null,
+      "altitude_implementation_share": null,
+      "lift_over_floor": null,
+      "grader_agreement": 1.0
+    },
+    "without_skill": {
+      "probe_accuracy": null,
+      "tier_accuracy": {},
+      "trap_accuracy": null,
+      "brier": null,
+      "prefix25_accuracy": null,
+      "boundary_coverage": 1.0,
+      "false_certainty_total": 0,
+      "extraneous_ratio": null,
+      "altitude_implementation_share": null,
+      "lift_over_floor": null,
+      "grader_agreement": 1.0
+    }
+  },
+  "notes": [
+    "with_skill: probes None, boundaries 1.0, false-certainty 0",
+    "without_skill: probes None, boundaries 1.0, false-certainty 0"
+  ]
+}

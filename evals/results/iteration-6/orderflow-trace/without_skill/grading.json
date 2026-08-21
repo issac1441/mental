@@ -1,0 +1,176 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (retention): 四階段實際執行順序",
+      "passed": true,
+      "evidence": "讀者答 ingest→reserve→price→dispatch,與 pipeline.py Pipeline.process 逐行一致"
+    },
+    {
+      "text": "probe 2 (near): 為何計價排在庫存保留之後",
+      "passed": true,
+      "evidence": "答計價用 reservation 凍結的單價快照(ReservedLine.unit_price_cents)、非 raw order,故須先 reserve;命中關鍵事實"
+    },
+    {
+      "text": "probe 3 (near, trap): 9000→折30%→6300 是否付運費",
+      "passed": true,
+      "evidence": "答免運,依折扣前 9000≥8000 判定,避開 6300<8000 陷阱;符合 pricing.py 與 test_free_shipping_uses_pre_discount_subtotal"
+    },
+    {
+      "text": "probe 4 (retention): 稅基與運費是否課稅",
+      "passed": true,
+      "evidence": "答稅以折後小計計、運費不課稅;符合 pricing.py:55-60 及 config.TAX_RATE=0.05"
+    },
+    {
+      "text": "probe 5 (retention): 出貨後呼叫端拿到什麼",
+      "passed": true,
+      "evidence": "答 Receipt(status=dispatched, carrier, total_cents);符合 pipeline.py Receipt dataclass"
+    },
+    {
+      "text": "probe 6 (counterfactual): 固定運費 120→0 影響哪些訂單",
+      "passed": true,
+      "evidence": "答僅折扣前小計未達門檻者受影響、已免運者不變;正確組合 FLAT_SHIPPING 與折扣前門檻"
+    },
+    {
+      "text": "probe 7 (diagnosis): 隔天重算總價不同的原因鏈",
+      "passed": true,
+      "evidence": "答 TTL 120s 過期→用當前 catalog 重建→重新快照單價→型錄變動則總價變;完整命中 inventory.reserve"
+    },
+    {
+      "text": "probe 8 (edges): 列 ≥5 條 A→影響→B 因果",
+      "passed": true,
+      "evidence": "列 7 條(region/weight→carrier、折扣前小計→免運、快照→小計、TTL→重建、錯誤分類→重試、crc32→抖動)全部有效、0 杜撰"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=4,前三句點出『4 階段 sequential pipeline、核心 Pipeline.process』正確且獨立,但四階段名稱落在第三句 roadmap 之後、未進入前三句窗口"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,依實際 pipeline 順序敘事(總覽→逐段→貫穿概念→細節),無互相重複的形式化區塊"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,首句即實質內容,無方法論/選項前言;ReservedLine、reprice_required 等術語首見即解釋"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,全篇 file:line 引用+可驗證數值例($9000→$6615 對應測試)+對應測試名"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "3/3 全覆蓋:免運看折扣前(規則4)、快照計價非 raw+重建改價(總覽圖/Reserve/Price)、折扣不疊加(規則2)"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": true,
+      "evidence": "抽 backoff 公式 / 免運看折扣前 / reprice_required 未被 pipeline 讀取,三條經程式碼核對皆正確,wrong_flat=0"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "pipeline.py:44 process、pricing.py:48 price、inventory.py:54 reserve 均存在且精確支持該處主張"
+    }
+  ],
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    },
+    {
+      "id": 7,
+      "correct": true
+    },
+    {
+      "id": 8,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": false
+      },
+      {
+        "id": 4,
+        "correct": false
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": false
+      },
+      {
+        "id": 7,
+        "correct": false
+      },
+      {
+        "id": 8,
+        "correct": true
+      }
+    ]
+  },
+  "scores": {
+    "gist": 4,
+    "coherence": 5,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "boundary_coverage": {
+    "covered": [
+      "免運門檻檢查的是折扣前小計、折扣不影響運費資格(Price 段規則4 明文揭露)",
+      "計價讀 reservation 捕捉的單價快照、非 raw order/當前型錄,過期重建後總價可能改變(總覽圖+Reserve/Price 段+reprice 說明)",
+      "折扣不疊加,只取門檻達成中 priority 最高一條(Price 段規則2 明文揭露)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 0
+  },
+  "extraneous_ratio": 0.08,
+  "grader_agreement": 1.0,
+  "summary": {
+    "passed": 15,
+    "failed": 0,
+    "total": 15,
+    "pass_rate": 1.0
+  },
+  "graders": 2
+}

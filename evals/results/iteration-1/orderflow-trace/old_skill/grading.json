@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1: 四件事實際執行順序",
+      "passed": true,
+      "evidence": "讀者答 ingest/parse_order → reserve → price → dispatch,與標準答案(計價在保留後)完全一致,並引 pipeline.py。"
+    },
+    {
+      "text": "probe 2: 為何計價排在庫存保留之後",
+      "passed": true,
+      "evidence": "讀者指出計價讀 reservation 的單價快照(非原始 order),快照在保留庫存時建立,故計價須在其後——涵蓋 ReservedLine.unit_price 關鍵事實。"
+    },
+    {
+      "text": "probe 3: 折扣後是否付運費",
+      "passed": true,
+      "evidence": "讀者答免運,理由為免運看折扣前 subtotal 9000≥8000、折扣不影響資格,正確。"
+    },
+    {
+      "text": "probe 4: 稅基與運費是否課稅",
+      "passed": true,
+      "evidence": "讀者答稅以折後貨款為基準、5% 稅率、運費不課稅,與標準答案一致。"
+    },
+    {
+      "text": "probe 5: 成功出貨的回傳與關鍵欄位",
+      "passed": true,
+      "evidence": "讀者答 Receipt(status=\"dispatched\", carrier, total_cents),涵蓋標準答案關鍵欄位。"
+    },
+    {
+      "text": "gist: 開頭即給出可獨立成立的正確答案",
+      "passed": false,
+      "evidence": "score=2:開頭三句為「我已讀完 SKILL.md…」「依 understand skill response contract 回答」與 Context 元資訊,未直接回答流程;真正答案要到 Map 段才出現。"
+    },
+    {
+      "text": "coherence: 敘事連貫、組織服務主題 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4:Map→Mechanism→Scenario 沿 pipeline 四段流程與因果鏈展開,連貫;雖有少量重複(免運前/折扣點多次出現)但整體服務主題。"
+    },
+    {
+      "text": "overhead: 內容之前無元資訊/框架負擔 (>=4/5)",
+      "passed": false,
+      "evidence": "score=2:進入實質 Map 前須先讀兩段 process meta + 完整 Context(Lens/Views/Detail/不確定性)+ [observed]/[inferred]/$build 方法論說明,框架負擔沉重。"
+    },
+    {
+      "text": "concreteness: 主張連結到具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5:幾乎每項主張附精確 file:line(pipeline.py:44、pricing.py:48、config.py 等),另有 Evidence 段與具體數字($6615/661500)與測試引用。"
+    },
+    {
+      "text": "citations: 抽查的檔案引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽查 pipeline.py(process/Receipt/stage 順序)、pricing.py(讀 reservation 快照、稅基折後、免運看折扣前)、test_pipeline.py(免運前折扣測試、happy path 661500、dead-letter 還原庫存)——三者皆存在且完全支持所引主張。"
+    }
+  ],
+  "scores": {
+    "gist": 2,
+    "coherence": 4,
+    "overhead": 2,
+    "concreteness": 5
+  },
+  "probe_summary": {
+    "correct": 5,
+    "total": 5
+  },
+  "summary": {
+    "passed": 8,
+    "failed": 2,
+    "total": 10,
+    "pass_rate": 0.8
+  }
+}

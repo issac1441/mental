@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "有,核准的 2 秒 timeout 正確實作。作法:config 新增 CARRIER_SEND_TIMEOUT_SECONDS = 2.0;dispatch.py 新增 _send_with_timeout,把 send 丟進一條 daemon thread 後 join(2.0),若 2 秒後 thread 仍存活就 raise CarrierTimeout,否則把 send 自己拋的例外原樣重拋;主流程改呼叫 _send_with_timeout 取代直接 send。逾時→CarrierTimeout→進既有 retry 迴圈→耗盡後 DispatchExhausted→pipeline release+dead-letter。說明明確指出這條路徑符合核准內容。",
+    "confidence": 95
+  },
+  {
+    "id": 2,
+    "answer": "說明列出三項未核准改動(Decision Surprises):(1) retry 可接的錯誤集合被縮窄——catch 從推定的 except RetryableError 改成只 except CarrierTimeout,把 CarrierUnavailable 踢出 retry;(2) BASE_RETRY_DELAY_MS 由 200 降到 50,使 backoff 變快;(3) 動到 out-of-scope 的 pipeline.py(該檔擁有 receipts 與 dead-letter 行為),但實際改了什麼無法用靜態分析確認。附帶:dispatch/errors/pipeline 的 docstring 仍宣稱所有 RetryableError 都會 retry,與新程式碼矛盾(F4),屬 (1) 的衍生。",
+    "confidence": 90
+  },
+  {
+    "id": 3,
+    "answer": "改動後:send 拋 CarrierUnavailable→_send_with_timeout 原樣重拋→retry 迴圈只接 CarrierTimeout 故接不到→逃出 dispatch()→pipeline.process 只接 DispatchExhausted 故也接不到→成為未處理例外逃出 process()。後果:不 retry、不 dead-letter、reservation 不會 release(庫存與價格快照卡到 120 秒 TTL 才釋放),呼叫端拿到例外而非 receipt。改動前(依契約推定 base catch 為 except RetryableError,且 CarrierUnavailable 是 RetryableError 子類):會被 retry,持續失敗則乾淨 dead-letter、release reservation、回 receipt。差異:由『可 retry/可恢復/最差也乾淨死信』退化為『直接崩潰且庫存洩漏』。after 為直接追蹤,before 為契約推定。",
+    "confidence": 80
+  },
+  {
+    "id": 4,
+    "answer": "變壞。brief 想降低抖動衝擊,但此 diff 讓暫時性抖動處理更差:(a) 以 CarrierUnavailable 呈現的暫時 5xx 現在完全不再被 retry,也不進 dead-letter,而是變未處理例外並洩漏庫存——連乾淨死信都做不到,更失去 retry 恢復機會;(b) backoff 由 200 降到 50,retry 擠得更近,transient 狀況來不及自癒就耗盡嘗試,傾向拉高 CarrierTimeout 類的死信率。提醒:若只數死信件數,CarrierUnavailable 那類反而歸零(因改成崩潰而非死信),會造成看似變好的假象,實際可靠度變差。",
+    "confidence": 70
+  },
+  {
+    "id": 5,
+    "answer": "依說明的失敗路徑走查(attempt 1 逾時→退避→attempt 2 逾時→DispatchExhausted),只有一段退避,即 backoff_ms(2)=BASE=50ms,故總退避約 50ms(不含 jitter)。但 MAX_DISPATCH_ATTEMPTS 的確切值說明未明列(且被列為待確認);若嘗試次數多於 2,總退避會按倍增(50+100+200+…)增加。最有把握的單一數字為 50ms(前提是 2 次嘗試)。",
+    "confidence": 45
+  },
+  {
+    "id": 6,
+    "answer": "沒有。說明明確指出 pricing.py(與 inventory.py)不在改動清單(標為未改)。稅務邏輯說明完全未提及,也無任何稅務相關檔案;已知改動僅涉及 config.py、dispatch.py、pipeline.py,均與 pricing/稅務無關,故無證據顯示動到 pricing 或稅務。",
+    "confidence": 82
+  }
+]

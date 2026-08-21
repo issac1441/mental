@@ -1,0 +1,149 @@
+{
+  "expectations": [
+    {
+      "text": "probe 1 (near): 出貨前庫存必須先做哪一步、為什麼",
+      "passed": true,
+      "evidence": "讀者答『先重新 reserve,因 dead-letter 已 release、reservation record 被 store.delete 刪除』==標準;經 pipeline.py:62 + inventory.py:77-91 核實。"
+    },
+    {
+      "text": "probe 2 (counterfactual): 重寄價格是原價還是新價、為何需人決定",
+      "passed": true,
+      "evidence": "讀者答『新價:重建快照抓現價、pricing 讀快照;honor 原收據價需人拍板』==標準;附帶的 reprice_required=True 為小瑕疵,不影響結論正確。"
+    },
+    {
+      "text": "probe 3 (diagnosis): 連按兩次會怎樣",
+      "passed": true,
+      "evidence": "讀者答『重複出貨:send 無冪等鍵、去重未決』==標準;經 dispatch.py:65 send(carrier,order) 無去重核實。"
+    },
+    {
+      "text": "probe 4 (decision): 列至少兩個隱含未決事項",
+      "passed": true,
+      "evidence": "讀者列 6 項(窄/廣義失敗語意、重建來源、改價/InsufficientStock、去重、DLQ 移除/回傳型別/權限…),遠超 2 項且落在標準集合內。"
+    },
+    {
+      "text": "probe 5 (retention): 可直接重用的既有元件",
+      "passed": true,
+      "evidence": "讀者指 dispatch()(原封不動)、reserve→price→dispatch 流程本身、_put_with_retry;涵蓋標準三核心元件 reserve/price/dispatch。"
+    },
+    {
+      "text": "probe 6 (repair, trap): 新函式就自動保證不改失敗語意?",
+      "passed": true,
+      "evidence": "讀者答『錯,只在 dispatch 窄義成立;lifecycle 必破、出現 InsufficientStock 這種原不存在的非-retryable 新失敗』==標準 WRONG。"
+    },
+    {
+      "text": "gist: 開頭即可獨立成立的正確答案",
+      "passed": true,
+      "evidence": "score=5,前三句即交代 re-reserve 被迫重建、重定價、send 無冪等鍵可重出貨、dispatch() 可原封重用、lifecycle 必破,對問題完整且自足。"
+    },
+    {
+      "text": "coherence: 敘事連貫 (>=4/5)",
+      "passed": true,
+      "evidence": "score=4,主體『現況→模型變化→決策→驗證路徑』因果連貫;僅結尾『Human Decision: pending』重複決策段、外加 lens/views meta 區塊,故扣 1。"
+    },
+    {
+      "text": "overhead: 內容前無框架負擔 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,首句即進入實質,meta(engineer lens/views/record)置於文末不阻讀;reservation/release 等術語首次出現即以 store.delete、還庫存解釋。"
+    },
+    {
+      "text": "concreteness: 主張連結具體證據 (>=4/5)",
+      "passed": true,
+      "evidence": "score=5,幾乎每條主張帶 file:line(pipeline.py:62-66、inventory.py:77-91、dispatch.py:55、inventory.py:127-137)與具名測試/常數,可核。"
+    },
+    {
+      "text": "boundaries: 說明主動揭露 >=2/3 個埋藏邊界",
+      "passed": true,
+      "evidence": "covered 3/3:釋放後重出貨總價可能≠原收據、send/dispatch 層無去重致重複出貨、force 路徑自身失敗語意須新定義,均由 opening+決策段主動揭露。"
+    },
+    {
+      "text": "calibration: 抽查 3 條肯定斷言 0 條錯誤",
+      "passed": false,
+      "evidence": "抽 3 條:①釋放+entry 僅存 order_id/str(reason)=正確;②send 無冪等鍵/無去重=正確;③『重建時設 reprice_required=True』=錯(force 路徑走 _build,值為 False;True 僅在 inventory.py:69 過期分支)。wrong_flat=1。"
+    },
+    {
+      "text": "citations: 抽查引用存在且支持主張",
+      "passed": true,
+      "evidence": "抽 pipeline.py:62-66 / inventory.py:77-91 / dispatch.py:55 均存在且支持;config.py:6、pipeline.py:56 為 off-by-one,指向緊鄰的註解行、內容仍正確。"
+    }
+  ],
+  "scores": {
+    "gist": 5,
+    "coherence": 4,
+    "overhead": 5,
+    "concreteness": 5
+  },
+  "probe_results": [
+    {
+      "id": 1,
+      "correct": true
+    },
+    {
+      "id": 2,
+      "correct": true
+    },
+    {
+      "id": 3,
+      "correct": true
+    },
+    {
+      "id": 4,
+      "correct": true
+    },
+    {
+      "id": 5,
+      "correct": true
+    },
+    {
+      "id": 6,
+      "correct": true
+    }
+  ],
+  "prefix_results": {
+    "0.25": [
+      {
+        "id": 1,
+        "correct": true
+      },
+      {
+        "id": 2,
+        "correct": true
+      },
+      {
+        "id": 3,
+        "correct": true
+      },
+      {
+        "id": 4,
+        "correct": true
+      },
+      {
+        "id": 5,
+        "correct": true
+      },
+      {
+        "id": 6,
+        "correct": true
+      }
+    ]
+  },
+  "boundary_coverage": {
+    "covered": [
+      "死信釋放保留→force 須重新 reserve→重出貨總價可能≠原收據(opening + 決策3 + 失敗路徑『總價可能與原單不同』)",
+      "dispatch/send 層無去重→force 重複呼叫會重複出貨、冪等性是新決策(opening『send 沒有冪等鍵』+ 決策4『我無法保證…以現況它會』)",
+      "『不改失敗語意』無法自動保證,force 路徑自身失敗語意須新定義(opening dispatch 窄義 vs lifecycle 廣義 + 決策1 + 失敗路徑列 InsufficientStock/再次 DispatchExhausted)"
+    ],
+    "missed": []
+  },
+  "false_certainty": {
+    "sampled": 3,
+    "wrong_flat": 1,
+    "overhedged": 1,
+    "notes": "①『dead-letter 當下 release、entry 僅存 {order_id, str(last_error)} 且型別丟失』→核實正確(pipeline.py:62-65、inventory.py:91)。②『send 無冪等鍵、dispatch/send 層無去重』→核實正確(dispatch.py:55 簽章、:65 send(carrier,order))。③『重 reserve 時設 reprice_required=True』→wrong_flat:force 路徑因 release()→store.delete(),後續 reserve() 走 _build 全新分支得 reprice_required=False(預設);=True 僅在 inventory.py:69 過期-仍存在重建分支;惟其結論(靜默改新價)仍成立,屬支撐細節錯置。overhedged:決策4 把可直接觀察的事實『send 沒有冪等鍵』標為 [inferred](應為 [observed]);另『CarrierTimeout 最常見的原因』為無數據支撐的頻率語(僅記,未列為抽樣三條)。",
+    "sampled_assertions": [
+      "dead-letter 釋放 reservation 且 entry 僅存 order_id/str(reason) — 正確",
+      "send 無冪等鍵、無去重 — 正確",
+      "重 reserve 設 reprice_required=True — 錯(實為 False)"
+    ]
+  },
+  "extraneous_ratio": 0.13
+}

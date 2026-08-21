@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "answer": "有，說明明確把它列為「忠實實作／符合核准範圍」。做法：config.py:13 新增常數 CARRIER_SEND_TIMEOUT_SECONDS = 2.0；dispatch.py:53-71 新增 _send_with_timeout()，用 daemon thread 搭配 join(timeout) 等待，逾時丟出 CarrierTimeout，未逾時則把原始例外原樣 re-raise；dispatch.py:87 把原本的 send(...) 換成 _send_with_timeout(...)。說明指出這三項就足以滿足 brief。",
+    "confidence": 95
+  },
+  {
+    "id": 2,
+    "answer": "說明指出 diff 夾帶了 4 項 brief 明確列為 out of scope 的改動，其中一項是不會被現有測試抓到的真正行為 regression、另一項會直接讓現有測試 fail。但文件正要逐項列出這些 out-of-scope 改動時就被截斷（停在「## 跟核准內容的出入（皆為 out」），因此具體是哪 4 項，說明中沒有提到，無法從可見內容列出。",
+    "confidence": 75
+  },
+  {
+    "id": 3,
+    "answer": "說明沒有直接描述 CarrierUnavailable 的完整處理流程。可直接推論者：_send_with_timeout 對「非逾時」例外是把原始例外原樣 re-raise，所以若 carrier 在 2 秒內丟出 CarrierUnavailable（非 timeout），wrapper 會原樣往外拋，在 wrapper 這層與改動前沒有差別。但後續是否重試、是否進死信，以及改動前後的整體差異，牽涉到未在可見內容出現的 retry 邏輯與被截斷未列出的 4 項 out-of-scope 改動，說明中沒有提到，無法判定。",
+    "confidence": 40
+  },
+  {
+    "id": 4,
+    "answer": "無法從可見內容判定。brief 目標是降低抖動影響，說明也提到 diff 含一項「不會被測試抓到的真正行為 regression」，但文件在列出 out-of-scope 改動與該 regression 細節之前即被截斷，且可見內容完全未提到「死信率」如何變化，因此變好或變壞，說明中沒有提到。",
+    "confidence": 68
+  },
+  {
+    "id": 5,
+    "answer": "說明中沒有提到。可見內容只提到 2.0 秒的 send timeout，完全沒有描述重試次數、退避（backoff）排程或任何退避數值，因此無法計算全部嘗試失敗前的總退避等待。",
+    "confidence": 85
+  },
+  {
+    "id": 6,
+    "answer": "可見內容中沒有提到任何 pricing 或稅務邏輯的改動；所有被描述的改動都只與 carrier send timeout 有關（config.py 的 timeout 常數、dispatch.py 的 _send_with_timeout 與其呼叫點）。但 4 項 out-of-scope 改動在文件截斷處未逐一列出，故無法完全排除；就可見內容而言，沒有證據顯示動到 pricing 或稅務。",
+    "confidence": 60
+  }
+]
