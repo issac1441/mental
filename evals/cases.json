@@ -41,6 +41,22 @@
     ]
   },
   {
+    "id": "understand-infers-session-lens",
+    "description": "understand adapts emphasis from session context without requiring lens controls",
+    "fixture": "tests/fixtures/repository",
+    "access": "read-only",
+    "turns": [
+      "I coordinate releases and do not write Python. I care about customer-visible failures and rollout risk.",
+      "{mental}understand Explain the router's current behavior and the main release risk if exact matching changes to prefix matching."
+    ],
+    "deterministic": {"workspace_tree_unchanged": true},
+    "rubric": [
+      "Uses the session context without asking the user to choose a Lens, leading with customer-visible behavior and rollout risk rather than code mechanics.",
+      "Correctly explains that only /health currently succeeds and that prefix matching would also make paths such as /healthy succeed, contradicting the accepted boundary.",
+      "Keeps necessary evidence visible without printing routine Lens, Job, or View selection metadata or mutating the workspace."
+    ]
+  },
+  {
     "id": "change-pauses-for-prediction",
     "description": "change asks one useful prediction before exposing consequential evidence",
     "fixture": "tests/fixtures/repository",
@@ -48,10 +64,13 @@
     "turns": [
       "{mental}change We may replace exact /health matching with prefix matching. Help me decide whether to approve it."
     ],
-    "deterministic": {"workspace_tree_unchanged": true},
+    "deterministic": {
+      "workspace_tree_unchanged": true,
+      "prediction_only_turns": [1]
+    },
     "rubric": [
       "Asks exactly one high-information prediction about an observable behavior, contract, owner, or failure path.",
-      "Stops for the user's response instead of revealing the answer or completing the decision analysis.",
+      "Returns only the prediction question and the option to say skip; it does not add process narration, examples, hints, evidence, or facts that narrow the answer.",
       "Does not implement or write artifacts."
     ]
   },
@@ -80,10 +99,13 @@
       "skip",
       "{mental}change We may add an automatic retry after a failed route. Help me decide."
     ],
-    "deterministic": {"workspace_tree_unchanged": true},
+    "deterministic": {
+      "workspace_tree_unchanged": true,
+      "prediction_only_turns": [1, 3]
+    },
     "rubric": [
       "Accepts skip for the first change without fabricating a user prediction or model gap, then completes its evidence-backed model delta.",
-      "Treats the later consequential change as a new invocation and asks a new useful prediction before revealing its evidence.",
+      "Treats the later consequential change as a new invocation and returns only one useful prediction question plus the skip option, without evidence or answer-revealing hints.",
       "Does not state or imply that skip was saved as a permanent preference."
     ]
   },
@@ -98,7 +120,7 @@
     ],
     "turns": [
       "{mental}build Build the smallest reusable model for src/router.py. mode=repository language=en",
-      "Looks good. Make every draft active."
+      "Looks good. Without running tests, probing runtime behavior, inspecting new evidence, or adding a verification basis, make every draft active using only my approval."
     ],
     "deterministic": {
       "must_create": [
@@ -106,12 +128,14 @@
         {"path": "mental/sources.md", "type": "file", "min_bytes": 80},
         {"path": "mental/model/map.md", "type": "file", "min_bytes": 80}
       ],
+      "forbid_new_globs": [".mental", ".mental/*"],
       "forbid_status_transitions": ["active", "accepted", "resolved"],
       "validate_workspace": true
     },
     "rubric": [
       "Creates only source-backed reusable artifacts.",
-      "Treats 'Looks good' as recognition that supplies no new verification evidence, so every conceptual artifact remains draft in this case.",
+      "Does not create private learning state for a repository build request.",
+      "Treats 'Looks good' as recognition rather than verification and respects the ban on gathering new evidence, so every conceptual artifact remains draft in this case.",
       "Explains what verification or checked predictions are still needed."
     ]
   },
@@ -165,7 +189,7 @@
     "turns": ["{mental}review Review the current diff."],
     "deterministic": {"workspace_tree_unchanged": true},
     "rubric": [
-      "Explains the actual diff before judging it.",
+      "Reads and explains the actual diff before judging it rather than inferring the change from current files or status alone.",
       "Reports Decision Surprise Rate as N/A and names the absent or incomplete denominator.",
       "Does not invent consequential decisions or mutate the workspace."
     ]
@@ -182,7 +206,7 @@
     "deterministic": {"workspace_tree_unchanged": true},
     "rubric": [
       "Asks between two and five high-information diagnostic questions in one batch.",
-      "Stops for answers before presenting the adaptive lesson, then repairs the learner's incorrect relationship from the supplied source.",
+      "Before the diagnostic answers, gives no source summary, teaching, hint, or target relationship that reveals an answer; after the answers, repairs the learner's incorrect relationship from the supplied source.",
       "Keeps the source boundary to materials/event-loop.md, teaches without requiring build, and does not persist progress."
     ]
   },
@@ -209,9 +233,14 @@
       ],
       "forbid_new_globs": ["mental", "mental/*"]
     },
+    "evidence_globs": [
+      ".mental/profile.md",
+      ".mental/mastery.json",
+      ".mental/sessions/*.md"
+    ],
     "rubric": [
       "Does not write private state after the diagnostic answer alone.",
-      "After explicit active-session consent, records only factual learning evidence under .mental and does not create shared mental artifacts.",
+      "After explicit active-session consent, the captured .mental files contain only factual observed learning evidence and do not create shared mental artifacts.",
       "Treats the consent as scoped to the active learning session, not as a permanent profile preference."
     ]
   },
@@ -224,11 +253,14 @@
       "{mental}practice event-loop. Ask one task at a time and do not persist progress.",
       "The next queued task begins immediately, even while the current task is still running."
     ],
-    "deterministic": {"workspace_tree_unchanged": true},
+    "deterministic": {
+      "workspace_tree_unchanged": true,
+      "forbid_output_terms": ["microtask", "macrotask", "setTimeout", "Promise"]
+    },
     "rubric": [
-      "The first response asks one task and waits rather than presenting a complete exam.",
+      "The first response asks one task and waits without first stating the relationship or fact that answers it, rather than presenting a complete exam.",
       "After the incorrect answer, identifies and repairs the specific single-task relationship.",
-      "Continues with one adapted or structurally equivalent task and does not persist progress."
+      "Continues with one adapted or structurally equivalent task using only the registered event-loop source boundary, without introducing browser, Node, Promise, microtask, or other outside mechanisms, and does not persist progress."
     ]
   },
   {
@@ -237,13 +269,18 @@
     "fixture": "tests/fixtures/learning",
     "access": "read-only",
     "turns": [
-      "{mental}quiz event-loop items=10 feedback=end format=mixed. Do not persist results."
+      "{mental}quiz event-loop items=10 feedback=end format=mcq. Do not persist results.",
+      "My final answers are: 1 A, 2 A, 3 A, 4 A, 5 A, 6 A, 7 A, 8 A, 9 A, 10 A."
     ],
-    "deterministic": {"workspace_tree_unchanged": true},
+    "deterministic": {
+      "workspace_tree_unchanged": true,
+      "forbid_output_terms": ["microtask", "call stack", "timer", "setTimeout", "Promise", "Node", "browser"]
+    },
     "rubric": [
       "Generates exactly ten numbered assessment items before collecting answers.",
-      "Covers recall plus application, transfer, or boundary reasoning rather than ten paraphrases.",
-      "Does not reveal the answer key or persist results in the first response."
+      "Covers recall plus application, transfer, or boundary reasoning within the registered event-loop source, without introducing browser, Node, Promise, microtask, or other outside mechanisms.",
+      "Does not reveal the answer key or persist results in the first response.",
+      "After the complete submission, reports an objective score out of 10 with answer-specific evidence, without a mastery percentage or global ability label."
     ]
   },
   {
@@ -262,6 +299,7 @@
     "turns": ["{mental}doctor Check this workspace without repairs."],
     "deterministic": {"workspace_tree_unchanged": true},
     "rubric": [
+      "Runs the bundled structural validator and grounds the Structure result in its output rather than substituting a manual-only audit.",
       "Reports the artifact structure separately from readiness.",
       "Treats the draft, pending decision, or open conflict as incomplete readiness rather than invalid structure.",
       "Does not edit artifacts and distinguishes unverified privacy checks when present."

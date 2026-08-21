@@ -19,7 +19,7 @@ Infer Job and Lens from the request and session. Accept `views=<anchor,map,mecha
 2. Read the current request and relevant session history, including plans, TODOs, corrections, answers, and decisions. Use exposed host memory only as a weak signal.
 3. Inspect the smallest relevant supplied source or current repository evidence. When present, also read current mechanical artifacts, active conceptual artifacts, open conflicts, and relevant private profile or mastery state.
 4. If no mental workspace exists, answer directly from supplied evidence. Do not stop to request `$build` and do not create files.
-5. Select Job and Lens with the methodology precedence. Choose internal Views and response density automatically. Disclose them only when user-selected, non-default, uncertain, or actionable.
+5. Select Job and Lens with the methodology precedence. Choose internal Views and response density automatically. Do not print routine selection metadata or a closing selection recap. Disclose a selection only when the user chose it, or when uncertainty would materially change the answer and the user can correct it.
 6. Lead with the changed prediction or answer. Build only the anchor, relationships, mechanism, scenario, evidence, or boundary needed by the Job.
 7. Separate evidence from interpretation in plain language. Link exact source paths, sections, URLs, tests, or runtime observations. Surface open conflicts instead of reconciling them silently.
 8. When the same model will likely matter again, offer `$build` as an optional way to persist the useful parts. Do not turn persistence into a prerequisite or write without consent.

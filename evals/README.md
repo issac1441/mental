@@ -66,7 +66,7 @@ python3 evals/run_dialogue_eval.py --workspace /tmp/mental-eval --iteration 12 -
 
 ## Roadmap
 
-指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、output style 與 ELI5 可及性、Lens fitness 與內容高度、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。尚未實作的協定：`build`（需 write-enabled 沙盒）、`quiz` 閱卷半段（假答卷評分）。
+指標的深化設計（遷移深度分層、認知邊界、校準、關係圖回收、output style 與 ELI5 可及性、Lens fitness 與內容高度、Decision Surprise Rate、控制組與統計加固）見 [metrics-v2.md](metrics-v2.md)。`scripts/run_conversation_evals.py` 現在以真實 host 對話覆蓋 write-enabled `build` lifecycle 與 `quiz` 出題／閱卷；learning-transfer benchmark 尚未把這兩種協定納入 paired arms。
 
 ## Interpreting
 
@@ -76,4 +76,4 @@ python3 evals/run_dialogue_eval.py --workspace /tmp/mental-eval --iteration 12 -
 
 ## Publishing results
 
-Raw transcripts、learner answers、grader outputs 與 cache 留在 gitignored workspace，不進 default branch。只提交移除本機路徑與 session 識別資訊後的 aggregate summary、來源 commit/tree hash、以及限制說明。現行範例見 [`results/v0.3.0/`](results/v0.3.0/)；歷史 raw captures 只保留在其既有 immutable Git commit 供稽核，不再當作目前 release gate 的輸入。
+Raw transcripts、learner answers、grader outputs、allowlisted `workspace_evidence` 與 cache 留在 gitignored workspace，不進 default branch。Conversation eval 只擷取 case 明列的文字檔，並記錄實際載入 plugin copy 的 content hash；只提交移除本機路徑與 session 識別資訊後的 aggregate summary、來源 commit/tree hash、以及限制說明。現行範例見 [`results/v0.3.0/`](results/v0.3.0/)；歷史 raw captures 只保留在其既有 immutable Git commit 供稽核，不再當作目前 release gate 的輸入。

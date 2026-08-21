@@ -8,6 +8,7 @@ import fnmatch
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -28,6 +29,22 @@ EVAL_PLUGIN_PATHS = (
     "scripts",
     "skills",
 )
+CLAUDE_READ_ONLY_TOOLS = ",".join(
+    (
+        "Bash(git status *)",
+        "Bash(git status)",
+        "Bash(git diff *)",
+        "Bash(git diff)",
+        "Bash(git show *)",
+        "Bash(git show)",
+        "Bash(git log *)",
+        "Bash(git log)",
+        "Bash(git rev-parse *)",
+        "Bash(git rev-parse)",
+        "Bash(python3 *validate_workspace.py *)",
+    )
+)
+MAX_EVIDENCE_FILE_BYTES = 20_000
 
 
 class EvalError(RuntimeError):
@@ -118,12 +135,34 @@ def load_cases(path: Path) -> list[dict[str, Any]]:
             raise EvalError(
                 f"{case_id}: workspace_tree_unchanged_through_turn must name an existing turn"
             )
+        prediction_turns = deterministic.get("prediction_only_turns", [])
+        if not isinstance(prediction_turns, list) or not all(
+            isinstance(item, int)
+            and not isinstance(item, bool)
+            and 1 <= item <= len(case["turns"])
+            for item in prediction_turns
+        ):
+            raise EvalError(
+                f"{case_id}: deterministic.prediction_only_turns must name existing turns"
+            )
         for key in ("protected_globs", "forbid_new_globs", "forbid_status_transitions"):
             value = deterministic.get(key, [])
             if not isinstance(value, list) or not all(
                 isinstance(item, str) and item for item in value
             ):
                 raise EvalError(f"{case_id}: deterministic.{key} must contain strings")
+        forbidden_output_terms = deterministic.get("forbid_output_terms", [])
+        if not isinstance(forbidden_output_terms, list) or not all(
+            isinstance(item, str) and item for item in forbidden_output_terms
+        ):
+            raise EvalError(
+                f"{case_id}: deterministic.forbid_output_terms must contain strings"
+            )
+        evidence_globs = case.get("evidence_globs", [])
+        if not isinstance(evidence_globs, list) or not all(
+            isinstance(item, str) and item for item in evidence_globs
+        ):
+            raise EvalError(f"{case_id}: evidence_globs must contain strings")
         for key, path_key in (("must_create", "path"), ("must_create_globs", "pattern")):
             value = deterministic.get(key, [])
             if not isinstance(value, list):
@@ -162,6 +201,14 @@ def git_head(workspace: Path) -> str | None:
     except OSError:
         return None
     return result.stdout.strip() if result.returncode == 0 else None
+
+
+def content_tree_sha256(root: Path) -> str:
+    """Hash relative paths and fingerprints for the exact plugin copy under evaluation."""
+    encoded = json.dumps(
+        snapshot(root), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def prepare_workspace(case: dict[str, Any], destination: Path) -> None:
@@ -282,6 +329,24 @@ def render_turn(turn: str, host: str) -> str:
     return turn.replace("{mental}", prefix)
 
 
+def claude_permission_args(access: str) -> list[str]:
+    if access == "read-only":
+        return [
+            "--permission-mode",
+            "dontAsk",
+            "--disallowedTools",
+            "Write,Edit,NotebookEdit",
+            "--allowedTools",
+            CLAUDE_READ_ONLY_TOOLS,
+        ]
+    return [
+        "--permission-mode",
+        "acceptEdits",
+        "--allowedTools",
+        "Bash(python3 *),Bash(git *)",
+    ]
+
+
 def claude_result(stdout: str) -> str:
     try:
         payload = json.loads(stdout)
@@ -357,27 +422,15 @@ def run_claude_turns(
             "--output-format",
             "json",
         ]
-        permission_mode = "dontAsk" if access == "read-only" else "acceptEdits"
+        permission_args = claude_permission_args(access)
         if index == 0:
-            base.extend(["--permission-mode", permission_mode])
-            if access == "read-only":
-                base.extend(["--disallowedTools", "Write,Edit,NotebookEdit"])
-            else:
-                base.extend(
-                    ["--allowedTools", "Bash(python3 *),Bash(git *)"]
-                )
+            base.extend(permission_args)
             if len(turns) == 1:
                 base.append("--no-session-persistence")
             else:
                 base.extend(["--session-id", session_id])
         else:
-            base.extend(["--resume", session_id, "--permission-mode", permission_mode])
-            if access == "read-only":
-                base.extend(["--disallowedTools", "Write,Edit,NotebookEdit"])
-            else:
-                base.extend(
-                    ["--allowedTools", "Bash(python3 *),Bash(git *)"]
-                )
+            base.extend(["--resume", session_id, *permission_args])
         if model:
             base.extend(["--model", model])
         base.extend(["--max-budget-usd", str(budget), render_turn(turn, "claude")])
@@ -476,6 +529,54 @@ def artifact_statuses(workspace: Path) -> dict[str, str]:
     return statuses
 
 
+def collect_workspace_evidence(
+    workspace: Path, patterns: list[str]
+) -> dict[str, str]:
+    """Capture explicitly allowlisted text files before the temporary workspace is removed."""
+    if not patterns:
+        return {}
+    evidence: dict[str, str] = {}
+    for path in sorted(workspace.rglob("*")):
+        relative = path.relative_to(workspace).as_posix()
+        if ".git" in path.relative_to(workspace).parts:
+            continue
+        if not any(fnmatch.fnmatch(relative, pattern) for pattern in patterns):
+            continue
+        if path.is_symlink() or not path.is_file():
+            continue
+        try:
+            raw = path.read_bytes()
+            if len(raw) > MAX_EVIDENCE_FILE_BYTES:
+                raw = raw[:MAX_EVIDENCE_FILE_BYTES]
+                suffix = "\n[truncated by evaluation harness]"
+            else:
+                suffix = ""
+            evidence[relative] = raw.decode("utf-8", errors="replace") + suffix
+        except OSError:
+            evidence[relative] = "[unreadable as UTF-8 text]"
+    return evidence
+
+
+def is_prediction_only_response(response: str) -> bool:
+    """Accept exactly one interrogative line followed by one short skip option."""
+    content_lines = [line.strip() for line in response.splitlines() if line.strip()]
+    if len(content_lines) != 2:
+        return False
+    question, skip_option = content_lines
+    if (
+        "skip" not in skip_option.casefold()
+        or "?" in skip_option
+        or "？" in skip_option
+        or len(skip_option) > 80
+    ):
+        return False
+    if question.count("?") + question.count("？") != 1 or not question.endswith(
+        ("?", "？")
+    ):
+        return False
+    return re.search(r"[.!。！](?:\s|$)", question[:-1]) is None
+
+
 def deterministic_checks(
     case: dict[str, Any],
     workspace: Path,
@@ -484,10 +585,36 @@ def deterministic_checks(
     before_statuses: dict[str, str] | None = None,
     after_statuses: dict[str, str] | None = None,
     turn_snapshots: list[dict[str, str]] | None = None,
+    assistant_outputs: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     rules = case.get("deterministic", {})
     changes = changed_paths(before, after)
     checks: list[dict[str, Any]] = []
+    available_outputs = assistant_outputs or []
+    for turn in rules.get("prediction_only_turns", []):
+        response = available_outputs[turn - 1] if len(available_outputs) >= turn else ""
+        passed = bool(response) and is_prediction_only_response(response)
+        checks.append(
+            {
+                "name": f"prediction_only_turn:{turn}",
+                "pass": passed,
+                "detail": (
+                    "one question plus skip"
+                    if passed
+                    else "extra narration, hints, or missing question"
+                ),
+            }
+        )
+    combined_output = "\n".join(available_outputs).casefold()
+    for term in rules.get("forbid_output_terms", []):
+        found = term.casefold() in combined_output
+        checks.append(
+            {
+                "name": f"forbid_output_term:{term}",
+                "pass": not found,
+                "detail": "not present" if not found else "present in assistant output",
+            }
+        )
     unchanged_through = rules.get("workspace_tree_unchanged_through_turn")
     if isinstance(unchanged_through, int):
         available = turn_snapshots or []
@@ -711,7 +838,10 @@ def rubric_passed(
 
 
 def judge_prompt(
-    case: dict[str, Any], transcript: list[dict[str, str]], checks: list[dict[str, Any]]
+    case: dict[str, Any],
+    transcript: list[dict[str, str]],
+    checks: list[dict[str, Any]],
+    workspace_evidence: dict[str, str],
 ) -> str:
     payload = {
         "case": case["id"],
@@ -719,6 +849,7 @@ def judge_prompt(
         "rubric": case["rubric"],
         "transcript": transcript,
         "deterministic_checks": checks,
+        "workspace_evidence": workspace_evidence,
     }
     return (
         "Evaluate the observed agent behavior against every rubric item. Judge behavior, "
@@ -738,10 +869,11 @@ def run_judge(
     case: dict[str, Any],
     transcript: list[dict[str, str]],
     checks: list[dict[str, Any]],
+    workspace_evidence: dict[str, str],
     model: str | None,
     budget: float,
 ) -> dict[str, Any]:
-    prompt = judge_prompt(case, transcript, checks)
+    prompt = judge_prompt(case, transcript, checks, workspace_evidence)
     if host == "claude":
         try:
             schema = json.dumps(json.loads(JUDGE_SCHEMA.read_text(encoding="utf-8")))
@@ -834,15 +966,23 @@ def evaluate_case(
             before_statuses,
             after_statuses,
             turn_snapshots,
+            outputs,
+        )
+        workspace_evidence = collect_workspace_evidence(
+            workspace, list(case.get("evidence_globs", []))
         )
         result: dict[str, Any] = {
             "case": case["id"],
             "host": args.host,
             "access": access,
             "evaluated": not args.capture_only,
+            "plugin_content_sha256": content_tree_sha256(
+                workspace / EVAL_PLUGIN_DIRNAME
+            ),
             "transcript": transcript,
             "changed_paths": changed_paths(before, after),
             "deterministic_checks": checks,
+            "workspace_evidence": workspace_evidence,
             "judge": None,
         }
         results_dir.mkdir(parents=True, exist_ok=True)
@@ -858,6 +998,7 @@ def evaluate_case(
                     case,
                     transcript,
                     checks,
+                    workspace_evidence,
                     args.judge_model,
                     args.budget,
                 )
@@ -937,6 +1078,14 @@ def main() -> int:
         "judge_model": None if args.capture_only else args.judge_model or "host-default",
         "evaluated": not args.capture_only,
         "plugin_git_head": git_head(ROOT),
+        "plugin_content_sha256s": sorted(
+            {
+                result["plugin_content_sha256"]
+                for result in summaries
+                if isinstance(result.get("plugin_content_sha256"), str)
+            }
+        ),
+        "judge_schema_sha256": hashlib.sha256(JUDGE_SCHEMA.read_bytes()).hexdigest(),
         "cases_sha256": hashlib.sha256(args.cases.read_bytes()).hexdigest(),
         "results": [
             {
