@@ -1,29 +1,29 @@
 ---
 name: learn
-description: Teach a goal adaptively from supplied, evidence-linked mental-model artifacts. Use when a learner wants a guided lesson, onboarding path, prerequisite diagnosis, or help understanding difficult material. Select a role-conditioned Lens, multiple semantic Views, and Detail from explicit input plus session evidence before teaching.
+description: Teach a source-bound goal adaptively through diagnosis, explanation, prediction, and transfer. Use for guided learning, onboarding, prerequisite diagnosis, or difficult material; it can start directly from supplied sources without requiring a prebuilt mental workspace and persists personal progress only with explicit session consent.
 ---
 
 # Learn
 
-Help the learner reconstruct and use the model rather than consume a long summary.
+Help the learner construct and use a model rather than recognize a fluent summary.
 
 ## Input contract
 
-Use a natural-language learning goal, optionally followed by:
+`<learning-goal-or-scope> [lens=<built-in-or-custom-id>]`
 
-`lens=<built-in-or-artifact-id> views=<anchor,map,mechanism,scenario,evidence> detail=<brief|standard|deep>`
+Infer response density from natural language. Accept advanced `views=` only when explicitly supplied.
 
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, and `../../references/writing-profile.md` relative to this skill.
-2. Read the current session, `mental/index.md`, the concept map, relevant canonical artifacts, relevant custom lenses, and `.mental/profile.md` or `.mental/mastery.json` when present. Treat host memory as a weak signal only when exposed.
-3. If no canonical learning model exists, do not invent a curriculum from general knowledge. Ask the user to provide sources and invoke `$build`, or obtain explicit permission to teach from clearly labeled draft artifacts.
-4. Establish one observable goal: what the learner should predict, explain, build, compare, or debug.
-5. Select Lens, Views, and Detail using manual override → explicit goal → current session evidence → private profile or mastery → exposed host memory → `student` default. State the basis. Do not infer ability from identity, confidence, grammar, or speed, and do not persist inferred preferences.
+1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/learning-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
+2. Read the current session and the smallest relevant supplied or registered sources. Use current mechanical artifacts, active conceptual artifacts, custom lenses, private profile, or mastery state when present and relevant.
+3. If no mental workspace exists, continue from supplied sources. Do not require `$build`. Offer persistence only after the lesson demonstrates reusable value.
+4. Establish one observable goal: what the learner should predict, explain, compare, build, or debug.
+5. Select the session Lens; infer `orient` or `repair` Job from the goal. Do not infer ability from identity, confidence, grammar, or speed.
 6. Ask one compact batch of 2–5 high-information diagnostic prompts, then stop for answers.
-7. After the learner responds, identify the smallest broken or missing relationship. Teach one chunk using only the selected Views and Detail, following the explanation shape in `methodology.md`: intuition first, then relationships, then mechanism, then a worked case, then the boundary — as one flow in plain language, never as sections labeled with View names.
-8. End with a prediction or teach-back prompt. Do not reveal its answer until the learner attempts it or asks.
-9. Update `.mental/profile.md`, `.mental/mastery.json`, and a private session note only after response evidence exists and only when writing personal progress is in scope. Use `unknown`, `exposed`, `working`, and `verified` with the learning reference's transition rules.
-10. Recommend the next concept based on prerequisites and observed gaps, not a fixed chapter order. Recommend `$practice` for adaptive coaching or `$quiz` for a bounded exam.
+7. After the response, identify the smallest missing relationship. Teach one chunk with an anchor, relationship, mechanism, scenario, and boundary only as needed.
+8. End with a prediction or teach-back prompt. Keep the answer hidden until the learner attempts it or asks.
+9. Persist `.mental/` profile, mastery, or session evidence only after a response and explicit persistence consent for the active learning session. Before any private write, run `python3 ../../scripts/ensure_private_state.py <workspace> --language <language>` with absolute paths resolved from this skill directory. If the helper refuses an unsafe path or ignore rule, stop the write and report it; never fall back to `mental/`.
+10. Recommend the next prerequisite from observed gaps. Use `$practice` for adaptive repair, `$quiz` for fixed coverage, and optional advanced `$build` to preserve reusable source-bound material.
 
-Shared models and reusable exercises belong in `mental/`; personal answers, diagnostics, goals, and progress belong in `.mental/`.
+Shared reusable material belongs in `mental/`; personal answers, diagnostics, goals, and progress belong in `.mental/`.

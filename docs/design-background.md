@@ -4,164 +4,200 @@
 
 ## Abstract
 
-`mental` addresses a coordination problem: an agent can generate or change material faster than a person can build a reliable model of it. The plugin therefore optimizes for model acquisition, prediction, correction, and human decisions. It does not optimize for document volume.
+`mental` addresses a coordination problem: an agent can act faster than a person can build a reliable model of what happened. The product therefore aims to shorten the gap between agent execution and human model acquisition. It supports both agentic software work and source-bound learning.
 
-The method combines a small relationship model, Lens × Views × Detail selection, runtime or transfer scenarios, claim provenance, draft-to-canonical promotion, and evidence-based practice. This document records how those parts follow from the original design conversation, how they connect to cognitive-science research, and which claims still require evaluation.
+The current method emphasizes immediate explanation before artifact setup, human-first prediction, decision accountability, adaptive repair, three artifact authorities, and first-class conflicts. This document records the original research framing, later design corrections, and claims that still require empirical evaluation.
 
 ## 1. Problem statement
 
-The original design conversation started from software work with coding agents. A large code diff can be locally correct while leaving the operator unable to answer basic system questions:
+A large code change can be locally correct while leaving the operator unable to answer:
 
 - What changed in the system model?
 - Which boundary, contract, or invariant now matters?
 - What should happen at runtime?
-- Which decision did the agent make on the operator's behalf?
-- Where does the explanation stop predicting correctly?
+- Which consequential choice did the agent make on the operator's behalf?
+- Where does this explanation stop predicting correctly?
 
-The same gap appears in learning. A learner can read a fluent summary and still fail to reconstruct a mechanism, predict an outcome, or transfer the idea to a new case. In both settings, content delivery is not the same as model acquisition.
+Learning has the same gap. A learner can read a fluent summary yet fail to reconstruct a mechanism, predict an outcome, or transfer the idea. Content delivery and artifact generation are not model acquisition.
 
-The central design question is therefore:
+The central question is:
 
-> How can an agent help a person construct a small, source-linked model that supports prediction and correction without replacing human judgment?
+> How can an agent help a person construct and repair a small, source-linked model without performing the person's prediction or decision for them?
 
 ## 2. Design hypotheses
 
-These statements are product hypotheses, not established properties of `mental`.
+These are product hypotheses, not established properties.
 
 ### H1 — Relationships beat inventory
 
-A small map of boundaries, prerequisites, causal links, contracts, and failure paths will support useful predictions better than an exhaustive inventory of files or facts.
+A small map of boundaries, prerequisites, causal links, contracts, and failures will support useful predictions better than an exhaustive inventory.
 
-### H2 — The right view reduces unnecessary load
+### H2 — Lens × Job reduces irrelevant explanation
 
-Selecting a role-conditioned Lens, only the needed semantic Views, and suitable Detail should reduce irrelevant information during orientation. Progressive disclosure should help a person acquire a schema before inspecting implementation evidence.
+A session role (Lens) plus the current cognitive task (Job) should select a more useful explanation than either a generic answer or a large set of controls the user must configure in advance.
 
-### H3 — Prediction exposes model gaps
+### H3 — Human-first prediction exposes model gaps
 
-Asking for a prediction before revealing an implementation trace or answer will expose missing relationships more reliably than asking whether the explanation feels clear.
+When it is consequential, asking the person to predict before revealing evidence should expose missing relationships more reliably than asking whether an explanation feels clear. The interaction must allow a direct answer or `skip`; compulsory Socratic friction can reduce utility.
 
-### H4 — Transfer and counterexamples are stronger evidence than recognition
+### H4 — Transfer and counterexamples beat recognition
 
-A person who can explain a relationship, apply it in a new scenario, and identify a boundary has stronger evidence of understanding than a person who only recognizes familiar wording.
+Independent explanation, application to a structurally related case, and a boundary or counterexample provide stronger evidence of understanding than recognition or assent.
 
-### H5 — Human confirmation must govern conceptual truth
+### H5 — The gate must match human standing
 
-An agent can assemble evidence and draft a model. It cannot decide that inferred boundaries, causal claims, or invariants are the team's agreed conceptual truth. Promotion to `canonical` therefore requires an explicit human decision.
+People can legitimately decide desired behavior, tradeoffs, ownership, and risk. A newcomer cannot validate unfamiliar implementation facts merely by approving a fluent draft. Mechanical refresh, conceptual activation, and human decision therefore require different gates.
+
+### H6 — Learning in the work loop has higher reach
+
+Short prediction and repair moments inside `change` and `review` may reach operators who will not start a separate study session. Deliberate `learn`, `practice`, and `quiz` remain useful for explicit learning goals.
 
 ## 3. Connections to cognitive science
 
-The research below motivates parts of the design. It does not validate the plugin as a whole.
+These studies motivate design choices; they do not validate the plugin as a whole.
 
 ### Mental models
 
-Johnson-Laird's early account treats mental models as representations used in cognition and reasoning. `mental` borrows the practical idea that a useful representation should support inference. The repository's Markdown graph is an external coordination artifact, not a claim to reproduce a person's internal cognitive representation.
+Johnson-Laird describes mental models as representations used in cognition and reasoning. `mental` borrows the practical criterion that a useful representation supports inference. Markdown artifacts are external coordination objects, not claims about a person's internal representation.
 
 ### Cognitive load and schema acquisition
 
-Sweller's 1988 experiments and model argue that conventional means-ends problem solving can consume capacity that would otherwise support schema acquisition. `mental` responds with progressive disclosure, small relationship sets, worked scenarios, and explicit prerequisites. The plugin does not currently measure cognitive load, so it must not claim that it reduces it.
+Sweller's 1988 work argues that means-ends problem solving can consume capacity otherwise available for schema acquisition. Progressive disclosure, small relationship sets, worked scenarios, and explicit prerequisites respond to this concern. `mental` does not measure cognitive load and must not claim that it reduces it.
 
-### Self-explanation
+### Self-explanation and generation
 
-Chi and colleagues found that successful learners generated more self-explanations while studying worked examples and connected solution steps to principles. This motivates teach-back, prediction, and correction of the smallest broken relationship. It does not justify treating every verbal explanation as proof of mastery.
+Chi and colleagues found that successful learners generated more self-explanations and connected steps to principles. This motivates teach-back, human prediction, and repair of the first broken relationship. An agent-authored prediction would defeat this purpose.
 
 ### Retrieval and transfer
 
-Karpicke and Blunt found that retrieval practice produced stronger learning in their science-text experiments than elaborative study with concept mapping. This is an important constraint on the product: building a map is not enough. `/mental:practice` must require reconstruction and transfer.
+Karpicke and Blunt found retrieval practice stronger than elaborative concept mapping in their science-text experiments. A map is therefore insufficient: learners must reconstruct and transfer. Retrieval can also reinforce a wrong model, so source evidence, counterexamples, and open conflicts must remain visible.
 
-## 4. Method derivation
+## 4. Method evolution
 
-The method separates questions that large architecture documents often mix together:
+### From Lens × Zoom to Lens × Views × Detail
 
-- A structural view answers **what exists**.
-- A scenario answers **what happens**.
-- A decision record answers **why this shape was chosen**.
-- Evidence answers **what was observed**.
-- Canonical status answers **what a human has agreed to use as the conceptual model**.
+The first design used Lens × Zoom. Later work separated semantic slices—anchor, map, mechanism, scenario, and evidence—from response density because evidence is not simply a deeper version of system structure.
 
-Lens × Views × Detail selects the explanation strategy. The model map names the minimum relationships. Scenarios test whether those relationships predict behavior. Claim labels separate observations, inferences, agreements, and conflicts. The promotion gate prevents fluent agent output from becoming accepted truth by accident.
+That correction still exposed too many controls at the input surface. Default Lens-to-View mappings encoded little additional information, and Detail partially repeated View selection.
 
-### Design vocabulary evolution
+### From Lens × Views × Detail to Lens × Job
 
-The first design used **Lens × Zoom**. Lens originally named perspectives such as architect or debugger, while examples based on education level were really audience assumptions. The current design merges those ideas: a Lens now represents the knowledge, vocabulary, concerns, and decisions typical of a role. `architect` is therefore a Lens for the same reason that `student` or `pm` is a Lens. It shapes what the answer assumes and emphasizes without claiming that the user permanently is that role.
+The current interface keeps:
 
-The old L0–L4 scale also mixed different dimensions. “Runtime” and “evidence” are not merely more detailed versions of “system”; they are different semantic slices, and users often need several at once. The operational model now uses multi-select Views (`anchor`, `map`, `mechanism`, `scenario`, `evidence`) plus an independent Detail control (`brief`, `standard`, `deep`). The old names remain here only as design provenance; skills do not accept them as aliases.
+- **Lens** as a low-frequency session assumption about role knowledge, vocabulary, concerns, and decisions;
+- **Job** as the per-task need: orient, decide, predict, verify, or repair.
 
-Context selection uses manual input first, then the explicit goal, current session evidence, private profile or mastery, exposed host memory as a weak signal, and finally a scope default. This ordering lets the agent adapt without silently converting inference into a permanent user profile.
+Views remain internal audit vocabulary. The agent chooses them and reports them only when user-selected, non-default, uncertain, or actionable. Experienced users may override Views, but first-time users do not need to understand the taxonomy.
 
-For repository changes, the workflow is:
+The built-in Lens names are role-shaped conveniences, not identity claims. A person may use `architect` for one explanation and `student` for another. Job sets the cognitive objective; Lens supplies assumed knowledge, vocabulary, and salient concerns. `concerns` is not a whitelist: a PM Lens can still trace a mechanism when the Job is prediction. When the controls appear to conflict, Job wins and Lens shapes its presentation. This distinction must be tested because role labels can still invite identity-based inference if agents apply them carelessly.
 
-1. Orient to the current model.
-2. Predict current behavior.
-3. Propose the model delta.
-4. Expose decisions, contracts, invariants, and failure behavior.
-5. Obtain the human decision.
-6. Implement the accepted change.
-7. Verify the predictions.
-8. Preserve surprises and synchronize accepted model changes.
+### From artifact-first to value-first
 
-For learning, the workflow is:
+The first quickstart required `build`. This delayed value and asked newcomers to approve a model they were not yet equipped to judge. The current flow starts with read-only `understand` or source-bound `learn`. `build` becomes optional persistence after an interaction demonstrates reuse value.
 
-1. Diagnose a small number of prerequisite relationships.
-2. Give one anchor and a small relationship set.
-3. Walk through one representative scenario.
-4. Show one boundary, failure, or misconception.
-5. Ask for retrieval, prediction, or teach-back.
-6. Correct the first broken relationship.
-7. Test transfer before recording verified mastery.
+### From agent prediction to human prediction
 
-## 5. Truth and governance
+The shipped change workflow once instructed the agent to write a Prediction. That reproduced the cognitive outsourcing the product was meant to prevent. `change` now asks one high-information human prediction when it can affect a consequential decision, allows `skip`, then compares the response with evidence and repairs the smallest model gap. `skip` applies to one invocation and is not retained as a behavior profile. A recorded brief stores only whether a prediction was attempted, skipped, or not applicable; the answer remains in conversation unless the user asks to persist it.
 
-`mental` keeps two forms of truth distinct:
+### From one promotion gate to three gates
 
-- Source, code, tests, and runtime observations describe material or implementation truth.
-- Canonical artifacts describe human-agreed conceptual truth.
+Human assent was previously treated as a path from draft to canonical. This confused recognition, decision authority, and factual verification. The current design separates:
 
-The two can disagree. A mismatch is a finding, not permission to rewrite either side silently. This is why artifacts distinguish `[observed]`, `[inferred]`, `[agreed]`, and `[conflict]` claims.
+- mechanical refresh from registered evidence;
+- conceptual activation with a recorded verification basis;
+- human acceptance of intent and tradeoffs.
 
-Shared models live in `mental/`. Personal goals, diagnostic answers, session notes, and mastery evidence live in gitignored `.mental/`. The separation supports collaboration without publishing a learner profile.
+`active` means current working model, not infallible truth.
 
-## 6. Evaluation plan
+## 5. Authority, conflicts, and decisions
 
-Evaluation should compare `mental` with the host agent's normal workflow for a defined task class. Do not combine unrelated tasks into one trust score.
+Source files, code, tests, and runtime observations remain material or implementation truth. Shared artifacts declare maintenance authority:
 
-Useful measures include:
+- **mechanical** artifacts are regenerable caches and can refresh automatically only from a recorded source ID, concrete revision, refresh basis, and Evidence section;
+- **conceptual** artifacts are durable explanations that require evidence and checked predictions before activation;
+- **decision** artifacts preserve human or agent choices, rejected alternatives, timing, and reversibility.
 
-- **Orientation time:** time until a person can explain the boundary and trace a representative scenario.
+Authority and volatility are separate axes. Authority decides who may update an artifact; volatility would decide how often an agent should inspect it. V1 does not add a `volatility` field because no decay policy has been validated yet. Registered source revisions plus `current|stale` provide the smaller operational mechanism; future evaluations should test whether a separate decay hint reduces scans without adding another ceremonial field.
+
+Mechanical does not mean “contains no inference.” It means a bounded agent pass can
+stably reconstruct the same representation from the registered evidence without
+choosing desired behavior or resolving competing conceptual interpretations.
+Kinds that can serve as either caches or explanations therefore allow both
+mechanical and conceptual authority. Automatic refresh is safe only when the
+artifact records how to reproduce the mechanical reading; otherwise it becomes
+stale and produces a visible delta.
+
+Conflicts are first-class `open|resolved` artifacts with stable IDs, owners, both sides of the mismatch, and resolution evidence. They are actionable interrupts rather than inline confidence labels.
+
+Decision Surprise names a specifically agentic failure mode: a consequential choice becomes visible only after approval or implementation. The bounded Decision Surprise Rate is consequential post-approval decisions divided by all consequential decisions discovered by that review. It is `N/A` without a valid denominator and is never a global trust score.
+
+Trust is scoped as `Model × Harness × Task Class`. A model without a task-relevant test or canary does not justify autonomy; a harness does not transfer trust beyond the task class it covers.
+
+## 6. Skill and output-style layers
+
+An opt-in skill alone cannot fix poor default explanations. `mental` therefore defines a shared output policy: outcome first, smallest predictive model, progressive evidence, actionable uncertainty, and no repetitive context header.
+
+The portable plugin can guarantee that policy inside mental skills. Making it always-on outside skill invocations depends on host-level instruction mechanisms and should be evaluated separately rather than assumed portable.
+
+Six primary skills preserve meaningful interaction and write boundaries: `understand`, `change`, `review`, `learn`, `practice`, and `quiz`. `build`, `sync`, and `doctor` remain advanced persistence and maintenance capabilities. This reduces cold-start complexity without merging read-only explanation, private learning writes, and artifact maintenance into ambiguous commands.
+
+## 7. Evaluation plan
+
+Compare `mental` with the host agent's normal workflow for a defined task class. Useful measures include:
+
+- **Time to first value:** time from installation to a useful answer.
+- **Orientation time:** time until a person can explain the boundary and trace a scenario.
 - **Prediction accuracy:** correct predictions about an unseen runtime or transfer case.
 - **Model correction:** ability to find and repair a deliberately wrong relationship.
-- **Decision Surprise Rate:** consequential decisions discovered after approval divided by consequential decisions reviewed for that task.
-- **Transfer performance:** ability to apply the model to a new but structurally related case.
-- **Drift detection:** whether source/model conflicts are found and remain visible until a human decision.
+- **Decision Surprise Rate:** bounded post-approval consequential choices divided by reviewed consequential choices.
+- **Transfer performance:** application to a new structurally related case.
+- **Maintenance cost:** human time spent reviewing mechanical versus conceptual drift.
 - **Privacy containment:** whether personal learning state stays outside versioned artifacts.
 
-A credible study should record prior knowledge, task class, source quality, model status, time, assistance, and delayed retention. It should keep prediction tasks hidden until after the model is built.
+A credible study should record prior knowledge, task class, source quality, artifact authority, time, assistance, harness coverage, and delayed retention. Prediction tasks must remain hidden until the person commits to an answer.
 
-## 7. Threats and limitations
+Implementation assurance uses two orthogonal layers. Deterministic tests validate
+manifests, schemas, paths, privacy, and state transitions quickly in CI.
+Conversation evaluations then run an actual Claude Code or Codex host, preserve
+its real output and workspace delta, and ask a rubric judge to score conditional
+behavior. A phrase-presence test is not a conversation evaluation. Host evals
+remain slower and probabilistic, so they supplement rather than replace the
+deterministic layer.
 
-- A polished graph can be wrong. Evidence links and human confirmation reduce this risk but do not remove it.
-- Source-bound learning can faithfully preserve errors or omissions in the supplied material.
-- Lens × Views × Detail is a design vocabulary, not a validated cognitive taxonomy.
-- The four mastery states are workflow states, not psychometric measurements.
-- Agent-generated diagnoses can reflect prompt quality and source coverage rather than learner ability.
-- More artifacts can create maintenance load. Every artifact must justify itself by improving a prediction or decision.
-- Results from one repository, learner, language, or subject do not establish broad effectiveness.
+The deterministic workspace snapshot records regular-file content, directory
+presence, symlink targets, and special-file types inside the fixture. It can
+detect net changes at the end of a run, including empty directories and
+symlinks. It cannot prove that a host never wrote and then removed a path, and
+it does not observe writes outside the fixture. Read-only cases therefore also
+use the host's read-only controls. Capture-only runs are explicitly unjudged and
+cannot pass the evaluation gate.
 
-## 8. Paper-shaped research agenda
+## 8. Threats and limitations
 
-A future paper or proposal can use this structure:
+- A polished model can be wrong, and practice can reinforce that error.
+- Source-bound learning can preserve errors or omissions in supplied material.
+- Human prediction adds useful effort only when the question has information value; overuse becomes ceremony.
+- Lens × Job is design vocabulary, not a validated cognitive taxonomy.
+- The mastery states are workflow states, not psychometric measurements.
+- Agent diagnoses may reflect prompt and source quality rather than learner ability.
+- Generated artifacts can become a maintenance burden; persistence must earn its cost.
+- Skill instructions reduce prompt-injection risk but are not a security sandbox.
+- Results from one repository, learner, language, or subject do not establish general effectiveness.
 
-1. **Introduction:** agent throughput and the human model-acquisition bottleneck.
-2. **Related work:** mental models, cognitive load, self-explanation, retrieval practice, architecture knowledge, and human-agent oversight.
-3. **Method:** Lens × Views × Detail, artifact contract, provenance, promotion gates, and skill workflows.
-4. **Research questions:** orientation, prediction, transfer, decision surprise, drift, and privacy.
-5. **Study design:** task classes, baselines, participants, source controls, and delayed tests.
+## 9. Paper-shaped research agenda
+
+1. **Introduction:** agent throughput and human model-acquisition bottlenecks.
+2. **Related work:** mental models, cognitive load, self-explanation, generation, retrieval, architecture knowledge, and human-agent oversight.
+3. **Method:** Lens × Job, human-first prediction, authority-specific gates, decision ledger, conflicts, and adaptive repair.
+4. **Research questions:** time to value, prediction, transfer, Decision Surprise, maintenance cost, and privacy.
+5. **Study design:** task classes, baselines, participants, source controls, harnesses, and delayed tests.
 6. **Results:** behavioral outcomes and failure cases, not only satisfaction.
 7. **Discussion:** where externalized models help, where they add friction, and how agent errors propagate.
 8. **Limitations and ethics:** learner profiling, source bias, over-trust, privacy, and generalizability.
 
-## 9. Provenance and references
+## 10. Provenance and references
 
-The initial problem framing, Living System Model, original Lens × Zoom vocabulary, model-delta workflow, Decision Surprise Rate, and distinction between implementation truth and conceptual truth came from the [user-supplied design conversation](https://chatgpt.com/share/6a7f588a-6aa8-83ee-a4d4-7ea7cdc7a38c). Later discussion merged audience with perspective inside Lens, split the old scale into Views and Detail, clarified `change` relative to Plan Mode, separated adaptive `practice` from bounded `quiz`, and made session context a first-class selection signal. This document records both stages. The shared conversation is design provenance, not peer-reviewed evidence.
+The initial problem framing, Living System Model, Lens × Zoom vocabulary, model-delta workflow, Decision Surprise Rate, truth layering, trust unit, and PREDICT interaction came from the [user-supplied design conversation](https://chatgpt.com/share/6a7f588a-6aa8-83ee-a4d4-7ea7cdc7a38c). Later conversations merged audience and perspective inside Lens, separated adaptive practice from fixed quiz, added session context, and then corrected artifact-first onboarding, agent-authored prediction, a single promotion gate, and overexposed Views/Detail controls. This document preserves that evolution rather than presenting the latest shape as inevitable.
 
 - P. N. Johnson-Laird, “Mental Models in Cognitive Science,” *Cognitive Science* 4(1), 1980. [DOI](https://doi.org/10.1207/s15516709cog0401_4)
 - John Sweller, “Cognitive Load During Problem Solving: Effects on Learning,” *Cognitive Science* 12(2), 1988. [DOI](https://doi.org/10.1207/s15516709cog1202_4)

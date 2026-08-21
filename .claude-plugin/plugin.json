@@ -1,9 +1,9 @@
 {
   "name": "mental",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Build, explain, assess, and maintain evidence-linked mental models for repositories and learning material.",
   "author": {
-    "name": "mental contributors"
+    "name": "issac1441"
   },
   "license": "0BSD",
   "keywords": [

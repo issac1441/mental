@@ -1,4 +1,4 @@
 interface:
   display_name: "Mental Review"
   short_description: "Review changes against the agreed model"
-  default_prompt: "Use $review to explain Before to After, then audit this implementation against the agreed model."
+  default_prompt: "Use $mental:review to explain Before to After, then audit this implementation against the active model and accepted decisions."

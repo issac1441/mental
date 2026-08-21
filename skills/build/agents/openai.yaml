@@ -1,4 +1,4 @@
 interface:
-  display_name: "Mental Build"
+  display_name: "Mental Build (Advanced)"
   short_description: "Build evidence-linked mental model artifacts"
-  default_prompt: "Use $build to draft a mental model from the sources I provide."
+  default_prompt: "Use $mental:build to save a reusable evidence-linked model from the sources I provide."

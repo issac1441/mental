@@ -1,29 +1,33 @@
 ---
 name: review
-description: Explain and audit a repository diff, branch, commit, or implementation against its canonical mental model and approved change brief. Use after implementation to show Before to After, runtime consequences, proposed-versus-actual surprises, broken contracts, hidden decisions, failure behavior, model drift, and missing evidence. Remains read-only.
+description: Explain and audit a repository diff, branch, commit, or completed implementation after the agent works. Use to reconstruct Before to After, reveal runtime effects and Decision Surprises, compare proposed versus actual choices, check contracts and failures, and assess the relevant Model × Harness × Task Class. Remains read-only.
 ---
 
 # Review
 
-Give the operator a mental model of what actually changed, then audit whether it is correct. Remain read-only.
+Give the operator a model of what actually changed, then audit it.
+
+## Input contract
+
+`[target] [job=<verify|predict>] [lens=<id>]`
+
+Target defaults to the current diff and may be a staged diff, commit, branch, ref, or named implementation. Accept advanced `views=` only when explicitly supplied.
 
 ## Workflow
 
-1. Read `../../references/methodology.md`, `../../references/artifact-contract.md`, `../../references/repository-workflow.md`, and `../../references/writing-profile.md` relative to this skill.
-2. Resolve the review target without mutating it. Read the relevant canonical artifacts, approved change brief, diff, tests, and runtime evidence.
-3. Reconstruct the `Actual Change Mental Model` first:
-   - `Before → After`;
-   - actual model delta;
-   - runtime consequences;
-   - new or changed boundaries, ownership, contracts, invariants, and failure behavior;
-   - predictions the operator should now update.
-4. Compare the proposed delta with the actual delta. Label omissions, additional behavior, and changed decisions as `Decision Surprises`; if no approved brief exists, label consequential implementation choices as potentially hidden decisions.
-5. Trace one representative success path and one failure path through the changed behavior.
-6. Audit the implementation against canonical contracts, invariants, failure semantics, ownership, prerequisites, model status, and verification evidence.
-7. Return actionable findings ordered by model impact: broken contract or invariant; unapproved or hidden decision; incorrect failure behavior; stale or contradictory model; missing verification evidence; local implementation quality.
+1. Read `../../references/methodology.md`, `../../references/output-style.md`, `../../references/artifact-contract.md`, `../../references/repository-workflow.md`, `../../references/source-safety.md`, and `../../references/writing-profile.md` relative to this skill.
+2. Resolve the target without mutation. Read relevant current mechanical artifacts, active conceptual artifacts, accepted decisions, open conflicts, change briefs, diff, tests, and runtime evidence.
+3. Infer Lens and Job from the request and session unless the user supplied them. Use `verify` as the default Job and do not print routine selection metadata.
+4. Reconstruct the `Actual Change Mental Model`: `Before → After`, runtime consequences, changed boundaries, ownership, contracts, invariants, failures, and operator predictions.
+5. Compare proposed and actual decisions. Mark consequential choices first discovered after approval as `Decision Surprises`; do not hide them as implementation details.
+6. Trace one representative success and failure path. Audit the relevant contracts, invariants, failure semantics, ownership, and verification harness.
+7. State the bounded Task Class and assess Model × Harness coverage. Name the missing factor before recommending more autonomy.
+8. When review coverage has a valid denominator, report Decision Surprise Rate as `post-approval consequential decisions / all consequential decisions discovered`. Otherwise report `N/A` with the missing coverage.
+9. Offer one short prediction or teach-back prompt when it helps the operator absorb the change. Do not block the review or reveal its answer before an attempted response.
+10. Return actionable findings ordered by model impact: broken contract or invariant; Decision Surprise; wrong failure behavior; open conflict; stale model; missing harness evidence; local implementation quality.
 
 ## Response contract
 
-Open with two or three plain-language sentences stating what actually changed and whether it matches what was agreed — a reader who stops there should already have the verdict. The first sentence is about the change, never about your process or tooling. Then return `Actual Change Mental Model`, `Proposed vs Actual`, `Findings`, `Decision Surprises`, `Evidence`, and `Open Questions`. State each finding exactly once, in whichever section is most decisive for it; other sections may point to it in a clause but never restate it — repeating the same finding across sections buries the ones that appear only once. If there are no findings, say so and name residual evidence gaps.
+Return `Actual Change Mental Model`, `Proposed vs Actual`, `Findings`, `Decision Surprises`, `Trust Basis`, `Evidence`, and `Open Questions`. If there are no findings, say so and name residual evidence gaps.
 
-Do not update artifacts, mastery, source files, code, or Git state. Suggest `$quiz` when the operator wants to verify their own understanding and `$sync` when implementation evidence makes the canonical model stale.
+Do not update artifacts, mastery, source files, code, or Git state. Suggest `$quiz` for bounded understanding assessment and advanced `$sync` for artifact refresh.

@@ -1,20 +1,30 @@
 ---
 id: {{ID}}
 kind: change
-status: draft
+authority: decision
+status: pending
 sources:
   - {{SOURCE_ID}}
 prerequisites: []
 updated_at: {{TODAY}}
+prediction_status: not-applicable
+supersedes: []
+superseded_by: []
+status_history:
+  - {{TODAY}}:pending
 ---
 
 # {{TITLE}}
 
 ## Mode and Question
 
+## Task Class and Trust Basis
+
 ## Current Model
 
-## Prediction
+## Human Prediction and Model Gap
+
+Do not fabricate a human prediction. Update `prediction_status`; keep the answer private unless the user explicitly asks to record it here.
 
 ## Proposed Model Delta
 
@@ -28,10 +38,14 @@ updated_at: {{TODAY}}
 
 ## Failure Behavior
 
-## Verification Evidence
+## Verification Harness
 
-## Surprises and Conflicts
+## Open Conflicts
 
 ## Human Decision
 
-Pending. Do not implement or promote this artifact before explicit approval.
+- State: pending
+- Accepted option or boundary:
+- Decision evidence:
+
+Do not implement before the human decision is accepted.
